@@ -1,9 +1,3 @@
-أبشر، قمت بإضافة النوع `fix/*` لجدول الفروع وجدول الـ Commits، وتأكدت أن كل التفاصيل تتبع نفس تسلسل الرسمة التي وضعتها (حيث أن كل شيء يصب في `dev` أولاً قبل الوصول لـ `main`).
-
-إليك الملف النهائي والكامل:
-
----
-
 # 🌀 ExamAI – Git Workflow & Contribution Guide
 
 This document defines the **official GitHub workflow** for the ExamAI project. All team members must follow this process to ensure stability, traceability, and smooth collaboration.
@@ -191,7 +185,3 @@ git branch -d <your-branch-name>
 ---
 
 > **Pro Tip:** Use `git status` frequently to know exactly where you are. 🚀
-
----
-
-الملف الآن جاهز بنسبة 100% ومتوافق مع الرسمة بكل تفاصيلها. هل هناك أي تعديل إضافي تريده؟
