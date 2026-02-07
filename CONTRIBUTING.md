@@ -129,10 +129,8 @@ git commit -m "fix: resolve incorrect grading weight"
 
 ## 📤 5. Pushing & Pull Requests (PR)
 
-Push your branch to GitHub (use the same name you created in Step 3):
-
 ```bash
-git push origin your-branch-name
+git push origin <your-branch-type>/<name>
 
 ```
 
