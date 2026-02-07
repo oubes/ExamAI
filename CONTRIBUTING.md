@@ -128,14 +128,15 @@ We use **Squash and Merge** to maintain a clean, linear project history.
 After your PR is merged, clean up your workspace:
 
 ```bash
-# 1. Switch back to dev and sync
+# After merge, delete locally
+# 1️⃣ Switch back to dev and sync
 git checkout dev
 git pull origin dev
 
-# 2. Delete local branch
+# 2️⃣ Delete local branch
 git branch -d your-branch-name
 
-# 3. Delete remote branch (if not auto-deleted by GitHub)
+# 3️⃣ Delete remote branch from GitHub
 git push origin --delete your-branch-name
 
 ```
