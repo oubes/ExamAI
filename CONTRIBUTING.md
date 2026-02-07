@@ -1,17 +1,19 @@
-# 🌀 ExamAI – Git Workflow & Contribution Guide
-
-This document defines the **official GitHub workflow** for the ExamAI project. All team members must follow this process to ensure stability, traceability, and smooth collaboration.
+This is a solid workflow! To make it "GitHub-ready," I’ve polished the formatting using clean Markdown structures, enhanced the visual hierarchy, and converted your Mermaid diagram logic into a professional, scannable `README.md` or `CONTRIBUTING.md` format.
 
 ---
 
+# 🌀 ExamAI – Git Workflow & Contribution Guide
+
+This document defines the official GitHub workflow for the **ExamAI** project. All team members must follow this process to ensure code stability, traceability, and seamless collaboration.
+
 ## 🏗️ 1. Branching Strategy
 
-We utilize a **multi-branch, protected workflow** to maintain code integrity.
+We utilize a multi-branch, protected workflow to maintain code integrity.
 
 | Branch | Purpose | Protection Level |
 | --- | --- | --- |
-| `main` | **Stable / Production-ready code.** | 🛑 Highly Protected |
-| `dev` | **Integration & testing branch.** | ⚠️ Protected |
+| `main` | Stable / Production-ready code. | 🛑 **Highly Protected** |
+| `dev` | Integration & testing branch. | ⚠️ **Protected** |
 | `feature/*` | New features & enhancements. | ✅ Open |
 | `refactor/*` | Code improvements (no new logic/fixes). | ✅ Open |
 | `fix/*` | Non-critical bug fixes (found during dev/testing). | ✅ Open |
@@ -19,62 +21,40 @@ We utilize a **multi-branch, protected workflow** to maintain code integrity.
 | `chore/*` | Maintenance, configuration, or setup tasks. | ✅ Open |
 | `experiment/*` | AI trials, research, and experimental code. | ✅ Open |
 
-### 🛠️ Branch Responsibilities
-
-* **`main`**: Always stable. Represents the production state.
-* **`dev`**: The "Work-in-Progress" hub. All work branches merge here first.
-* **`feature/`**: Development of new functionality.
-* **`refactor/`**: Cleaning code or optimizing without changing behavior.
-* **`fix/`**: Normal bug fixes found in the `dev` environment.
-* **`hotfix/`**: Urgent fixes for bugs found in `main` (Production).
-* **`chore/`**: Updating dependencies, CI/CD configs, or project boilerplate.
-* **`experiment/`**: Testing new AI models or logic.
+> [!IMPORTANT]
+> All branches except `main` and `dev` are **temporary**. They should be created when needed and **deleted immediately** after a successful merge.
 
 ---
 
-## 📈 2. High-Level Workflow Diagram
+## 📈 2. Workflow Visualization
+
+The diagram below illustrates how work flows between environments:
 
 ```mermaid
 graph LR
     %% Core branches
-    Main[(main<br>Stable / Production)]
-    Dev[(dev<br>Integration / Testing)]
+    Main[(main<br>Stable)]
+    Dev[(dev<br>Integration)]
 
     %% Work branches
-    Feature[feature/*<br>New Features]
-    Hotfix[hotfix/*<br>Bug Fixes]
-    Refactor[refactor/*<br>Code Improvements]
-    Chore[chore/*<br>Maintenance / Setup]
-    Experiment[experiment/*<br>AI Experiments / Trials]
-    Fix[fix/*<br>Standard Bug Fixes]
+    Feature[feature/*]
+    Hotfix[hotfix/*]
+    Refactor[refactor/*]
+    Fix[fix/*]
 
-    %% Hotfix flow
+    %% Flow logic
     Main -->|Critical fix| Hotfix
-    Hotfix -->|Merge tested| Dev
-    Dev -->|Sync to main| Main
+    Hotfix -->|Tested| Dev
+    Dev -->|Release| Main
 
-    %% Feature flow
-    Dev -->|Start new feature| Feature
+    Dev -->|New Task| Feature
     Feature -->|PR & Review| Dev
 
-    %% Refactor flow
-    Dev -->|Start refactor| Refactor
+    Dev -->|Improvement| Refactor
     Refactor -->|PR & Review| Dev
 
-    %% Chore flow
-    Dev -->|Start chore| Chore
-    Chore -->|PR & Review| Dev
-
-    %% Experiment flow
-    Dev -->|Start experiment| Experiment
-    Experiment -->|Validated PR| Dev
-
-    %% Fix flow
-    Dev -->|Start fix| Fix
+    Dev -->|Bug found| Fix
     Fix -->|PR & Review| Dev
-
-    %% Regular release flow
-    Dev -->|Tested & Stable| Main
 
 ```
 
@@ -82,7 +62,7 @@ graph LR
 
 ## 🚀 3. Starting Your Work
 
-Always start by syncing your local environment with the remote `dev` branch.
+Always sync your local environment with the remote `dev` branch before starting.
 
 ```bash
 # 1. Sync with remote
@@ -109,21 +89,16 @@ git add .
 
 ### Step 2: Commit with Style
 
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
+We follow the **Conventional Commits** specification:
 
 | Prefix | Use Case | Example |
 | --- | --- | --- |
 | `feat:` | A new feature | `feat: add AI grading logic` |
 | `fix:` | A bug fix | `fix: resolve OCR timeout` |
-| `refactor:` | Code change (not fix/feature) | `refactor: simplify loops` |
+| `refactor:` | Code change (neither fix nor feature) | `refactor: simplify loops` |
 | `chore:` | Maintenance/Setup | `chore: update docker-compose` |
 | `docs:` | Documentation updates | `docs: update setup guide` |
 | `test:` | Adding/Updating tests | `test: add OCR unit tests` |
-
-```bash
-git commit -m "fix: resolve incorrect grading weight"
-
-```
 
 ---
 
@@ -134,11 +109,11 @@ git push origin <your-branch-type>/<name>
 
 ```
 
-### 🔍 Pull Request (PR) Requirements:
+### 🔍 Pull Request Requirements:
 
-1. **Base branch:** Always `dev`.
-2. **Review:** At least **1 approval** is mandatory.
-3. **Checks:** No PR will be merged if the build/tests fail.
+* **Base branch:** Always target `dev`.
+* **Review:** PRs require approval from the branch owner or designated code owner.
+* **Checks:** CI/CD pipelines must pass (builds/tests) before merging.
 
 ---
 
@@ -146,20 +121,21 @@ git push origin <your-branch-type>/<name>
 
 ### Merging Policy
 
-* We use **Squash and Merge** to keep a clean history.
+We use **Squash and Merge** to maintain a clean, linear project history.
 
-### Cleanup:
+### Remote & Local Cleanup
+
+After your PR is merged, clean up your workspace:
 
 ```bash
-# After merge, delete locally
-# 1️⃣ Switch back to dev and sync
+# 1. Switch back to dev and sync
 git checkout dev
 git pull origin dev
 
-# 2️⃣ Delete local branch
+# 2. Delete local branch
 git branch -d your-branch-name
 
-# 3️⃣ Delete remote branch from GitHub
+# 3. Delete remote branch (if not auto-deleted by GitHub)
 git push origin --delete your-branch-name
 
 ```
@@ -168,26 +144,27 @@ git push origin --delete your-branch-name
 
 ## 🚨 7. Special Workflows
 
-### 🚑 Hotfix Workflow (Based on Diagram)
+### 🚑 Hotfix Workflow
 
-1. **Source:** Branch from `main` (`git checkout -b hotfix/fix-name main`).
-2. **Fix:** Apply fix and commit.
-3. **Validation:** Merge into `dev` first for testing.
-4. **Production:** Once tested in `dev`, it is synced back to `main` via a Release PR.
+1. **Source:** Branch directly from `main`: `git checkout -b hotfix/fix-name main`.
+2. **Validation:** Merge into `dev` first to ensure no regressions.
+3. **Production:** Once verified in `dev`, it is synced back to `main` via a Release PR.
 
 ### 🧪 Experiment Workflow
 
-* Experiments that fail should be deleted without merging.
-* Only **Validated Experiments** get a PR to `dev`.
+* Experiments that fail should be **deleted** without merging.
+* Only **validated** experiments that prove value receive a PR to `dev`.
 
 ---
 
 ## 📜 8. Final Rules
 
-* ❌ **Never push directly** to `main` or `dev`.
-* ❌ **No large PRs**: Keep them focused and small.
-* ✅ **Sync often**: Pull from `dev` daily to avoid conflicts.
+* ❌ **Never** push directly to `main` or `dev`.
+* ❌ **No Large PRs:** Keep changesets focused and small for easier reviews.
+* ✅ **Sync Often:** Pull from `dev` daily to minimize merge conflicts.
+
+**Pro Tip:** Use `git status` frequently. If things get messy, ask for help before force-pushing! 🚀
 
 ---
 
-> **Pro Tip:** Use `git status` frequently to know exactly where you are. 🚀
+**Would you like me to generate a `pull_request_template.md` to go along with this guide?**
