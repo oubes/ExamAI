@@ -10,16 +10,16 @@ This document defines the official GitHub workflow for the **ExamAI** project. A
 
 We utilize a multi-branch, protected workflow to maintain code integrity.
 
-| Branch | Purpose | Protection Level |
-| --- | --- | --- |
-| `main` | Stable / Production-ready code. | 🛑 **Highly Protected** |
-| `dev` | Integration & testing branch. | ⚠️ **Protected** |
-| `feature/*` | New features & enhancements. | ✅ Open |
-| `refactor/*` | Code improvements (no new logic/fixes). | ✅ Open |
-| `fix/*` | Non-critical bug fixes (found during dev/testing). | ✅ Open |
-| `hotfix/*` | Critical bug fixes starting from `main`. | ✅ Open |
-| `chore/*` | Maintenance, configuration, or setup tasks. | ✅ Open |
-| `experiment/*` | AI trials, research, and experimental code. | ✅ Open |
+| Branch         | Purpose                                            | Protection Level        |
+| -------------- | -------------------------------------------------- | ----------------------- |
+| `main`         | Stable / Production-ready code.                    | 🛑 **Highly Protected** |
+| `dev`          | Integration & testing branch.                      | ⚠️ **Protected**        |
+| `feature/*`    | New features & enhancements.                       | ✅ Open                 |
+| `refactor/*`   | Code improvements (no new logic/fixes).            | ✅ Open                 |
+| `fix/*`        | Non-critical bug fixes (found during dev/testing). | ✅ Open                 |
+| `hotfix/*`     | Critical bug fixes starting from `main`.           | ✅ Open                 |
+| `chore/*`      | Maintenance, configuration, or setup tasks.        | ✅ Open                 |
+| `experiment/*` | AI trials, research, and experimental code.        | ✅ Open                 |
 
 > [!IMPORTANT]
 > All branches except `main` and `dev` are **temporary**. They should be created when needed and **deleted immediately** after a successful merge.
@@ -91,14 +91,14 @@ git add .
 
 We follow the **Conventional Commits** specification:
 
-| Prefix | Use Case | Example |
-| --- | --- | --- |
-| `feat:` | A new feature | `feat: add AI grading logic` |
-| `fix:` | A bug fix | `fix: resolve OCR timeout` |
-| `refactor:` | Code change (neither fix nor feature) | `refactor: simplify loops` |
-| `chore:` | Maintenance/Setup | `chore: update docker-compose` |
-| `docs:` | Documentation updates | `docs: update setup guide` |
-| `test:` | Adding/Updating tests | `test: add OCR unit tests` |
+| Prefix      | Use Case                              | Example                        |
+| ----------- | ------------------------------------- | ------------------------------ |
+| `feat:`     | A new feature                         | `feat: add AI grading logic`   |
+| `fix:`      | A bug fix                             | `fix: resolve OCR timeout`     |
+| `refactor:` | Code change (neither fix nor feature) | `refactor: simplify loops`     |
+| `chore:`    | Maintenance/Setup                     | `chore: update docker-compose` |
+| `docs:`     | Documentation updates                 | `docs: update setup guide`     |
+| `test:`     | Adding/Updating tests                 | `test: add OCR unit tests`     |
 
 ---
 
@@ -111,9 +111,9 @@ git push origin <your-branch-type>/<name>
 
 ### 🔍 Pull Request Requirements:
 
-* **Base branch:** Always target `dev`.
-* **Review:** PRs require approval from the branch owner or designated code owner.
-* **Checks:** CI/CD pipelines must pass (builds/tests) before merging.
+- **Base branch:** Always target `dev`.
+- **Review:** PRs require approval from the branch owner or designated code owner.
+- **Checks:** CI/CD pipelines must pass (builds/tests) before merging.
 
 ---
 
@@ -153,16 +153,16 @@ git push origin --delete your-branch-name
 
 ### 🧪 Experiment Workflow
 
-* Experiments that fail should be **deleted** without merging.
-* Only **validated** experiments that prove value receive a PR to `dev`.
+- Experiments that fail should be **deleted** without merging.
+- Only **validated** experiments that prove value receive a PR to `dev`.
 
 ---
 
 ## 📜 8. Final Rules
 
-* ❌ **Never** push directly to `main` or `dev`.
-* ❌ **No Large PRs:** Keep changesets focused and small for easier reviews.
-* ✅ **Sync Often:** Pull from `dev` daily to minimize merge conflicts.
+- ❌ **Never** push directly to `main` or `dev`.
+- ❌ **No Large PRs:** Keep changesets focused and small for easier reviews.
+- ✅ **Sync Often:** Pull from `dev` daily to minimize merge conflicts.
 
 **Pro Tip:** Use `git status` frequently. If things get messy, ask for help before force-pushing! 🚀
 
