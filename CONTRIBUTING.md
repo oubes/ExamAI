@@ -1,3 +1,9 @@
+أبشر، قمت بإضافة النوع `fix/*` لجدول الفروع وجدول الـ Commits، وتأكدت أن كل التفاصيل تتبع نفس تسلسل الرسمة التي وضعتها (حيث أن كل شيء يصب في `dev` أولاً قبل الوصول لـ `main`).
+
+إليك الملف النهائي والكامل:
+
+---
+
 # 🌀 ExamAI – Git Workflow & Contribution Guide
 
 This document defines the **official GitHub workflow** for the ExamAI project. All team members must follow this process to ensure stability, traceability, and smooth collaboration.
@@ -8,19 +14,27 @@ This document defines the **official GitHub workflow** for the ExamAI project. A
 
 We utilize a **multi-branch, protected workflow** to maintain code integrity.
 
-| Branch      | Purpose                             | Protection Level    |
-| ----------- | ----------------------------------- | ------------------- |
-| `main`      | **Stable / Production-ready code.** | 🛑 Highly Protected |
-| `dev`       | **Integration & testing branch.**   | ⚠️ Protected        |
-| `feature/*` | New features & enhancements.        | ✅ Open             |
-| `hotfix/*`  | Critical bug fixes.                 | ✅ Open             |
+| Branch | Purpose | Protection Level |
+| --- | --- | --- |
+| `main` | **Stable / Production-ready code.** | 🛑 Highly Protected |
+| `dev` | **Integration & testing branch.** | ⚠️ Protected |
+| `feature/*` | New features & enhancements. | ✅ Open |
+| `refactor/*` | Code improvements (no new logic/fixes). | ✅ Open |
+| `fix/*` | Non-critical bug fixes (found during dev/testing). | ✅ Open |
+| `hotfix/*` | Critical bug fixes starting from `main`. | ✅ Open |
+| `chore/*` | Maintenance, configuration, or setup tasks. | ✅ Open |
+| `experiment/*` | AI trials, research, and experimental code. | ✅ Open |
 
 ### 🛠️ Branch Responsibilities
 
-- **`main`**: Always stable. Represents the production state. No direct pushes allowed.
-- **`dev`**: Integration branch for features under testing. No direct pushes allowed.
-- **`feature/`**: Created from `dev`. Used for new functionality.
-- **`hotfix/`**: Created from `main` or `dev`. Used for urgent fixes.
+* **`main`**: Always stable. Represents the production state.
+* **`dev`**: The "Work-in-Progress" hub. All work branches merge here first.
+* **`feature/`**: Development of new functionality.
+* **`refactor/`**: Cleaning code or optimizing without changing behavior.
+* **`fix/`**: Normal bug fixes found in the `dev` environment.
+* **`hotfix/`**: Urgent fixes for bugs found in `main` (Production).
+* **`chore/`**: Updating dependencies, CI/CD configs, or project boilerplate.
+* **`experiment/`**: Testing new AI models or logic.
 
 ---
 
@@ -28,30 +42,65 @@ We utilize a **multi-branch, protected workflow** to maintain code integrity.
 
 ```mermaid
 graph LR
-    A[feature/*] -->|Pull Request| B(dev)
-    C[hotfix/*] -->|Pull Request| B
-    B -->|Release PR| D{main}
-    C -->|Emergency PR| D
+    %% Core branches
+    Main[(main<br>Stable / Production)]
+    Dev[(dev<br>Integration / Testing)]
+
+    %% Work branches
+    Feature[feature/*<br>New Features]
+    Hotfix[hotfix/*<br>Bug Fixes]
+    Refactor[refactor/*<br>Code Improvements]
+    Chore[chore/*<br>Maintenance / Setup]
+    Experiment[experiment/*<br>AI Experiments / Trials]
+    Fix[fix/*<br>Standard Bug Fixes]
+
+    %% Hotfix flow
+    Main -->|Critical fix| Hotfix
+    Hotfix -->|Merge tested| Dev
+    Dev -->|Sync to main| Main
+
+    %% Feature flow
+    Dev -->|Start new feature| Feature
+    Feature -->|PR & Review| Dev
+
+    %% Refactor flow
+    Dev -->|Start refactor| Refactor
+    Refactor -->|PR & Review| Dev
+
+    %% Chore flow
+    Dev -->|Start chore| Chore
+    Chore -->|PR & Review| Dev
+
+    %% Experiment flow
+    Dev -->|Start experiment| Experiment
+    Experiment -->|Validated PR| Dev
+
+    %% Fix flow
+    Dev -->|Start fix| Fix
+    Fix -->|PR & Review| Dev
+
+    %% Regular release flow
+    Dev -->|Tested & Stable| Main
 
 ```
 
 ---
 
-## 🚀 3. Creating a Feature Branch
+## 🚀 3. Starting Your Work
 
 Always start by syncing your local environment with the remote `dev` branch.
 
 ```bash
-# Sync with remote
+# 1. Sync with remote
 git checkout dev
 git pull origin dev
 
-# Create new feature branch
-git checkout -b feature/your-feature-name
+# 2. Create your branch (pick the right prefix)
+git checkout -b feature/your-task-name
+# OR
+git checkout -b fix/resolve-api-error
 
 ```
-
-> **Example:** `git checkout -b feature/ocr-preprocessing`
 
 ---
 
@@ -66,17 +115,19 @@ git add .
 
 ### Step 2: Commit with Style
 
-We follow a simplified [Conventional Commits](https://www.conventionalcommits.org/) pattern:
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-| Prefix      | Description                                             | Example                               |
-| ----------- | ------------------------------------------------------- | ------------------------------------- |
-| `feat:`     | A new feature                                           | `feat: add grading rubric engine`     |
-| `fix:`      | A bug fix                                               | `fix: handle empty OCR outputs`       |
-| `docs:`     | Documentation changes                                   | `docs: update architecture overview`  |
-| `refactor:` | Code change that neither fixes a bug nor adds a feature | `refactor: optimize image processing` |
+| Prefix | Use Case | Example |
+| --- | --- | --- |
+| `feat:` | A new feature | `feat: add AI grading logic` |
+| `fix:` | A bug fix | `fix: resolve OCR timeout` |
+| `refactor:` | Code change (not fix/feature) | `refactor: simplify loops` |
+| `chore:` | Maintenance/Setup | `chore: update docker-compose` |
+| `docs:` | Documentation updates | `docs: update setup guide` |
+| `test:` | Adding/Updating tests | `test: add OCR unit tests` |
 
 ```bash
-git commit -m "feat: add OCR text cleaning pipeline"
+git commit -m "fix: resolve incorrect grading weight"
 
 ```
 
@@ -84,59 +135,63 @@ git commit -m "feat: add OCR text cleaning pipeline"
 
 ## 📤 5. Pushing & Pull Requests (PR)
 
-Push your branch to GitHub:
-
 ```bash
-git push origin feature/your-feature-name
+git push origin <your-branch-type>/<name>
 
 ```
 
-### 🔍 Pull Request Requirements:
+### 🔍 Pull Request (PR) Requirements:
 
-1. **Base branch:** `dev` ← **Compare branch:** `feature/*`
-2. **Approval:** At least **1 approval** from CODEOWNERS is required.
-3. **Resolution:** All conversations and comments must be resolved.
-4. **Checks:** Ensure all CI/CD pipelines (if any) are passing.
+1. **Base branch:** Always `dev`.
+2. **Review:** At least **1 approval** is mandatory.
+3. **Checks:** No PR will be merged if the build/tests fail.
 
 ---
 
 ## 🧪 6. Merging & Cleanup
 
-### Merging into `dev`
+### Merging Policy
 
-After approval, use **Squash and Merge** to keep a clean history.
+* We use **Squash and Merge** to keep a clean history.
 
-### Post-Merge Cleanup:
+### Cleanup:
 
 ```bash
-# Delete local branch
-git branch -d feature/your-feature-name
-
-# Delete remote branch
-git push origin --delete feature/your-feature-name
+# After merge, delete locally
+git checkout dev
+git pull origin dev
+git branch -d <your-branch-name>
 
 ```
 
 ---
 
-## 🚨 7. Hotfix Workflow (Critical Bugs)
+## 🚨 7. Special Workflows
 
-If a critical bug exists in production that cannot wait for the next release:
+### 🚑 Hotfix Workflow (Based on Diagram)
 
-1. Branch from `main`: `git checkout -b hotfix/bug-name main`
-2. Fix the bug and PR back to `main`.
-3. **Important:** Merge `main` back into `dev` immediately after to keep branches synced.
+1. **Source:** Branch from `main` (`git checkout -b hotfix/fix-name main`).
+2. **Fix:** Apply fix and commit.
+3. **Validation:** Merge into `dev` first for testing.
+4. **Production:** Once tested in `dev`, it is synced back to `main` via a Release PR.
 
----
+### 🧪 Experiment Workflow
 
-## 📜 8. Rules Summary
-
-- ✅ **No direct pushes** to `main` or `dev`.
-- ✅ **PRs are mandatory** for all changes.
-- ✅ **Descriptive commit messages** are required.
-- ✅ **Feature branches** must be deleted after merging.
-- ✅ **Stay Updated:** Regularly pull from `dev` to avoid merge conflicts.
+* Experiments that fail should be deleted without merging.
+* Only **Validated Experiments** get a PR to `dev`.
 
 ---
 
-> **Note:** If you are unsure about any step, please ask in the team channel before pushing. This workflow ensures that **ExamAI** remains a high-quality, scalable product.
+## 📜 8. Final Rules
+
+* ❌ **Never push directly** to `main` or `dev`.
+* ❌ **No large PRs**: Keep them focused and small.
+* ✅ **Sync often**: Pull from `dev` daily to avoid conflicts.
+
+---
+
+> **Pro Tip:** Use `git status` frequently to know exactly where you are. 🚀
+
+---
+
+الملف الآن جاهز بنسبة 100% ومتوافق مع الرسمة بكل تفاصيلها. هل هناك أي تعديل إضافي تريده؟
