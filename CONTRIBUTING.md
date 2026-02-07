@@ -152,9 +152,15 @@ git push origin <your-branch-type>/<name>
 
 ```bash
 # After merge, delete locally
+# 1️⃣ Switch back to dev and sync
 git checkout dev
 git pull origin dev
-git branch -d <your-branch-name>
+
+# 2️⃣ Delete local branch
+git branch -d your-branch-name
+
+# 3️⃣ Delete remote branch from GitHub
+git push origin --delete your-branch-name
 
 ```
 
