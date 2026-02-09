@@ -33,29 +33,51 @@ The diagram below illustrates how work flows between environments:
 ```mermaid
 graph LR
     %% Core branches
-    Main[(main<br>Stable)]
-    Dev[(dev<br>Integration)]
+    Main[(main<br>Stable<br/>🛑 Highly Protected)]
+    Dev[(dev<br>Integration & Testing<br/>⚠️ Protected)]
+
+    %% Middle Blocks (The Pull Logic)
+    PullDev1[[Pull from dev for adding a feature]]
+    PullDev2[[Pull from dev for fixing a bug]]
+    PullDevMain[[Pull from main for critical bug fixing]]
 
     %% Work branches
-    Feature[feature/*]
-    Hotfix[hotfix/*]
-    Refactor[refactor/*]
-    Fix[fix/*]
+    Feature[feature/*<br/>New features<br/>✅ Open]
+    Fix[fix/*<br/>Non-critical bug fixes<br/>✅ Open]
+    Hotfix[hotfix/*<br/>Critical fixes<br/>✅ Open]
 
-    %% Flow logic
-    Main -->|Critical fix| Hotfix
-    Hotfix -->|Tested| Dev
-    Dev -->|Release| Main
+    %% Pull rules
+    PullMain[[Pull from main<br/>Testing, demo, showcase]]
 
-    Dev -->|New Task| Feature
-    Feature -->|PR & Review| Dev
+    %% Core flow
+    Main --> PullDevMain --> Hotfix
+    Dev -->|Pull Request| Main
 
-    Dev -->|Improvement| Refactor
-    Refactor -->|PR & Review| Dev
+    %% Development flows
+    Dev --> PullDev1 --> Feature
+    Feature -->|Pull Request| Dev
 
-    Dev -->|Bug found| Fix
-    Fix -->|PR & Review| Dev
+    Dev --> PullDev2 --> Fix
+    Fix -->|Pull Request| Dev
 
+    Hotfix -->|Pull Request| Dev
+
+    %% Pull arrows positioning
+    Main -.-> PullMain
+
+    %% Styles for Nodes
+    style Main fill:#2c3e50,stroke:#000,stroke-width:2px,color:#ffffff
+    style Dev fill:#34495e,stroke:#000,stroke-width:2px,color:#ffffff
+    style Feature fill:#1f618d,stroke:#000,stroke-width:1px,color:#ffffff
+    style Fix fill:#1f618d,stroke:#000,stroke-width:1px,color:#ffffff
+    style Hotfix fill:#1f618d,stroke:#000,stroke-width:1px,color:#ffffff
+    style PullMain fill:#7f8c8d,stroke:#000,stroke-width:1px,stroke-dasharray: 5 5,color:#ffffff
+    style PullDev1 fill:#7f8c8d,stroke:#000,stroke-width:1px,color:#ffffff
+    style PullDev2 fill:#7f8c8d,stroke:#000,stroke-width:1px,color:#ffffff
+    style PullDevMain fill:#7f8c8d,stroke:#000,stroke-width:1px,color:#ffffff
+
+    %% Link Styles (Balanced thickness at 4px)
+    linkStyle 0,1,2,3,4,5,6,7,8,9,10 stroke-width:4px;
 ```
 
 ---
