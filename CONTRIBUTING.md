@@ -31,7 +31,7 @@ We utilize a multi-branch, protected workflow to maintain code integrity.
 The diagram below illustrates how work flows between environments:
 
 ```mermaid
-graph LR
+graph TD
     %% Core branches
     Main[(main<br>Stable<br/>🛑 Highly Protected)]
     Dev[(dev<br>Integration & Testing<br/>⚠️ Protected)]
@@ -50,14 +50,17 @@ graph LR
     PullMain[[Pull from main<br/>Testing, demo, showcase]]
 
     %% Core flow
-    Main --> PullDevMain --> Hotfix
+    Main --> PullDevMain
+    PullDevMain --> Hotfix
     Dev -->|Pull Request| Main
 
     %% Development flows
-    Dev --> PullDev1 --> Feature
+    Dev --> PullDev1
+    PullDev1 --> Feature
     Feature -->|Pull Request| Dev
 
-    Dev --> PullDev2 --> Fix
+    Dev --> PullDev2
+    PullDev2 --> Fix
     Fix -->|Pull Request| Dev
 
     Hotfix -->|Pull Request| Dev
@@ -76,7 +79,7 @@ graph LR
     style PullDev2 fill:#7f8c8d,stroke:#000,stroke-width:1px,color:#ffffff
     style PullDevMain fill:#7f8c8d,stroke:#000,stroke-width:1px,color:#ffffff
 
-    %% Link Styles (Balanced thickness at 4px)
+    %% Link Styles (Unified to 4px)
     linkStyle 0,1,2,3,4,5,6,7,8,9,10 stroke-width:4px;
 ```
 
