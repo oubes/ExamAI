@@ -1,6 +1,6 @@
 # System Analysis
 
-## 1. Project Overview
+# 1. Project Overview
 
 ```mermaid
 graph LR
@@ -14,7 +14,7 @@ This project is an AI-powered assessment platform that automates both formative 
 
 It helps teachers, students, and educational administrators save time, reduce grading errors, and gain actionable insights into learning outcomes.
 
-## 2. Problem Statement
+# 2. Problem Statement
 
 ```mermaid
 graph TD
@@ -35,7 +35,7 @@ Universities often rely on MCQs for faster grading, even when they are insuffici
 
 ---
 
-## 3. Stakeholders (Actors)
+# 3. Stakeholders (Actors)
 
 ```mermaid
 graph TD
@@ -75,49 +75,24 @@ graph TD
 
 ---
 
-## 4. User Stories
+# 4. User Stories
 
+### 4.1 Student
 ```mermaid
-graph TB
-    Root((📁 Exam Management System))
-
-    subgraph Student_Role [👩‍🎓 Student]
+graph TD
     S((👩‍🎓 Student)) --> S1[📝 Take Online/Scanned Exams]
     S --> S2[📊 Instant Grades & Feedback]
     S --> S3[🎯 Adaptive Testing]
     S --> S4[🏋️‍♀️ Continuous Practice]
     S --> S5[📤 Upload Diverse Formats]
-    end
 
-    subgraph Instructor_Role [👨‍🏫 Instructor]
-    I((👨‍🏫 Instructor)) --> I1[📤 Upload Exams & Keys]
-    I --> I2[⚙️ Configure Grading Settings]
-    I --> I3[📈 Monitor Adaptive Progress]
-    I --> I4[👤 View Student Profiles]
-    I --> I5[⏱ Fast Routine Grading]
-    I --> I6[📝 Create Practice Exams]
-    end
-
-    subgraph Admin_Role [🛡 Administrator]
-    A((🛡 Administrator)) --> A1[🔐 Manage Users/Permissions]
-    A --> A2[⚡ System Reliability]
-    A --> A3[🔒 Data Integrity & Security]
-    end
-
-    subgraph University_Role [🏫 University]
-    U((🏫 University)) --> U1[📊 Monitor Learning Outcomes]
-    U --> U2[📈 Aggregated Term Results]
-    U --> U3[📊 Learning Performance Metrics]
-    end
-
-    Root --- Student_Role
-    Root --- Instructor_Role
-    Root --- Admin_Role
-    Root --- University_Role
-
+    style S fill:#4A0E4E,stroke:#fff,color:#fff,font-size:20px
+    style S1 fill:#2d3436,stroke:#fff,color:#fff
+    style S2 fill:#2d3436,stroke:#fff,color:#fff
+    style S3 fill:#2d3436,stroke:#fff,color:#fff
+    style S4 fill:#2d3436,stroke:#fff,color:#fff
+    style S5 fill:#2d3436,stroke:#fff,color:#fff
 ```
-
-### 4.1 Student
 - **As a student**, I want to take exams online or submit scanned exams, so that my answers can be evaluated automatically.
 - **As a student**, I want to receive grades and feedback immediately, so that I can understand my mistakes and learn without waiting for weeks.
 - **As a student**, I want the exam to adapt to my level, so that it accurately measures my understanding and true performance.
@@ -125,6 +100,23 @@ graph TB
 - **As a student**, I want the exam to allow diverse formats, including writing on paper and uploading it, so that I can express my solutions and reasoning better, not just multiple-choice answers.
 
 ### 4.2 Instructor / Teaching Staff
+```mermaid
+graph TD
+    I((👨‍🏫 Instructor)) --> I1[📤 Upload Exams & Keys]
+    I --> I2[⚙️ Configure Grading Settings]
+    I --> I3[📈 Monitor Adaptive Progress]
+    I --> I4[👤 View Student Profiles]
+    I --> I5[⏱ Fast Routine Grading]
+    I --> I6[📝 Create Practice Exams]
+
+    style I fill:#0D3B66,stroke:#fff,color:#fff,font-size:20px
+    style I1 fill:#2d3436,stroke:#fff,color:#fff
+    style I2 fill:#2d3436,stroke:#fff,color:#fff
+    style I3 fill:#2d3436,stroke:#fff,color:#fff
+    style I4 fill:#2d3436,stroke:#fff,color:#fff
+    style I5 fill:#2d3436,stroke:#fff,color:#fff
+    style I6 fill:#2d3436,stroke:#fff,color:#fff
+```
 - **As an instructor**, I want to upload exams and answer keys, so that students can be evaluated automatically.
 - **As an instructor**, I want to configure grading and evaluation settings, so that the assessment matches my teaching objectives.
 - **As an instructor**, I want the exam to adapt to each student's level, so that I can measure their true understanding and provide meaningful feedback.
@@ -133,18 +125,40 @@ graph TB
 - **As an instructor**, I want to create practice exams that adapt to student levels, so that students can train and reach higher learning outcomes.
 
 ### 4.3 Administrator
+```mermaid
+graph TD
+    A((🛡 Administrator)) --> A1[🔐 Manage Users/Permissions]
+    A --> A2[⚡ System Reliability]
+    A --> A3[🔒 Data Integrity & Security]
+
+    style A fill:#06402B,stroke:#fff,color:#fff,font-size:20px
+    style A1 fill:#2d3436,stroke:#fff,color:#fff
+    style A2 fill:#2d3436,stroke:#fff,color:#fff
+    style A3 fill:#2d3436,stroke:#fff,color:#fff
+```
 - **As an administrator**, I want to manage users and permissions, so that the system is secure and well-organized.
 - **As an administrator**, I want the system to operate correctly under all conditions, so that educational processes are smooth and reliable.
 - **As an administrator**, I want to ensure no user has permissions beyond their role, so that data integrity and security are maintained.
 
 ### 4.4 University / College
+```mermaid
+graph TD
+    U((🏫 University)) --> U1[📊 Monitor Learning Outcomes]
+    U --> U2[📈 Aggregated Term Results]
+    U --> U3[📊 Learning Performance Metrics]
+
+    style U fill:#5D2E17,stroke:#fff,color:#fff,font-size:20px
+    style U1 fill:#2d3436,stroke:#fff,color:#fff
+    style U2 fill:#2d3436,stroke:#fff,color:#fff
+    style U3 fill:#2d3436,stroke:#fff,color:#fff
+```
 - **As a university/college**, I want to monitor student progress and learning outcomes, so that we are aware of academic performance across programs.
 - **As a university/college**, I want to receive aggregated exam results for each term quickly, so that we can proceed with credit-based registrations without delay.
 - **As a university/college**, I want the system to adapt exams to student levels, so that performance metrics reflect actual learning rather than only standardized scores.
 
 ---
 
-## 5. Acceptance Criteria
+# 5. Acceptance Criteria
 
 Each acceptance case follows the **Given – When – Then** format.
 
@@ -309,12 +323,12 @@ graph TD
 
 ---
 
-## 6. Functional Requirements
+# 6. Functional Requirements
 
 ### 6.1 User & Access Management
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
     
     A[👤 User & Access Management] --- B[🔑 Authenticate & Assign Roles]
@@ -332,7 +346,7 @@ graph LR
 ### 6.2 Exam Creation & Management
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[📝 Exam Management] --- B[🖥 Digital Exam Creation]
@@ -352,7 +366,7 @@ graph LR
 ### 6.3 Exam Submission
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[📤 Exam Submission] --- B[🖥 Take Online Exams]
@@ -370,7 +384,7 @@ graph LR
 ### 6.4 OCR & Exam Ingestion
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:18px;
 
     A[🔍 OCR & Ingestion] --- B[📝 OCR Text Extraction]
@@ -392,7 +406,7 @@ graph LR
 ### 6.5 Automated Grading
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[🤖 Automated Grading] --- B[✅ Objective Auto-Grading]
@@ -412,7 +426,7 @@ graph LR
 ### 6.6 Feedback Generation
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[💬 Feedback Generation] --- B[🧩 Personalized Feedback]
@@ -430,7 +444,7 @@ graph LR
 ### 6.7 Student Profiling & RAG
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[👤 Profiling & RAG] --- B[🔒 Secure History Storage]
@@ -448,7 +462,7 @@ graph LR
 ### 6.8 Analytics & Reporting
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:18px;
 
     A[📊 Analytics & Reporting] --- B[📈 Progress & Trend Tracking]
@@ -468,7 +482,7 @@ graph LR
 ### 6.9 Dashboards & Visualization
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[📊 Dashboards] --- B[👀 Role-Based Views]
@@ -485,7 +499,7 @@ graph LR
 ### 6.10 System Reliability & Scalability
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[⚡ Reliability & Scaling] --- B[👥 Concurrent Large Volumes]
@@ -503,7 +517,7 @@ graph LR
 ### 6.11 Deployment & MLOps
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[🚀 Deployment & MLOps] --- B[📡 Scalable Model APIs]
@@ -520,12 +534,12 @@ graph LR
 
 ---
 
-## 7. Non-Functional Requirements
+# 7. Non-Functional Requirements
 
 ### 7.1 Performance
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[⚡ Performance] --- B[⏱️ Near Real-Time Responses]
@@ -545,7 +559,7 @@ graph LR
 ### 7.2 Reliability & Availability
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[🛡️ Reliability & Availability] --- B[🔒 Stable Session Operation]
@@ -563,7 +577,7 @@ graph LR
 ### 7.3 Security
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[🔐 Security] --- B[🔑 Data Encryption]
@@ -581,7 +595,7 @@ graph LR
 ### 7.4 Usability
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[🖥️ Usability] --- B[🎨 Intuitive User Interface]
@@ -597,7 +611,7 @@ graph LR
 ### 7.5 Maintainability & Compatibility
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[🔧 Maintainability & Compatibility] --- B[🧩 Modular Architecture]
@@ -615,7 +629,7 @@ graph LR
 ### 7.6 Data Integrity
 
 ```mermaid
-graph LR
+graph TD
     classDef darkNode fill:#1a1a1a,stroke:#fff,stroke-width:2px,color:#fff,font-size:20px;
 
     A[🗂️ Data Integrity] --- B[✅ Consistency & Accuracy]
@@ -636,19 +650,26 @@ This section describes the main components of the **ExamAI** platform and how th
 
 ```mermaid
 graph LR
+
+    %% Access Layer - Top to Bottom
     subgraph Layer_1 [🌐 Access Layer]
+        direction LR
         Web[💻 Web Browser]
         App[📱 Mobile App]
         Bulk[🔗 Bulk API]
     end
 
+    %% Orchestration & Control
     subgraph Layer_2 [⚙️ Orchestration & Control]
+        direction LR
         API[🖥️ Core API Gateway]
         Auth[🔑 Auth Service]
         Orch[🤖 AI Orchestrator]
     end
 
+    %% Intelligent Agents
     subgraph Layer_3 [🧠 Intelligent Agents]
+        direction LR
         OCR[📄 OCR Agent]
         Grading[📝 Grading Engine]
         RAG[📚 RAG Retrieval]
@@ -656,34 +677,38 @@ graph LR
         Analytics[📊 Analytics Agent]
     end
 
+    %% Storage & Persistence
     subgraph Layer_4 [💾 Storage & Persistence]
+        direction LR
         DB[(🗃️ System DB)]
         Storage[(📦 Document Store)]
     end
 
+    %% External Services
     subgraph Layer_5 [🌐 External Services]
+        direction LR
         EXT_OCR[📑 External OCR]
         SMTP[📧 Notifications]
         Logs[🖥️ Monitoring]
     end
 
+    %% Connections
     Layer_1 <==>|Secure API| API
     API <--> Auth
     API <--> Orch
-    
+
     Orch <--> Layer_4
     Orch --> OCR
     Orch --> Grading
     Orch --> Feedback
     Orch --> Analytics
     Grading <--> RAG
-    
+
     OCR -.-> EXT_OCR
     API -.-> SMTP
     API -.-> Logs
 
     %% High Contrast Styling
-    classDef darkFill fill:#1a1a1a,stroke:#ffffff,stroke-width:2px,color:#ffffff;
     classDef clientStyle fill:#2c3e50,stroke:#ffffff,stroke-width:2px,color:#ffffff;
     classDef backendStyle fill:#2e1a47,stroke:#ffffff,stroke-width:2px,color:#ffffff;
     classDef aiStyle fill:#003366,stroke:#ffffff,stroke-width:2px,color:#ffffff;
@@ -695,12 +720,6 @@ graph LR
     class OCR,Grading,RAG,Feedback,Analytics aiStyle;
     class DB,Storage dataStyle;
     class EXT_OCR,SMTP,Logs externalStyle;
-
-    style Layer_1 fill:#121212,stroke:#ffffff,color:#ffffff
-    style Layer_2 fill:#121212,stroke:#ffffff,color:#ffffff
-    style Layer_3 fill:#121212,stroke:#ffffff,color:#ffffff
-    style Layer_4 fill:#121212,stroke:#ffffff,color:#ffffff
-    style Layer_5 fill:#121212,stroke:#ffffff,color:#ffffff
 ```
 
 
@@ -775,85 +794,27 @@ The system may integrate with **external services** to enhance functionality and
 
 This section describes the types of data used in the **ExamAI** platform, their sources, formats, and how they are utilized throughout the system.
 
-```mermaid
-flowchart LR
-    %% Style Definitions
-    classDef sectionBox fill:#1a1a1a,stroke:#444444,stroke-width:3px,color:#ffffff,font-size:22px,font-weight:bold;
-    classDef itemBox fill:#2d3436,stroke:#636e72,stroke-width:1px,color:#ffffff,font-size:16px;
-    classDef mainTitle fill:#000000,stroke:#ffffff,stroke-width:2px,color:#ffffff,font-size:26px;
-
-    %% Main Title
-    DATA_DESCRIPTION[9. DATA DESCRIPTION 📊 - EXAMAI PLATFORM]
-
-    %% Column 1: Sources
-    subgraph Column1 [DATA SOURCES 🌐]
-        direction TB
-        S1[Users 👩‍🎓👨‍🏫: Students, Instructors, Admins, Institutions]
-        S2[Uploaded Files 📄: Scanned Papers, PDFs, Images, Digital Exams]
-        S3[Internal System Components ⚙️: Grading, Feedback, Analytics Agents]
-        S4[External Services 🌎: OCR Engines, Authentication, Notification Providers]
-        S5[APIs 🔗: Institutional Systems, Bulk Scripts]
-    end
-
-    %% Column 2: Types
-    subgraph Column2 [DATA TYPES 🗂️]
-        direction TB
-        T1[Text Data 📝: Questions, Student Answers, Rubrics, Feedback, Reports]
-        T2[Numerical Data 🔢: Grades, Scores, Rubric Weights, Metrics]
-        T3[Image Data 🖼️: Scanned Sheets, Handwritten Answers, Uploaded Documents]
-        T4[Metadata 🏷️: Timestamps, Exam IDs, Question IDs, User Roles, Config Flags]
-    end
-
-    %% Column 3: Formats
-    subgraph Column3 [DATA FORMATS 📦]
-        direction TB
-        F1[JSON 🔧: API Communication, Structured Data, Grading Results, Feedback]
-        F2[CSV 📊: Analytics Exports, Reports, Aggregated Data]
-        F3[PDF/Image Formats 🖨️: Exam Uploads, Scanned Submissions]
-        F4[Vector Representations 🧠: Embeddings for RAG Components]
-    end
-
-    %% Column 4: Usage
-    subgraph Column4 [DATA USAGE 🚀]
-        direction TB
-        U1[OCR & Preprocessing 🔍: Transform Raw Images to Structured Text]
-        U2[Grading Agents 🏆: Consume Structured Answers and Rubrics to Generate Scores]
-        U3[Feedback Agents 💬: Use Grading Outputs & Historical Data for Personalization]
-        U4[Analytics Agents 📈: Aggregate Numerical & Textual Data for Insights & Reports]
-        U5[RAG Components 🤖: Retrieve Historical Embeddings for Context-Aware Decisions]
-    end
-
-    %% Horizontal Flow Alignment
-    DATA_DESCRIPTION --> Column1
-    Column1 --> Column2
-    Column2 --> Column3
-    Column3 --> Column4
-
-    %% Optional: Add vertical spacing for readability
-    S1 --- S2
-    S2 --- S3
-    S3 --- S4
-    S4 --- S5
-    T1 --- T2
-    T2 --- T3
-    T3 --- T4
-    F1 --- F2
-    F2 --- F3
-    F3 --- F4
-    U1 --- U2
-    U2 --- U3
-    U3 --- U4
-    U4 --- U5
-
-    %% Applying Classes
-    class DATA_DESCRIPTION mainTitle;
-    class Column1,Column2,Column3,Column4 sectionBox;
-    class S1,S2,S3,S4,S5,T1,T2,T3,T4,F1,F2,F3,F4,U1,U2,U3,U4,U5 itemBox;
-```
-
 ## 9.1 Data Types
 
 The system processes multiple data types to support automated grading, feedback generation, and analytics.
+
+```mermaid
+graph TD
+    S_Root((🌐 Data Sources))
+
+    S_Root --> S1[👩‍🎓 Students, Instructors, Admins, Institutions]
+    S_Root --> S2[📄 Scanned Papers, PDFs, Images, Digital Exams]
+    S_Root --> S3[⚙️ Grading, Feedback, Analytics Agents]
+    S_Root --> S4[🌎 OCR Engines, Auth, Notifications]
+    S_Root --> S5[🔗 Institutional Systems, Bulk Scripts]
+
+    style S_Root fill:#1a1a1a,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style S1 fill:#2d3436,stroke:#444444,color:#ffffff
+    style S2 fill:#2d3436,stroke:#444444,color:#ffffff
+    style S3 fill:#2d3436,stroke:#444444,color:#ffffff
+    style S4 fill:#2d3436,stroke:#444444,color:#ffffff
+    style S5 fill:#2d3436,stroke:#444444,color:#ffffff
+```
 
 ### Main Data Types:
 - **Text data:** exam questions, student answers, rubrics, feedback, comments, and reports
@@ -865,6 +826,22 @@ The system processes multiple data types to support automated grading, feedback 
 
 Data enters the system from different sources depending on the workflow.
 
+```mermaid
+graph TD
+    T_Root((🗂️ Data Types))
+
+    T_Root --> T1[📝 Questions, Answers, Rubrics, Reports]
+    T_Root --> T2[🔢 Grades, Scores, Rubric Weights, Metrics]
+    T_Root --> T3[🖼️ Scanned Sheets, Handwritten Answers]
+    T_Root --> T4[🏷️ Timestamps, Exam IDs, User Roles]
+
+    style T_Root fill:#1a1a1a,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style T1 fill:#2d3436,stroke:#444444,color:#ffffff
+    style T2 fill:#2d3436,stroke:#444444,color:#ffffff
+    style T3 fill:#2d3436,stroke:#444444,color:#ffffff
+    style T4 fill:#2d3436,stroke:#444444,color:#ffffff
+```
+
 ### Primary Data Sources:
 - **Users:** students, instructors, administrators, and institutions through client interfaces
 - **Uploaded files:** scanned exam papers, PDFs, images, and digital exam documents
@@ -875,6 +852,22 @@ Data enters the system from different sources depending on the workflow.
 ## 9.3 Data Formats
 
 The system uses standardized data formats to ensure interoperability and scalability.
+
+```mermaid
+graph TD
+    F_Root((📦 Data Formats))
+
+    F_Root --> F1[🔧 JSON: API, Structured Data, Results]
+    F_Root --> F2[📊 CSV: Analytics Exports, Aggregated Data]
+    F_Root --> F3[🖨️ PDF/Image: Exam Uploads, Submissions]
+    F_Root --> F4[🧠 Vector Representations: RAG Embeddings]
+
+    style F_Root fill:#1a1a1a,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style F1 fill:#2d3436,stroke:#444444,color:#ffffff
+    style F2 fill:#2d3436,stroke:#444444,color:#ffffff
+    style F3 fill:#2d3436,stroke:#444444,color:#ffffff
+    style F4 fill:#2d3436,stroke:#444444,color:#ffffff
+```
 
 ### Common Formats:
 - **JSON** for API communication, structured exam data, grading results, and feedback
@@ -931,6 +924,25 @@ Copy code
 ```
 
 ### 9.5 Data Usage Across the System
+
+```mermaid
+graph TD
+    U_Root((🚀 Data Usage))
+
+    U_Root --> U1[🔍 OCR: Transform Images to Text]
+    U_Root --> U2[🏆 Grading: Generate Scores from Rubrics]
+    U_Root --> U3[💬 Feedback: Personalization via History]
+    U_Root --> U4[📈 Analytics: Insights & Reporting]
+    U_Root --> U5[🤖 RAG: Context-Aware AI Decisions]
+
+    style U_Root fill:#1a1a1a,stroke:#ffffff,stroke-width:2px,color:#ffffff
+    style U1 fill:#2d3436,stroke:#444444,color:#ffffff
+    style U2 fill:#2d3436,stroke:#444444,color:#ffffff
+    style U3 fill:#2d3436,stroke:#444444,color:#ffffff
+    style U4 fill:#2d3436,stroke:#444444,color:#ffffff
+    style U5 fill:#2d3436,stroke:#444444,color:#ffffff
+```
+
 - OCR and preprocessing components transform raw image data into structured text
 - Grading agents consume structured answers and rubrics to generate scores
 - Feedback agents use grading outputs and historical data for personalization
