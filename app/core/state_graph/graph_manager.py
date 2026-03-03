@@ -34,4 +34,4 @@ class WorkflowGraph:
 
 
 workflow = WorkflowGraph()
-app = workflow.compile()
+orchestrator = workflow.compile()
