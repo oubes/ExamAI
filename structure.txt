@@ -1,0 +1,68 @@
+.
+├── app
+│   ├── api
+│   │   ├── __init__.py
+│   │   └── v1
+│   │       ├── endpoints
+│   │       │   ├── __init__.py
+│   │       │   └── submission.py
+│   │       └── __init__.py
+│   ├── core
+│   │   ├── config.py
+│   │   ├── __init__.py
+│   │   ├── logging.py
+│   │   ├── security.py
+│   │   ├── state_graph
+│   │   │   ├── agent_types.py
+│   │   │   ├── graph_manager.py
+│   │   │   ├── __init__.py
+│   │   │   └── nodes.py
+│   │   └── utils.py
+│   ├── db
+│   │   ├── __init__.py
+│   │   └── session.py
+│   ├── __init__.py
+│   ├── main.py
+│   ├── schemas
+│   │   └── __init__.py
+│   ├── services
+│   │   ├── adaptive_exam
+│   │   │   └── __init__.py
+│   │   ├── feedback
+│   │   │   └── __init__.py
+│   │   ├── grading
+│   │   │   └── __init__.py
+│   │   ├── __init__.py
+│   │   ├── nlp
+│   │   │   └── __init__.py
+│   │   ├── ocr
+│   │   │   └── __init__.py
+│   │   └── security
+│   │       └── __init__.py
+│   └── workers
+│       └── __init__.py
+├── CONTRIBUTING.md
+├── docker
+│   └── __init__.py
+├── docs
+│   ├── architecture.md
+│   ├── ExamAI - System Analysis.pdf
+│   ├── ExamAI - System Analysis.visual.pdf
+│   ├── milestones.md
+│   ├── overview.md
+│   ├── roadmap.md
+│   ├── Student Flow Plan.pdf
+│   └── system_analysis.md
+├── LICENSE
+├── README.md
+├── scripts
+│   ├── __init__.py
+│   └── router.py    # router and Dispatcher for endpoint data comes from user
+├── structure.txt
+└── tests
+    ├── __init__.py
+    ├── integration
+    │   └── __init__.py
+    └── unit
+        └── __init__.py
+
