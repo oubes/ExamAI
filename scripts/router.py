@@ -70,18 +70,36 @@ class ExamSubmission:
 
 @dataclass
 class QuestionResult:
-    """Represents the grading outcome for a single question."""
+    """
+    Full grading record for a single question.
 
+    Carries both the original question metadata and the grading outcome so
+    consumers of the pipeline never need to cross-reference a second object.
+    """
+
+    # ── Question metadata (mirrored from the input) ───────────────────────
     question_id: str
-    score: float
+    question_type: str
+    student_answer: Any
     max_score: float
-    grader: str  # which processor awarded the score
-    notes: str = ""
+    correct_answer: Any = field(default=None)
+    rubric: str = field(default="")
+
+    # ── Grading outcome ───────────────────────────────────────────────────
+    score: float = field(default=0.0)
+    grader: str = field(default="")   # which processor awarded the score
+    notes: str = field(default="")
 
     def to_dict(self) -> dict:
-        """Serialise to a plain dict for API responses."""
+        """Serialise the full record to a plain dict for API responses."""
         return {
+            # --- question metadata ---
             "question_id": self.question_id,
+            "question_type": self.question_type,
+            "student_answer": self.student_answer,
+            "correct_answer": self.correct_answer,
+            "rubric": self.rubric,
+            # --- grading outcome ---
             "score": self.score,
             "max_score": self.max_score,
             "grader": self.grader,
@@ -137,9 +155,15 @@ def process_mcq(question: Question) -> QuestionResult:
 
     logger.debug("MCQ %s → %.1f / %.1f", question.question_id, score, question.max_score)
     return QuestionResult(
+        # question metadata
         question_id=question.question_id,
-        score=score,
+        question_type=question.question_type,
+        student_answer=question.student_answer,
+        correct_answer=question.correct_answer,
+        rubric=question.rubric,
         max_score=question.max_score,
+        # grading outcome
+        score=score,
         grader="mcq_processor",
         notes=notes,
     )
@@ -195,9 +219,15 @@ def process_open_ended(question: Question) -> QuestionResult:
         question.max_score,
     )
     return QuestionResult(
+        # question metadata
         question_id=question.question_id,
-        score=placeholder_score,
+        question_type=question.question_type,
+        student_answer=question.student_answer,
+        correct_answer=question.correct_answer,
+        rubric=question.rubric,
         max_score=question.max_score,
+        # grading outcome
+        score=placeholder_score,
         grader="open_ended_processor (placeholder)",
         notes=notes,
     )
@@ -232,9 +262,15 @@ def _unknown_type_handler(question: Question) -> QuestionResult:
         question.question_id,
     )
     return QuestionResult(
+        # question metadata
         question_id=question.question_id,
-        score=0.0,
+        question_type=question.question_type,
+        student_answer=question.student_answer,
+        correct_answer=question.correct_answer,
+        rubric=question.rubric,
         max_score=question.max_score,
+        # grading outcome
+        score=0.0,
         grader="fallback",
         notes=f"Unrecognised question type: '{question.question_type}'.",
     )
@@ -329,8 +365,10 @@ def run_pipeline(raw_json: str | dict) -> list[dict]:
     Returns
     -------
     list[dict]
-        Grading results, each containing ``question_id``, ``score``,
-        ``max_score``, ``grader``, and ``notes``.
+        One dict per question containing the full question metadata
+        (``question_id``, ``question_type``, ``student_answer``,
+        ``correct_answer``, ``rubric``, ``max_score``) plus the grading
+        outcome (``score``, ``grader``, ``notes``).
     """
     payload: dict = json.loads(raw_json) if isinstance(raw_json, str) else raw_json
     submission = parse_submission(payload)
@@ -342,35 +380,33 @@ def run_pipeline(raw_json: str | dict) -> list[dict]:
 # Example – demonstrates the full pipeline
 # ---------------------------------------------------------------------------
 
-# EXAMPLE_SUBMISSION: dict = {
-#     "exam_id": "EXAM_2026_01",
-#     "student_id": "STU_1024",
-#     "submission_type": "scanned",
-#     "questions": [
-#         {
-#             "question_id": "Q1",
-#             "question_type": "open_ended",
-#             "student_answer": (
-#                 "The algorithm minimizes the loss function using gradient descent."
-#             ),
-#             "max_score": 10,
-#             # rubric can be supplied once the grading agent is connected
-#             "rubric": "",
-#         },
-#         {
-#             "question_id": "Q2",
-#             "question_type": "mcq",
-#             "student_answer": "B",
-#             "correct_answer": "B",   # injected server-side; never from student payload
-#             "max_score": 5,
-#         },
-#     ],
-#     "submission_timestamp": "2026-02-01T14:35:22",
-# }
-
-
 # if __name__ == "__main__":
 #     logging.basicConfig(level=logging.DEBUG, format="%(levelname)s | %(message)s")
+
+#     EXAMPLE_SUBMISSION: dict = {
+#         "exam_id": "EXAM_2026_01",
+#         "student_id": "STU_1024",
+#         "submission_type": "scanned",
+#         "questions": [
+#             {
+#                 "question_id": "Q1",
+#                 "question_type": "open_ended",
+#                 "student_answer": (
+#                     "The algorithm minimizes the loss function using gradient descent."
+#                 ),
+#                 "max_score": 10,
+#                 "rubric": "",
+#             },
+#             {
+#                 "question_id": "Q2",
+#                 "question_type": "mcq",
+#                 "student_answer": "B",
+#                 "correct_answer": "B",   # injected server-side; never from student payload
+#                 "max_score": 5,
+#             },
+#         ],
+#         "submission_timestamp": "2026-02-01T14:35:22",
+#     }
 
 #     print("\n--- Exam Submission Processor ---\n")
 #     print("Input payload:")
@@ -378,9 +414,5 @@ def run_pipeline(raw_json: str | dict) -> list[dict]:
 
 #     results = run_pipeline(EXAMPLE_SUBMISSION)
 
-#     print("\nGrading results:")
-#     for r in results:
-#         print(
-#             f"  {r['question_id']}: {r['score']} / {r['max_score']}"
-#             f"  [{r['grader']}]  – {r['notes']}"
-#         )
+#     print("\nFull grading results (all fields):")
+#     print(json.dumps(results, indent=2))
