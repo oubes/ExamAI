@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     postgres_port: int = Field(..., alias="POSTGRES_PORT")
     postgres_db_name: str = Field(..., alias="POSTGRES_DB_NAME")
     
+    postgres_orm_echo: bool = Field(default=False)
+    postgres_pool_pre_ping: bool = Field(default=True)
+    postgres_pool_size: int = Field(default=10)
+    postgres_max_overflow: int = Field(default=20)
+    postgres_pool_recycle: int = Field(default=3600)
+    postgres_pool_timeout: int = Field(default=30)
+    
+    postgres_auto_commit: bool = Field(default=False)
+    postgres_auto_flush: bool = Field(default=False)
+    postgres_expire_on_commit: bool = Field(default=False)
+    
     @computed_field
     @property
     def postgres_full_url(self) -> str:
@@ -38,5 +49,5 @@ class Settings(BaseSettings):
     # ---- LLM & Embedding settings ---- #
     alibaba_api_key: str = Field(..., alias="ALIBABA_API_KEY")
     alibaba_base_url: str = Field(..., alias="ALIBABA_BASE_URL")
-    alibaba_model_name: str = "qwen2.5-vl-72b-instruct"
-    alibaba_model_temp: float = 0.2
+    alibaba_model_name: str = Field(default="qwen2.5-vl-72b-instruct")
+    alibaba_model_temp: float = Field(default=0.2)

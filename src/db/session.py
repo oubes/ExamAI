@@ -13,19 +13,19 @@ settings = get_settings()
 # ---- Create Engine ---- #
 engine = create_async_engine(
     url=settings.postgres_full_url,
-    echo=True,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    pool_recycle=3600,
-    pool_timeout=30,
+    echo=settings.postgres_orm_echo,
+    pool_pre_ping=settings.postgres_pool_pre_ping,
+    pool_size=settings.postgres_pool_size,
+    max_overflow=settings.postgres_max_overflow,
+    pool_recycle=settings.postgres_pool_recycle,
+    pool_timeout=settings.postgres_pool_timeout,
 )
 
 # ---- Create Session Local ---- #
 session_local = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
+    autocommit=settings.postgres_auto_commit,
+    autoflush=settings.postgres_auto_flush,
+    expire_on_commit=settings.postgres_expire_on_commit,
 )
