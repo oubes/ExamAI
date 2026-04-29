@@ -1,0 +1,2 @@
+pydantic==2.13.3
+pydantic-settings==2.14.0
