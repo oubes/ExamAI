@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, computed_field
 
 # ----- Application settings ---- #
 class Settings(BaseSettings):
@@ -14,4 +15,26 @@ class Settings(BaseSettings):
     app_env: str
     
     # ---- Database settings ---- #
+    postgres_host: str = Field(..., alias="POSTGRES_HOST")
+    postgres_user: str = Field(..., alias="POSTGRES_USER")
+    postgres_password: str = Field(..., alias="POSTGRES_PASSWORD")
+    postgres_port: int = Field(..., alias="POSTGRES_PORT")
+    postgres_db_name: str = Field(..., alias="POSTGRES_DB_NAME")
+    
+    @computed_field
+    @property
+    def postgres_full_url(self):
+        return (
+            f"postgresql://{self.postgres_user}"
+            f"{self.postgres_password}@"
+            f"{self.postgres_host}:"
+            f"{self.postgres_port}/"
+            f"{self.postgres_db_name}" 
+        )
+
+
+    # ---- LLM & Embedding settings ---- #
+    alibaba_api_key: str = Field(..., alias="ALIBABA_API_KEY")
+    alibaba_base_url: str = Field(..., alias="ALIBABA_BASE_URL")
+    alibaba_model_name: str = "qwen2.5-vl-72b-instruct"
     
