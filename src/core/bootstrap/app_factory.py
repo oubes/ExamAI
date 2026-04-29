@@ -1,11 +1,16 @@
 # ---- Imports ---- #
 from fastapi import FastAPI
+import logging
 from core.bootstrap.lifespan import lifespan
 from core.config.settings import get_settings
 from api.router_registry import register_routers
+from core.middleware import register_middleware
 
 # ---- Settings ---- #
 settings = get_settings()
+
+# ---- Logging ---- #
+logging = logging.getLogger(__name__)
 
 # ---- App Factory ---- #
 def create_app():
@@ -17,7 +22,9 @@ def create_app():
             lifespan=lifespan,
         )
         register_routers(app)
+        register_middleware(app)
+        logging.info("App created successfully")
         return app
         
     except Exception as e:
-        print(e)
+        logging.error(f"Error creating app: {e}")
