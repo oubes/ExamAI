@@ -1,6 +1,14 @@
 from langgraph.graph import StateGraph, START, END
-from app.core.state_graph.agent_types import AgentState
-from app.core.state_graph.nodes import *
+from app.core.state_graph.state import AgentState
+from app.core.state_graph.nodes import (
+    student_submission,
+    data_router,
+    ocr_pipeline,
+    token_quality_check,
+    security_guardrails,
+    grading_engine_node,
+    feedback_generator_node,
+)
 
 class WorkflowGraph:
     def __init__(self):

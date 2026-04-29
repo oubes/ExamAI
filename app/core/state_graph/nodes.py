@@ -1,4 +1,4 @@
-from app.core.state_graph.agent_types import AgentState
+from app.core.state_graph.state import AgentState
 
 def student_submission(state: AgentState):
     print("Student submits text or file")
