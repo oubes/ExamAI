@@ -1,3 +1,4 @@
+# ----- Imports ---- #
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, computed_field
 
@@ -38,4 +39,3 @@ class Settings(BaseSettings):
     alibaba_base_url: str = Field(..., alias="ALIBABA_BASE_URL")
     alibaba_model_name: str = "qwen2.5-vl-72b-instruct"
     alibaba_model_temp: float = 0.2
-    
