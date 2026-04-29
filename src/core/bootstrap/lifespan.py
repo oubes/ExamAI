@@ -12,7 +12,6 @@ logging = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # ---- Startup ---- #
     logging.info("Starting up")
-    print(get_settings().postgres_full_url)
     await init_db()
     
     yield
