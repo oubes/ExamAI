@@ -1,9 +1,13 @@
+# ---- Imports ---- #
 from sqlalchemy.orm import Mapped,mapped_column
 from sqlalchemy import BigInteger,Text,ForeignKey,Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
 from src.db.base import Base
 
+# ---------- Models ---------- #
+
+# ---- Knowledge Base ---- #
 class KnowledgeBase(Base):
     __tablename__="knowledge_base"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)

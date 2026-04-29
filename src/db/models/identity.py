@@ -1,7 +1,11 @@
+# ---- Imports ---- #
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import BigInteger,Text
 from src.db.base import Base
 
+# ---------- Models ---------- #
+
+# ---- User ---- #
 class User(Base):
     __tablename__="users"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)

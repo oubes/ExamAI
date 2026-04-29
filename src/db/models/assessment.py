@@ -1,8 +1,12 @@
+# ---- Imports ---- #
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import BigInteger,Numeric,DateTime,ForeignKey,Text,Index
 from datetime import datetime
 from src.db.base import Base
 
+# ---------- Models ---------- #
+
+# ----- Exam Attempt ---- #
 class ExamAttempt(Base):
     __tablename__="exam_attempts"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
@@ -20,6 +24,7 @@ class ExamAttempt(Base):
     user=relationship("User",back_populates="attempts")
     answers=relationship("Answer",back_populates="attempt")
 
+# ----- Answer ---- #
 class Answer(Base):
     __tablename__="answers"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
@@ -35,6 +40,7 @@ class Answer(Base):
     attempt=relationship("ExamAttempt",back_populates="answers")
     feedback=relationship("Feedback",back_populates="answer",uselist=False)
 
+# ----- Feedback ---- #
 class Feedback(Base):
     __tablename__="feedback"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)

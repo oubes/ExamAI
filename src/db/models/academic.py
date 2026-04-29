@@ -1,9 +1,14 @@
+# ---- Imports ---- #
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import BigInteger,Text,Integer,ForeignKey,Boolean,Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
 from src.db.base import Base
 
+
+# ---------- Models ---------- #
+
+# ---- Subjects ---- #
 class Subject(Base):
     __tablename__="subjects"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
@@ -13,6 +18,7 @@ class Subject(Base):
     exams=relationship("Exam",back_populates="subject")
     enrollments=relationship("Enrollment",back_populates="subject")
 
+# ---- Enrollments ---- #
 class Enrollment(Base):
     __tablename__="enrollments"
     user_id:Mapped[int]=mapped_column(ForeignKey("users.id"),primary_key=True)
@@ -20,6 +26,7 @@ class Enrollment(Base):
     user=relationship("User",back_populates="enrollments")
     subject=relationship("Subject",back_populates="enrollments")
 
+# ---- Exams ---- #
 class Exam(Base):
     __tablename__="exams"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
@@ -30,6 +37,7 @@ class Exam(Base):
     subject=relationship("Subject",back_populates="exams")
     questions=relationship("Question",back_populates="exam")
 
+# ---- Questions ---- #
 class Question(Base):
     __tablename__="questions"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
@@ -46,6 +54,7 @@ class Question(Base):
     options=relationship("QuestionOption",back_populates="question")
     model_answer=relationship("ModelAnswer",back_populates="question",uselist=False)
 
+# ---- Question Options ---- #
 class QuestionOption(Base):
     __tablename__="question_options"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
@@ -55,6 +64,7 @@ class QuestionOption(Base):
     __table_args__=(Index("idx_option_question_id","question_id"),)
     question=relationship("Question",back_populates="options")
 
+# ---- Model Answers ---- #
 class ModelAnswer(Base):
     __tablename__="model_answers"
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
