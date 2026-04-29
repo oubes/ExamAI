@@ -1,6 +1,7 @@
 # ----- Imports ---- #
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, computed_field
+from functools import lru_cache
 
 # ----- Application settings ---- #
 class Settings(BaseSettings):
@@ -11,6 +12,7 @@ class Settings(BaseSettings):
     
     # ---- Basic App settings ---- #
     app_name: str
+    app_description: str
     app_version: str
     debug: bool
     app_env: str
@@ -39,3 +41,8 @@ class Settings(BaseSettings):
     alibaba_base_url: str = Field(..., alias="ALIBABA_BASE_URL")
     alibaba_model_name: str = "qwen2.5-vl-72b-instruct"
     alibaba_model_temp: float = 0.2
+    
+# ---- Instantiate settings ---- #
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings() # type: ignore
