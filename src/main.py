@@ -1,6 +1,6 @@
 # ---- Imports ---- #
-from core.observability.logging import setup_logging
-from core.bootstrap.app_factory import create_app
+from src.core.observability.logging import setup_logging
+from src.core.bootstrap.app_factory import create_app
 
 # ---- Setup logging ---- #
 setup_logging()

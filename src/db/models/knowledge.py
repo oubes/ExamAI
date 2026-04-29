@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped,mapped_column
 from sqlalchemy import BigInteger,Text,ForeignKey,Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
-from db.base import Base
+from src.db.base import Base
 
 
 # ---------- Models ---------- #

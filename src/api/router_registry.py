@@ -1,5 +1,5 @@
 # ---- Imports ---- #
-from api.routes.health_routes import router as health_router
+from src.api.routes.health_routes import router as health_router
 
 # ---- Router registry ---- #
 def register_routers(app):

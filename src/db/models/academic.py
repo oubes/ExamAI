@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import BigInteger,Text,Integer,ForeignKey,Boolean,Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
-from db.base import Base
+from src.db.base import Base
 
 
 # ---------- Models ---------- #
@@ -15,7 +15,6 @@ class Subject(Base):
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
     title:Mapped[str]=mapped_column(Text)
     code:Mapped[str]=mapped_column(Text)
-    plan:Mapped[str]=mapped_column(Text)
 
     # ---- Indexes ---- #
     __table_args__=(Index("idx_subject_code","code"),)

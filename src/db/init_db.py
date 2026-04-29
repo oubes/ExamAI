@@ -1,12 +1,12 @@
 # ---- Imports ---- #
 from sqlalchemy import text
-from db.base import Base
-from db.session import engine
+from src.db.base import Base
+from src.db.session import engine
 
-from db.models.identity import *
-from db.models.academic import *
-from db.models.assessment import *
-from db.models.knowledge import *
+from src.db.models.identity import *
+from src.db.models.academic import *
+from src.db.models.assessment import *
+from src.db.models.knowledge import *
 
 
 # ---------- Init DB ---------- #

@@ -1,7 +1,7 @@
 # ---- Imports ---- #
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import BigInteger,Text
-from db.base import Base
+from src.db.base import Base
 
 
 # ---------- Models ---------- #

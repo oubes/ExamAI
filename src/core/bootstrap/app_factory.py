@@ -1,10 +1,10 @@
 # ---- Imports ---- #
 from fastapi import FastAPI
 import logging
-from core.bootstrap.lifespan import lifespan
-from core.di.settings import get_settings
-from api.router_registry import register_routers
-from core.middleware import register_middleware
+from src.core.bootstrap.lifespan import lifespan
+from src.core.di.settings import get_settings
+from src.api.router_registry import register_routers
+from src.core.middleware import register_middleware
 
 # ---- Settings ---- #
 settings = get_settings()

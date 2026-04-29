@@ -1,6 +1,6 @@
 # ----- Imports ---- #
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from core.di.settings import get_settings
+from src.core.di.settings import get_settings
 import logging
 
 # ---- logging ---- #

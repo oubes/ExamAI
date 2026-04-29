@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 from functools import lru_cache
-from core.config.settings import Settings
+from src.core.config.settings import Settings
 import logging
 
 # ---- logging ---- #
