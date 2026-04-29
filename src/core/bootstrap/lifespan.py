@@ -2,7 +2,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import logging
-from core.config.settings import get_settings
+from core.di.settings import get_settings
 
 # ---- Logging ---- #
 logging = logging.getLogger(__name__)
