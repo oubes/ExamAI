@@ -6,10 +6,13 @@ import logging
 # ---- logging ---- #
 logger = logging.getLogger(__name__)
 
+# ---- Settings ---- #
+settings = get_settings()
+
 # ------------ Database ------------ #
 # ---- Create Engine ---- #
 engine = create_async_engine(
-    get_settings().postgres_full_url,
+    url=settings.postgres_full_url,
     echo=True,
     pool_pre_ping=True,
     pool_size=10,

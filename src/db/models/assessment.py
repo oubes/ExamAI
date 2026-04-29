@@ -2,15 +2,16 @@
 from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import BigInteger,Numeric,DateTime,ForeignKey,Text,Index
 from datetime import datetime
-from src.db.base import Base
+from db.base import Base
+
 
 # ---------- Models ---------- #
 
-# ----- Exam Attempt ---- #
+# ---- Exam Attempt ---- #
 class ExamAttempt(Base):
-    # --- Table Name ---- #
+    # ---- Table Name ---- #
     __tablename__="exam_attempts"
-    
+
     # ---- Columns ---- #
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
     exam_id:Mapped[int]=mapped_column(ForeignKey("exams.id"))
@@ -20,22 +21,23 @@ class ExamAttempt(Base):
     human_score:Mapped[float]=mapped_column(Numeric)
     status:Mapped[str]=mapped_column(Text)
     completed_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
-    
-    ## ---- Indexes ---- #
+
+    # ---- Indexes ---- #
     __table_args__=(
         Index("idx_attempt_user_id","user_id"),
         Index("idx_attempt_exam_id","exam_id"),
     )
-    
+
     # ---- Relationships ---- #
     user=relationship("User",back_populates="attempts")
     answers=relationship("Answer",back_populates="attempt")
 
-# ----- Answer ---- #
+
+# ---- Answer ---- #
 class Answer(Base):
-    # --- Table Name ---- #
+    # ---- Table Name ---- #
     __tablename__="answers"
-    
+
     # ---- Columns ---- #
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
     attempt_id:Mapped[int]=mapped_column(ForeignKey("exam_attempts.id"))
@@ -43,30 +45,35 @@ class Answer(Base):
     option_id:Mapped[int]=mapped_column(ForeignKey("question_options.id"),nullable=True)
     student_answer:Mapped[str]=mapped_column(Text)
     score:Mapped[float]=mapped_column(Numeric)
-    
-    ## ---- Indexes ---- #
+
+    # ---- Indexes ---- #
     __table_args__=(
         Index("idx_answer_attempt_id","attempt_id"),
         Index("idx_answer_question_id","question_id"),
+        Index("idx_answer_text_trgm","student_answer",postgresql_using="gin",postgresql_ops={"student_answer":"gin_trgm_ops"}),
     )
-    
+
     # ---- Relationships ---- #
     attempt=relationship("ExamAttempt",back_populates="answers")
     feedback=relationship("Feedback",back_populates="answer",uselist=False)
 
-# ----- Feedback ---- #
+
+# ---- Feedback ---- #
 class Feedback(Base):
-    # --- Table Name ---- #
+    # ---- Table Name ---- #
     __tablename__="feedback"
-    
+
     # ---- Columns ---- #
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
     answer_id:Mapped[int]=mapped_column(ForeignKey("answers.id"))
     feedback_text:Mapped[str]=mapped_column(Text)
     reasoning:Mapped[str]=mapped_column(Text)
-    
+
     # ---- Indexes ---- #
-    __table_args__=(Index("idx_feedback_answer_id","answer_id"),)
-    
+    __table_args__=(
+        Index("idx_feedback_answer_id","answer_id"),
+        Index("idx_feedback_text_trgm","feedback_text",postgresql_using="gin",postgresql_ops={"feedback_text":"gin_trgm_ops"}),
+    )
+
     # ---- Relationships ---- #
     answer=relationship("Answer",back_populates="feedback")

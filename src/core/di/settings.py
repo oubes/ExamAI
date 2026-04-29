@@ -7,6 +7,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 # ---- Settings ---- #
-@lru_cache(maxsize=1)
+# @lru_cache(maxsize=1)
 def get_settings():
     return Settings() # type: ignore
