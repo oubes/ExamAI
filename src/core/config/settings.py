@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     
     @computed_field
     @property
-    def postgres_full_url(self):
+    def postgres_full_url(self) -> str:
         return (
             f"postgresql://{self.postgres_user}"
             f"{self.postgres_password}@"
