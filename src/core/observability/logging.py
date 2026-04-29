@@ -25,27 +25,23 @@ LEVEL_COLORS = {
 
 # ---- Colored Formatter ---- #
 class ColoredFormatter(logging.Formatter):
+    SEPARATOR = f"\n{'-' * 100}"
+
     def format(self, record):
         color = LEVEL_COLORS.get(record.levelname, Colors.RESET)
 
         original_levelname = record.levelname
         original_name = record.name
 
-        record.levelname = (
-            f"{color}{record.levelname}{Colors.RESET}"
-        )
-
-        record.name = (
-            f"{Colors.BLUE}{record.name}{Colors.RESET}"
-        )
+        record.levelname = f"{color}{record.levelname}{Colors.RESET}"
+        record.name = f"{Colors.BLUE}{record.name}{Colors.RESET}"
 
         formatted = super().format(record)
 
-        # restore original values
         record.levelname = original_levelname
         record.name = original_name
 
-        return formatted
+        return formatted + self.SEPARATOR
 
 
 # ---- Logging configuration ---- #
@@ -55,7 +51,7 @@ def setup_logging(level=logging.INFO):
         format="%(levelname)s: %(asctime)s - %(name)s - %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler("app.log"),
+            logging.FileHandler("../app.log"),
         ]
     )
 
