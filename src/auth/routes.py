@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import session_local
 from src.auth.service import AuthService
 from src.auth.deps import get_current_user
-from src.core.schemas.auth import (
+from src.auth.schemas import (
     RegisterRequest,
     LoginRequest,
     TokenResponse,
