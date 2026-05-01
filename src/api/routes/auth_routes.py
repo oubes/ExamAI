@@ -9,7 +9,7 @@ from src.auth.service import AuthService
 
 
 # ---------- Router ---------- #
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter()
 
 auth_service = AuthService()
 
