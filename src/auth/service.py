@@ -2,7 +2,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.db.models.identity import User
+from src.domains.identity.models import User
 from src.auth.password import hash_password, verify_password
 from src.auth.jwt import create_token
 

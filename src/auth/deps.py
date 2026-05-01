@@ -6,7 +6,7 @@ from sqlalchemy import select
 from src.auth.security import security
 from src.auth.jwt import decode_token
 from src.db.session import session_local
-from src.db.models.identity import User
+from src.domains.identity.models import User
 
 
 # ---- protected ---- #
