@@ -3,10 +3,11 @@ from sqlalchemy import text
 from src.db.base import Base
 from src.db.session import engine
 
-from src.db.models.identity import *
-from src.db.models.academic import *
-from src.db.models.assessment import *
-from src.db.models.knowledge import *
+# ----- importing all models ----- #
+from src.domains.identity.models import *
+from src.domains.academic.models import *
+from src.domains.assessment.models import *
+from src.domains.knowledge.models import *
 
 
 # ---------- Init DB ---------- #

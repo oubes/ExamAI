@@ -5,7 +5,7 @@ class Base(DeclarativeBase):
 
 
 # ----- importing all models ----- #
-from src.db.models.identity import *
-from src.db.models.academic import *
-from src.db.models.assessment import *
-from src.db.models.knowledge import *
+from src.domains.identity.models import *
+from src.domains.academic.models import *
+from src.domains.assessment.models import *
+from src.domains.knowledge.models import *
