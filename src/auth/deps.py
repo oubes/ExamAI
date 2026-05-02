@@ -1,4 +1,5 @@
 # ---- imports ---- #
+from uuid import UUID
 from typing import Literal
 
 from fastapi import Depends, HTTPException
@@ -7,7 +8,10 @@ from sqlalchemy import select
 
 from src.auth.jwt import decode_token
 from src.db.session import session_local
-from src.domains.identity.models import User
+from src.domains.identity.models import (
+    User,
+    UserSession,
+)
 
 
 # ---- security ---- #
@@ -22,8 +26,11 @@ class BaseAuthDependency:
         self,
         credentials: HTTPAuthorizationCredentials = Depends(security),
     ) -> User:
+
+        token = credentials.credentials
+
         # ---- decode token ---- #
-        payload = decode_token(credentials.credentials)
+        payload = decode_token(token)
 
         if not payload:
             raise HTTPException(
@@ -47,13 +54,41 @@ class BaseAuthDependency:
                 detail="Invalid token",
             )
 
-        # ---- fetch user ---- #
+        # ---- extract session id ---- #
+        session_id = payload.get("session_id")
+
+        if not session_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid session",
+            )
+
+        # ---- validate session + fetch user ---- #
         async with session_local() as session:
-            result = await session.execute(
+
+            # ---- fetch session ---- #
+            session_result = await session.execute(
+                select(UserSession).where(
+                    UserSession.id == UUID(session_id),
+                    UserSession.is_active.is_(True),
+                )
+            )
+
+            user_session = session_result.scalar_one_or_none()
+
+            # ---- validate session ---- #
+            if not user_session:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Session expired",
+                )
+
+            # ---- fetch user ---- #
+            user_result = await session.execute(
                 select(User).where(User.id == int(user_id))
             )
 
-            user = result.scalar_one_or_none()
+            user = user_result.scalar_one_or_none()
 
         # ---- validate user ---- #
         if not user:
