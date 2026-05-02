@@ -1,10 +1,10 @@
 # ---- Imports ---- #
-import time
 from uuid import UUID
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import update
+from sqlalchemy import update, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.models.auth_models import (
@@ -68,6 +68,7 @@ async def register(
 @router.post("/login", response_model=TokenResponse)
 async def login(
     payload: LoginRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ):
     try:
@@ -75,6 +76,8 @@ async def login(
             session=session,
             email=payload.email,
             password=payload.password,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
         )
 
         return TokenResponse(**tokens)
@@ -91,6 +94,7 @@ async def login(
 async def refresh(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     user: User = Depends(get_refresh_user),
+    session: AsyncSession = Depends(get_session),
 ):
     # ---- decode token ---- #
     payload = decode_token(credentials.credentials)
@@ -101,7 +105,6 @@ async def refresh(
             detail="Unauthorized",
         )
 
-    # ---- extract session id ---- #
     session_id = payload.get("session_id")
 
     if not session_id:
@@ -110,7 +113,34 @@ async def refresh(
             detail="Invalid session",
         )
 
-    # ---- rotate tokens using same session ---- #
+    # ---- validate session ---- #
+    result = await session.execute(
+        select(UserSession).where(
+            UserSession.id == UUID(session_id),
+        )
+    )
+
+    db_session = result.scalar_one_or_none()
+
+    if not db_session:
+        raise HTTPException(
+            status_code=401,
+            detail="Session not found",
+        )
+
+    if not db_session.is_active:
+        raise HTTPException(
+            status_code=401,
+            detail="Session revoked",
+        )
+
+    if db_session.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=401,
+            detail="Session expired",
+        )
+
+    # ---- rotate tokens ---- #
     tokens = auth_service.generate_tokens(
         user=user,
         session_id=session_id,
@@ -134,7 +164,6 @@ async def logout(
             detail="Unauthorized",
         )
 
-    # ---- extract session id ---- #
     session_id = payload.get("session_id")
 
     if not session_id:

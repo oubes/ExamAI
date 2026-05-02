@@ -67,6 +67,8 @@ class UserService:
         session: AsyncSession,
         email: str,
         password: str,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ):
 
         # -------- fetch user -------- #
@@ -89,6 +91,8 @@ class UserService:
         # -------- create session -------- #
         user_session = UserSession(
             user_id=user.id,
+            ip_address=ip_address,
+            user_agent=user_agent,
             expires_at=datetime.now(timezone.utc)
             + timedelta(days=settings.refresh_token_expire_days),
         )
