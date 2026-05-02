@@ -7,8 +7,10 @@ from src.auth.security import security
 from src.auth.jwt import decode_token
 from src.db.session import session_local
 from src.domains.identity.models import User
+from fastapi.security import HTTPBearer
 
-
+# ---- security ---- #
+security = HTTPBearer()
 # ---- protected ---- #
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
