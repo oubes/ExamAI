@@ -1,15 +1,17 @@
 # ---- imports ---- #
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 
 from src.auth.jwt import decode_token
 from src.db.session import session_local
 from src.domains.identity.models import User
-from fastapi.security import HTTPBearer
+
 
 # ---- security ---- #
 security = HTTPBearer()
+
+
 # ---- protected ---- #
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -19,6 +21,10 @@ async def get_current_user(
 
     if not payload:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # ---- validate token type ---- #
+    if payload.get("type") != "access":
+        raise HTTPException(status_code=401, detail="Invalid token type")
 
     # ---- extract user id ---- #
     user_id = payload.get("sub")

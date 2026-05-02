@@ -53,7 +53,10 @@ async def login(
             payload.password,
         )
 
-        return TokenResponse(access_token=token)
+        return TokenResponse(
+            access_token=token["access_token"],
+            refresh_token=token["refresh_token"],
+        )
 
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid credentials")
