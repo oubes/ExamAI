@@ -1,4 +1,6 @@
 # -------------------- imports -------------------- #
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +12,15 @@ from src.auth.password import (
     hash_password,
     verify_password,
 )
-from src.domains.identity.models import User
+from src.core.di.settings import get_settings
+from src.domains.identity.models import (
+    User,
+    UserSession,
+)
+
+
+# -------------------- settings -------------------- #
+settings = get_settings()
 
 
 # -------------------- identity service -------------------- #
@@ -76,22 +86,40 @@ class UserService:
         ):
             raise ValueError("Invalid credentials")
 
+        # -------- create session -------- #
+        user_session = UserSession(
+            user_id=user.id,
+            expires_at=datetime.now(timezone.utc)
+            + timedelta(days=settings.refresh_token_expire_days),
+        )
+
+        session.add(user_session)
+
+        await session.commit()
+        await session.refresh(user_session)
+
         # -------- generate tokens -------- #
-        return self.generate_tokens(user)
+        return self.generate_tokens(
+            user=user,
+            session_id=str(user_session.id),
+        )
 
     # ------------ generate tokens ------------ #
     def generate_tokens(
         self,
         user: User,
+        session_id: str,
     ):
 
         # -------- create jwt tokens -------- #
         access_token = create_access_token(
             user_id=str(user.id),
+            session_id=session_id,
         )
 
         refresh_token = create_refresh_token(
             user_id=str(user.id),
+            session_id=session_id,
         )
 
         return {
