@@ -1,25 +1,50 @@
 # ---- imports ---- #
 import jwt
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from src.core.di.settings import get_settings
+import logging
+
+# ---------- Logger ---------- #
+logger = logging.getLogger(__name__)
 
 
 # ---- settings ---- #
 settings = get_settings()
 
 
-# ---- create token ---- #
-def create_token(payload: dict) -> str:
-    data = payload.copy()
-
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.access_token_expire_minutes
-    )
-    data.update({"exp": expire})
+# ---- create access token ---- #
+def create_access_token(user_id: str) -> str:
+    payload = {
+        "sub": str(user_id),
+        "type": "access",
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc)
+        + timedelta(minutes=settings.access_token_expire_minutes),
+        "jti": str(uuid4()),
+    }
 
     return jwt.encode(
-        data,
+        payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+
+# ---- create refresh token ---- #
+def create_refresh_token(user_id: str) -> str:
+    payload = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "iat": datetime.now(timezone.utc),
+        "exp": datetime.now(timezone.utc)
+        + timedelta(days=settings.refresh_token_expire_days),
+        "jti": str(uuid4()),
+    }
+
+    return jwt.encode(
+        payload,
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
     )
@@ -33,5 +58,6 @@ def decode_token(token: str):
             settings.jwt_secret_key,
             algorithms=[settings.jwt_algorithm],
         )
-    except Exception:
+    except jwt.PyJWTError as e:
+        logging.exception(f"Token decoding failed: {e}")
         return None

@@ -57,5 +57,6 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     password_hash_algorithm: str = Field(default="argon2", alias="PASSWORD_HASH_ALGORITHM")
     access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+    refresh_token_expire_days: int = Field(default=14, alias="REFRESH_TOKEN_EXPIRE_DAYS")
     min_password_length: int = Field(default=6, alias="MIN_PASSWORD_LENGTH")
     max_password_length: int = Field(default=48, alias="MAX_PASSWORD_LENGTH")

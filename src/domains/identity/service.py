@@ -4,7 +4,10 @@ from sqlalchemy import select
 
 from src.domains.identity.models import User
 from src.auth.password import hash_password, verify_password
-from src.auth.jwt import create_token
+from src.auth.jwt import (
+    create_access_token,
+    create_refresh_token,
+)
 
 
 # -------------------- identity service -------------------- #
@@ -64,4 +67,10 @@ class UserService:
             raise ValueError("Invalid credentials")
 
         # -------- token generation -------- #
-        return create_token({"sub": str(user.id)})
+        access_token = create_access_token(user_id=str(user.id))
+        refresh_token = create_refresh_token(user_id=str(user.id))
+
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+        }
