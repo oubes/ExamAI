@@ -1,13 +1,16 @@
 # -------------------- imports -------------------- #
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.domains.identity.models import User
-from src.auth.password import hash_password, verify_password
 from src.auth.jwt import (
     create_access_token,
     create_refresh_token,
 )
+from src.auth.password import (
+    hash_password,
+    verify_password,
+)
+from src.domains.identity.models import User
 
 
 # -------------------- identity service -------------------- #
@@ -42,6 +45,7 @@ class UserService:
 
         # -------- persist -------- #
         session.add(user)
+
         await session.commit()
         await session.refresh(user)
 
@@ -63,12 +67,32 @@ class UserService:
         user = result.scalar_one_or_none()
 
         # -------- authentication -------- #
-        if not user or not verify_password(password, user.password_hash):
+        if not user:
             raise ValueError("Invalid credentials")
 
-        # -------- token generation -------- #
-        access_token = create_access_token(user_id=str(user.id))
-        refresh_token = create_refresh_token(user_id=str(user.id))
+        if not verify_password(
+            password,
+            user.password_hash,
+        ):
+            raise ValueError("Invalid credentials")
+
+        # -------- generate tokens -------- #
+        return self.generate_tokens(user)
+
+    # ------------ generate tokens ------------ #
+    def generate_tokens(
+        self,
+        user: User,
+    ):
+
+        # -------- create jwt tokens -------- #
+        access_token = create_access_token(
+            user_id=str(user.id),
+        )
+
+        refresh_token = create_refresh_token(
+            user_id=str(user.id),
+        )
 
         return {
             "access_token": access_token,
