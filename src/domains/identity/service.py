@@ -24,20 +24,18 @@ settings = get_settings()
 
 
 # -------------------- identity service -------------------- #
-class UserService:
+class IdentityService:
 
     # ------------ register ------------ #
     async def register(
         self,
         session: AsyncSession,
-        full_name: str,
-        email: str,
-        password: str,
+        payload: dict,
     ):
 
         # -------- check existing user -------- #
         result = await session.execute(
-            select(User).where(User.email == email)
+            select(User).where(User.email == payload["email"])
         )
 
         existing = result.scalar_one_or_none()
@@ -48,9 +46,9 @@ class UserService:
 
         # -------- create user -------- #
         user = User(
-            full_name=full_name,
-            email=email,
-            password_hash=hash_password(password),
+            full_name=payload["full_name"],
+            email=payload["email"],
+            password_hash=hash_password(payload["password"]),
         )
 
         # -------- persist -------- #
@@ -65,15 +63,12 @@ class UserService:
     async def login(
         self,
         session: AsyncSession,
-        email: str,
-        password: str,
-        ip_address: str | None = None,
-        user_agent: str | None = None,
+        payload: dict,
     ):
 
         # -------- fetch user -------- #
         result = await session.execute(
-            select(User).where(User.email == email)
+            select(User).where(User.email == payload["email"])
         )
 
         user = result.scalar_one_or_none()
@@ -83,16 +78,16 @@ class UserService:
             raise ValueError("Invalid credentials")
 
         if not verify_password(
-            password,
-            user.password_hash,
+            password=payload["password"],
+            hashed=user.password_hash,
         ):
             raise ValueError("Invalid credentials")
 
         # -------- create session -------- #
         user_session = UserSession(
             user_id=user.id,
-            ip_address=ip_address,
-            user_agent=user_agent,
+            ip_address=payload["ip_address"],
+            user_agent=payload["user_agent"],
             expires_at=datetime.now(timezone.utc)
             + timedelta(days=settings.refresh_token_expire_days),
         )
