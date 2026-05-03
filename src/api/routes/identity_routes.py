@@ -22,13 +22,13 @@ from src.domains.identity.models import (
     User,
     UserSession,
 )
-from src.domains.identity.service import UserService
+from src.domains.identity.service import IdentityService
 
 
 # ---------- Router ---------- #
 router = APIRouter()
 
-auth_service = UserService()
+identity_service = IdentityService()
 security = HTTPBearer()
 
 
@@ -45,11 +45,14 @@ async def register(
     session: AsyncSession = Depends(get_session),
 ):
     try:
-        user = await auth_service.register(
+        user = await identity_service.register(
             session=session,
-            full_name=payload.full_name,
-            email=payload.email,
-            password=payload.password,
+            payload={
+                "full_name": payload.full_name,
+                "email": payload.email,
+                "password": payload.password,
+                "user_name": payload.user_name,
+            }
         )
 
         return {
@@ -72,12 +75,14 @@ async def login(
     session: AsyncSession = Depends(get_session),
 ):
     try:
-        tokens = await auth_service.login(
+        tokens = await identity_service.login(
             session=session,
-            email=payload.email,
-            password=payload.password,
-            ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("user-agent"),
+            payload={
+                "email": payload.email,
+                "password": payload.password,
+                "ip_address": request.client.host if request.client else None,
+                "user_agent": request.headers.get("user-agent"),
+            }
         )
 
         return TokenResponse(**tokens)
@@ -141,7 +146,7 @@ async def refresh(
         )
 
     # ---- rotate tokens ---- #
-    tokens = auth_service.generate_tokens(
+    tokens = identity_service.generate_tokens(
         user=user,
         session_id=session_id,
     )
