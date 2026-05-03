@@ -18,7 +18,8 @@ class User(Base):
     # ---- Columns ---- #
     id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True, index=True)
     full_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    user_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=True, unique=True)
+    user_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=False, unique=True)
+    role: Mapped[str] = mapped_column(__name_pos=Text, nullable=False, default="user")
     email: Mapped[str] = mapped_column(__name_pos=Text, unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
     is_active: Mapped[bool] = mapped_column(__name_pos=Boolean, default=True, nullable=False)
