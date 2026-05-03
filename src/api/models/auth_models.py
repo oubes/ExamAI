@@ -9,6 +9,7 @@ class RegisterRequest(BaseModel):
     full_name: str
     email: EmailStr
     password: str
+    user_name: str
 
 
 # ---- Login Request ---- #
