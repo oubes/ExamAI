@@ -48,6 +48,7 @@ class IdentityService:
         user = User(
             full_name=payload["full_name"],
             email=payload["email"],
+            user_name=payload["user_name"],
             password_hash=hash_password(payload["password"]),
         )
 

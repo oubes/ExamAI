@@ -16,7 +16,7 @@ class User(Base):
     __tablename__ = "users"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(__name_pos=UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     full_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
     user_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=False, unique=True)
     role: Mapped[str] = mapped_column(__name_pos=Text, nullable=False, default="user")
@@ -39,7 +39,7 @@ class UserSession(Base):
 
     # ---- Columns ---- #
     id: Mapped[uuid.UUID] = mapped_column(__name_pos=UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(__name_pos=ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     is_active: Mapped[bool] = mapped_column(__name_pos=Boolean, default=True, nullable=False)
 
     ip_address: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
