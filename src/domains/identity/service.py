@@ -1,7 +1,9 @@
 # -------------------- imports -------------------- #
 from datetime import datetime, timedelta, timezone
+from typing import cast
+from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.jwt import (
@@ -31,7 +33,7 @@ class IdentityService:
         self,
         session: AsyncSession,
         payload: dict,
-    ):
+    ) -> User:
 
         # -------- check existing user -------- #
         result = await session.execute(
@@ -65,7 +67,7 @@ class IdentityService:
         self,
         session: AsyncSession,
         payload: dict,
-    ):
+    ) -> dict:
 
         # -------- fetch user -------- #
         result = await session.execute(
@@ -87,8 +89,8 @@ class IdentityService:
         # -------- create session -------- #
         user_session = UserSession(
             user_id=user.id,
-            ip_address=payload["ip_address"],
-            user_agent=payload["user_agent"],
+            ip_address=payload.get("ip_address"),
+            user_agent=payload.get("user_agent"),
             expires_at=datetime.now(timezone.utc)
             + timedelta(days=settings.refresh_token_expire_days),
         )
@@ -104,19 +106,69 @@ class IdentityService:
             session_id=str(user_session.id),
         )
 
+    # ------------ refresh tokens ------------ #
+    async def refresh_tokens(
+        self,
+        session: AsyncSession,
+        user: User,
+        session_id: UUID,
+    ) -> dict:
+
+        # -------- fetch session -------- #
+        result = await session.execute(
+            select(UserSession).where(
+                UserSession.id == session_id,
+            )
+        )
+
+        db_session = result.scalar_one_or_none()
+
+        # -------- validate session -------- #
+        if not db_session:
+            raise ValueError("Session not found")
+
+        if not db_session.is_active:
+            raise ValueError("Session revoked")
+
+        if cast(datetime, db_session.expires_at) < datetime.now(timezone.utc):
+            raise ValueError("Session expired")
+
+        # -------- rotate tokens -------- #
+        return self.generate_tokens(
+            user=user,
+            session_id=str(session_id),
+        )
+
+    # ------------ logout ------------ #
+    async def logout(
+        self,
+        session: AsyncSession,
+        session_id: UUID,
+    ) -> None:
+
+        # -------- deactivate session -------- #
+        await session.execute(
+            update(UserSession)
+            .where(UserSession.id == session_id)
+            .values(is_active=False)
+        )
+
+        await session.commit()
+
     # ------------ generate tokens ------------ #
     def generate_tokens(
         self,
         user: User,
         session_id: str,
-    ):
+    ) -> dict:
 
-        # -------- create jwt tokens -------- #
+        # -------- create access token -------- #
         access_token = create_access_token(
             user_id=str(user.id),
             session_id=session_id,
         )
 
+        # -------- create refresh token -------- #
         refresh_token = create_refresh_token(
             user_id=str(user.id),
             session_id=session_id,
