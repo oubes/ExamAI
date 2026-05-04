@@ -42,6 +42,8 @@ class Enrollment(Base):
 class Exam(Base):
     # ---- Table Name ---- #
     __tablename__="exams"
+    
+    # ---- Columns ---- #
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
     subject_id:Mapped[int]=mapped_column(ForeignKey("subjects.id"))
     title:Mapped[str]=mapped_column(Text)
@@ -86,6 +88,8 @@ class Question(Base):
 class QuestionOption(Base):
     # ---- Table Name ---- #
     __tablename__="question_options"
+    
+    # ---- Columns ---- #
     id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
     question_id:Mapped[int]=mapped_column(ForeignKey("questions.id"))
     option_text:Mapped[str]=mapped_column(Text)
