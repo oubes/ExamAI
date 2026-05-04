@@ -1,6 +1,7 @@
 # ---- Imports ---- #
 from uuid import UUID
 from datetime import datetime, timezone
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -144,7 +145,7 @@ async def refresh(
             detail="Session revoked",
         )
 
-    if db_session.expires_at < datetime.now(timezone.utc):
+    if cast(datetime, db_session.expires_at) < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=401,
             detail="Session expired",
