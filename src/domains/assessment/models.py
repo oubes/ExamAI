@@ -1,6 +1,6 @@
 # ---- Imports ---- #
-from sqlalchemy.orm import Mapped,mapped_column,relationship
-from sqlalchemy import BigInteger,Numeric,DateTime,ForeignKey,Text,Index
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import BigInteger, Numeric, DateTime, ForeignKey, Text, Index
 from datetime import datetime
 from src.db.base import Base
 
@@ -10,70 +10,113 @@ from src.db.base import Base
 # ---- Exam Attempt ---- #
 class ExamAttempt(Base):
     # ---- Table Name ---- #
-    __tablename__="exam_attempts"
+    __tablename__ = "exam_attempts"
 
     # ---- Columns ---- #
-    id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
-    exam_id:Mapped[int]=mapped_column(ForeignKey("exams.id"))
-    user_id:Mapped[int]=mapped_column(ForeignKey("users.id"))
-    final_score:Mapped[float]=mapped_column(Numeric)
-    ai_score:Mapped[float]=mapped_column(Numeric)
-    human_score:Mapped[float]=mapped_column(Numeric)
-    status:Mapped[str]=mapped_column(Text)
-    completed_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    exam_id: Mapped[int] = mapped_column(ForeignKey("exams.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    final_score: Mapped[float] = mapped_column(Numeric)
+    ai_score: Mapped[float] = mapped_column(Numeric)
+    human_score: Mapped[float] = mapped_column(Numeric)
+    status: Mapped[str] = mapped_column(Text)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # ---- Indexes ---- #
-    __table_args__=(
-        Index("idx_attempt_user_id","user_id"),
-        Index("idx_attempt_exam_id","exam_id"),
+    __table_args__ = (
+        Index("idx_attempt_user_id", "user_id"),
+        Index("idx_attempt_exam_id", "exam_id"),
     )
 
     # ---- Relationships ---- #
-    user=relationship("User",back_populates="attempts")
-    answers=relationship("Answer",back_populates="attempt")
+    user = relationship("User", back_populates="attempts")
+    answers = relationship("Answer", back_populates="attempt")
+
+    # ---- Repr ---- #
+    def __repr__(self) -> str:
+        return (
+            f"ExamAttempt("
+            f"id={self.id}, "
+            f"user_id={self.user_id}, "
+            f"exam_id={self.exam_id}, "
+            f"final_score={self.final_score}, "
+            f"status='{self.status}'"
+            f")"
+        )
 
 
 # ---- Answer ---- #
 class Answer(Base):
     # ---- Table Name ---- #
-    __tablename__="answers"
+    __tablename__ = "answers"
 
     # ---- Columns ---- #
-    id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
-    attempt_id:Mapped[int]=mapped_column(ForeignKey("exam_attempts.id"))
-    question_id:Mapped[int]=mapped_column(ForeignKey("questions.id"))
-    option_id:Mapped[int]=mapped_column(ForeignKey("question_options.id"),nullable=True)
-    student_answer:Mapped[str]=mapped_column(Text)
-    score:Mapped[float]=mapped_column(Numeric)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    attempt_id: Mapped[int] = mapped_column(ForeignKey("exam_attempts.id"))
+    question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
+    option_id: Mapped[int] = mapped_column(ForeignKey("question_options.id"), nullable=True)
+    student_answer: Mapped[str] = mapped_column(Text)
+    score: Mapped[float] = mapped_column(Numeric)
 
     # ---- Indexes ---- #
-    __table_args__=(
-        Index("idx_answer_attempt_id","attempt_id"),
-        Index("idx_answer_question_id","question_id"),
-        Index("idx_answer_text_trgm","student_answer",postgresql_using="gin",postgresql_ops={"student_answer":"gin_trgm_ops"}),
+    __table_args__ = (
+        Index("idx_answer_attempt_id", "attempt_id"),
+        Index("idx_answer_question_id", "question_id"),
+        Index(
+            "idx_answer_text_trgm",
+            "student_answer",
+            postgresql_using="gin",
+            postgresql_ops={"student_answer": "gin_trgm_ops"},
+        ),
     )
 
     # ---- Relationships ---- #
-    attempt=relationship("ExamAttempt",back_populates="answers")
-    feedback=relationship("Feedback",back_populates="answer",uselist=False)
+    attempt = relationship("ExamAttempt", back_populates="answers")
+    feedback = relationship("Feedback", back_populates="answer", uselist=False)
+
+    # ---- Repr ---- #
+    def __repr__(self) -> str:
+        return (
+            f"Answer("
+            f"id={self.id}, "
+            f"attempt_id={self.attempt_id}, "
+            f"question_id={self.question_id}, "
+            f"score={self.score}"
+            f")"
+        )
 
 
 # ---- Feedback ---- #
 class Feedback(Base):
     # ---- Table Name ---- #
-    __tablename__="feedback"
+    __tablename__ = "feedback"
 
     # ---- Columns ---- #
-    id:Mapped[int]=mapped_column(BigInteger,primary_key=True)
-    answer_id:Mapped[int]=mapped_column(ForeignKey("answers.id"))
-    feedback_text:Mapped[str]=mapped_column(Text)
-    reasoning:Mapped[str]=mapped_column(Text)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    answer_id: Mapped[int] = mapped_column(ForeignKey("answers.id"))
+    feedback_text: Mapped[str] = mapped_column(Text)
+    reasoning: Mapped[str] = mapped_column(Text)
 
     # ---- Indexes ---- #
-    __table_args__=(
-        Index("idx_feedback_answer_id","answer_id"),
-        Index("idx_feedback_text_trgm","feedback_text",postgresql_using="gin",postgresql_ops={"feedback_text":"gin_trgm_ops"}),
+    __table_args__ = (
+        Index("idx_feedback_answer_id", "answer_id"),
+        Index(
+            "idx_feedback_text_trgm",
+            "feedback_text",
+            postgresql_using="gin",
+            postgresql_ops={"feedback_text": "gin_trgm_ops"},
+        ),
     )
 
     # ---- Relationships ---- #
-    answer=relationship("Answer",back_populates="feedback")
+    answer = relationship("Answer", back_populates="feedback")
+
+    # ---- Repr ---- #
+    def __repr__(self) -> str:
+        return (
+            f"Feedback("
+            f"id={self.id}, "
+            f"answer_id={self.answer_id}, "
+            f"feedback_text='{self.feedback_text[:30]}...'"
+            f")"
+        )
