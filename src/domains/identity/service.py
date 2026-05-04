@@ -1,5 +1,6 @@
 # -------------------- imports -------------------- #
 from datetime import datetime, timedelta, timezone
+import logging
 from typing import cast
 from uuid import UUID
 
@@ -24,16 +25,15 @@ from src.domains.identity.models import (
 # -------------------- settings -------------------- #
 settings = get_settings()
 
+# ---- logging ---- #
+logger = logging.getLogger(__name__)
+
 
 # -------------------- identity service -------------------- #
 class IdentityService:
 
     # ------------ register ------------ #
-    async def register(
-        self,
-        session: AsyncSession,
-        payload: dict,
-    ) -> User:
+    async def register(self, session: AsyncSession, payload: dict) -> User:
 
         # -------- check existing user -------- #
         result = await session.execute(
@@ -44,6 +44,10 @@ class IdentityService:
 
         # -------- validation -------- #
         if existing:
+            logger.warning(
+                "Register failed: email already exists | email=%s",
+                payload["email"],
+            )
             raise ValueError("Email already exists")
 
         # -------- create user -------- #
@@ -63,11 +67,7 @@ class IdentityService:
         return user
 
     # ------------ login ------------ #
-    async def login(
-        self,
-        session: AsyncSession,
-        payload: dict,
-    ) -> dict:
+    async def login(self, session: AsyncSession, payload: dict) -> dict:
 
         # -------- fetch user -------- #
         result = await session.execute(
@@ -78,12 +78,21 @@ class IdentityService:
 
         # -------- authentication -------- #
         if not user:
+            logger.warning(
+                "Login failed: user not found | email=%s",
+                payload["email"],
+            )
             raise ValueError("Invalid credentials")
 
         if not verify_password(
             password=payload["password"],
             hashed=user.password_hash,
         ):
+            logger.warning(
+                "Login failed: invalid password | user_id=%s email=%s",
+                user.id,
+                user.email,
+            )
             raise ValueError("Invalid credentials")
 
         # -------- create session -------- #
@@ -100,7 +109,6 @@ class IdentityService:
         await session.commit()
         await session.refresh(user_session)
 
-        # -------- generate tokens -------- #
         return self.generate_tokens(
             user=user,
             session_id=str(user_session.id),
@@ -116,21 +124,22 @@ class IdentityService:
 
         # -------- fetch session -------- #
         result = await session.execute(
-            select(UserSession).where(
-                UserSession.id == session_id,
-            )
+            select(UserSession).where(UserSession.id == session_id)
         )
 
         db_session = result.scalar_one_or_none()
 
         # -------- validate session -------- #
         if not db_session:
+            logger.warning("Refresh failed: session not found | session_id=%s", session_id)
             raise ValueError("Session not found")
 
         if not db_session.is_active:
+            logger.warning("Refresh failed: session revoked | session_id=%s", session_id)
             raise ValueError("Session revoked")
 
         if cast(datetime, db_session.expires_at) < datetime.now(timezone.utc):
+            logger.warning("Refresh failed: session expired | session_id=%s", session_id)
             raise ValueError("Session expired")
 
         # -------- rotate tokens -------- #
@@ -140,13 +149,15 @@ class IdentityService:
         )
 
     # ------------ logout ------------ #
-    async def logout(
-        self,
-        session: AsyncSession,
-        session_id: UUID,
-    ) -> None:
+    async def logout(self, session: AsyncSession, session_id: UUID) -> None:
 
-        # -------- deactivate session -------- #
+        result = await session.execute(
+            select(UserSession.id).where(UserSession.id == session_id)
+        )
+
+        if not result.scalar_one_or_none():
+            logger.warning("Logout called for missing session | session_id=%s", session_id)
+
         await session.execute(
             update(UserSession)
             .where(UserSession.id == session_id)
@@ -156,19 +167,13 @@ class IdentityService:
         await session.commit()
 
     # ------------ generate tokens ------------ #
-    def generate_tokens(
-        self,
-        user: User,
-        session_id: str,
-    ) -> dict:
+    def generate_tokens(self, user: User, session_id: str) -> dict:
 
-        # -------- create access token -------- #
         access_token = create_access_token(
             user_id=str(user.id),
             session_id=session_id,
         )
 
-        # -------- create refresh token -------- #
         refresh_token = create_refresh_token(
             user_id=str(user.id),
             session_id=session_id,
