@@ -14,7 +14,7 @@ from src.domains.identity.models import (
     UserSession,
 )
 
-from .security import security
+from src.auth.security import security
 
 
 # ---------- base auth dependency ---------- #

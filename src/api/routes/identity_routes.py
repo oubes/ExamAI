@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import update, select
+from fastapi.security import HTTPAuthorizationCredentials
+from src.auth.security import security
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.models.identity_models import (
@@ -32,8 +33,6 @@ from src.domains.identity.service import IdentityService
 router = APIRouter()
 
 identity_service = IdentityService()
-security = HTTPBearer()
-
 
 # ---------- DB Session ---------- #
 async def get_session():
@@ -110,55 +109,25 @@ async def refresh(
     user: User = Depends(get_refresh_user),
     session: AsyncSession = Depends(get_session),
 ):
-    # ---- decode token ---- #
+    # ---- extract session id only ---- #
     payload = decode_token(credentials.credentials)
 
     if not payload:
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized",
-        )
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     session_id = payload.get("session_id")
 
     if not session_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid session",
+        raise HTTPException(status_code=401, detail="Invalid session")
+
+    try:
+        tokens = await identity_service.refresh_tokens(
+            session=session,
+            user=user,
+            session_id=UUID(session_id),
         )
-
-    # ---- validate session ---- #
-    result = await session.execute(
-        select(UserSession).where(
-            UserSession.id == UUID(session_id),
-        )
-    )
-
-    db_session = result.scalar_one_or_none()
-
-    if not db_session:
-        raise HTTPException(
-            status_code=401,
-            detail="Session not found",
-        )
-
-    if not db_session.is_active:
-        raise HTTPException(
-            status_code=401,
-            detail="Session revoked",
-        )
-
-    if cast(datetime, db_session.expires_at) < datetime.now(timezone.utc):
-        raise HTTPException(
-            status_code=401,
-            detail="Session expired",
-        )
-
-    # ---- rotate tokens ---- #
-    tokens = identity_service.generate_tokens(
-        user=user,
-        session_id=session_id,
-    )
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
 
     return TokenResponse(**tokens)
 
@@ -173,27 +142,21 @@ async def logout(
     payload = decode_token(credentials.credentials)
 
     if not payload:
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized",
-        )
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
     session_id = payload.get("session_id")
 
     if not session_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid session",
+        raise HTTPException(status_code=401, detail="Invalid session")
+
+    # ---- service call ---- #
+    try:
+        await identity_service.logout(
+            session=session,
+            session_id=UUID(session_id),
         )
-
-    # ---- deactivate session ---- #
-    await session.execute(
-        update(UserSession)
-        .where(UserSession.id == UUID(session_id))
-        .values(is_active=False)
-    )
-
-    await session.commit()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Logout failed")
 
     return {"message": "logged out"}
 
