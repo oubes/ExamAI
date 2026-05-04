@@ -2,7 +2,7 @@
 import uuid
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, DateTime, Text, Boolean, ForeignKey, func
+from sqlalchemy import DateTime, Text, Boolean, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.db.base import Base
@@ -31,6 +31,18 @@ class User(Base):
     attempts = relationship("ExamAttempt", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
 
+    # ---- Repr ---- #
+    def __repr__(self) -> str:
+        return (
+            f"User("
+            f"id={self.id}, "
+            f"user_name='{self.user_name}', "
+            f"email='{self.email}', "
+            f"role='{self.role}', "
+            f"is_active={self.is_active}"
+            f")"
+        )
+
 
 # ---- User Session ---- #
 class UserSession(Base):
@@ -50,3 +62,14 @@ class UserSession(Base):
 
     # ---- Relationships ---- #
     user = relationship("User", back_populates="sessions")
+
+    # ---- Repr ---- #
+    def __repr__(self) -> str:
+        return (
+            f"UserSession("
+            f"id={self.id}, "
+            f"user_id={self.user_id}, "
+            f"is_active={self.is_active}, "
+            f"ip_address='{self.ip_address}'"
+            f")"
+        )
