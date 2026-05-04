@@ -27,9 +27,9 @@ class User(Base):
     updated_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # ---- Relationships ---- #
-    enrollments = relationship("Enrollment", back_populates="user", cascade="all, delete-orphan")
-    attempts = relationship("ExamAttempt", back_populates="user", cascade="all, delete-orphan")
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
+    enrollments = relationship("Enrollment", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    attempts = relationship("ExamAttempt", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -61,7 +61,7 @@ class UserSession(Base):
     expires_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), nullable=False)
 
     # ---- Relationships ---- #
-    user = relationship("User", back_populates="sessions")
+    user = relationship("User", back_populates="sessions", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

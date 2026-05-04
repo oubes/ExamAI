@@ -22,8 +22,8 @@ class Subject(Base):
     __table_args__ = (Index("idx_subject_code", "code"),)
 
     # ---- Relationships ---- #
-    exams = relationship("Exam", back_populates="subject")
-    enrollments = relationship("Enrollment", back_populates="subject")
+    exams = relationship("Exam", back_populates="subject", lazy="selectin")
+    enrollments = relationship("Enrollment", back_populates="subject", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -40,8 +40,8 @@ class Enrollment(Base):
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"), primary_key=True)
 
     # ---- Relationships ---- #
-    user = relationship("User", back_populates="enrollments")
-    subject = relationship("Subject", back_populates="enrollments")
+    user = relationship("User", back_populates="enrollments", lazy="selectin")
+    subject = relationship("Subject", back_populates="enrollments", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -63,8 +63,8 @@ class Exam(Base):
     __table_args__ = (Index("idx_exam_subject_id", "subject_id"),)
 
     # ---- Relationships ---- #
-    subject = relationship("Subject", back_populates="exams")
-    questions = relationship("Question", back_populates="exam")
+    subject = relationship("Subject", back_populates="exams", lazy="selectin")
+    questions = relationship("Question", back_populates="exam", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -105,9 +105,9 @@ class Question(Base):
     )
 
     # ---- Relationships ---- #
-    exam = relationship("Exam", back_populates="questions")
-    options = relationship("QuestionOption", back_populates="question")
-    model_answer = relationship("ModelAnswer", back_populates="question", uselist=False)
+    exam = relationship("Exam", back_populates="questions", lazy="selectin")
+    options = relationship("QuestionOption", back_populates="question", lazy="selectin")
+    model_answer = relationship("ModelAnswer", back_populates="question", uselist=False, lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -143,7 +143,7 @@ class QuestionOption(Base):
     )
 
     # ---- Relationships ---- #
-    question = relationship("Question", back_populates="options")
+    question = relationship("Question", back_populates="options", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -183,7 +183,7 @@ class ModelAnswer(Base):
     )
 
     # ---- Relationships ---- #
-    question = relationship("Question", back_populates="model_answer")
+    question = relationship("Question", back_populates="model_answer", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

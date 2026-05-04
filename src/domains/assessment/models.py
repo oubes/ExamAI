@@ -29,8 +29,8 @@ class ExamAttempt(Base):
     )
 
     # ---- Relationships ---- #
-    user = relationship("User", back_populates="attempts")
-    answers = relationship("Answer", back_populates="attempt")
+    user = relationship("User", back_populates="attempts", lazy="selectin")
+    answers = relationship("Answer", back_populates="attempt", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -71,8 +71,8 @@ class Answer(Base):
     )
 
     # ---- Relationships ---- #
-    attempt = relationship("ExamAttempt", back_populates="answers")
-    feedback = relationship("Feedback", back_populates="answer", uselist=False)
+    attempt = relationship("ExamAttempt", back_populates="answers", lazy="selectin")
+    feedback = relationship("Feedback", back_populates="answer", uselist=False, lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -109,7 +109,7 @@ class Feedback(Base):
     )
 
     # ---- Relationships ---- #
-    answer = relationship("Answer", back_populates="feedback")
+    answer = relationship("Answer", back_populates="feedback", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
