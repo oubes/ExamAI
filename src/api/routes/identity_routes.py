@@ -8,12 +8,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import update, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.models.auth_models import (
+from src.api.models.identity_models import (
     LoginRequest,
     RegisterRequest,
     TokenResponse,
+    RegisterResponse,
+    MeResponse,
 )
-from src.auth.deps import (
+from src.auth.auth import (
     get_current_user,
     get_refresh_user,
 )
@@ -40,7 +42,7 @@ async def get_session():
 
 
 # ---------- Register ---------- #
-@router.post("/register")
+@router.post("/register", response_model=RegisterResponse)
 async def register(
     payload: RegisterRequest,
     session: AsyncSession = Depends(get_session),
@@ -56,15 +58,16 @@ async def register(
             }
         )
 
-        return {
-            "id": user.id,
-            "full_name": user.full_name,
-            "user_name": user.user_name,
-            "email": user.email,
-            "is_active": user.is_active,
-            "created_at": user.created_at,
-            "updated_at": user.updated_at,
-        }
+        return RegisterResponse(
+            id=user.id,
+            full_name=user.full_name,
+            user_name=user.user_name,
+            role=user.role,
+            email=user.email,
+            is_active=user.is_active,
+            created_at=cast(datetime, user.created_at),
+            updated_at=cast(datetime, user.updated_at),
+        )
 
     except ValueError as e:
         raise HTTPException(
@@ -196,12 +199,17 @@ async def logout(
 
 
 # ---------- Protected ---------- #
-@router.get("/me")
+@router.get("/me", response_model=MeResponse)
 async def me(
     user: User = Depends(get_current_user),
 ):
-    return {
-        "id": user.id,
-        "email": user.email,
-        "full_name": user.full_name,
-    }
+    return RegisterResponse(
+        id=user.id,
+        full_name=user.full_name,
+        user_name=user.user_name,
+        role=user.role,
+        email=user.email,
+        is_active=user.is_active,
+        created_at=cast(datetime, user.created_at),
+        updated_at=cast(datetime, user.updated_at),
+    )

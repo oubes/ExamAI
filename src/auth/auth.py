@@ -1,9 +1,10 @@
 # ---- imports ---- #
+from datetime import datetime, timezone
+from typing import ClassVar, Literal
 from uuid import UUID
-from typing import Literal
 
 from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import select
 
 from src.auth.jwt import decode_token
@@ -13,24 +14,21 @@ from src.domains.identity.models import (
     UserSession,
 )
 
-
-# ---- security ---- #
-security = HTTPBearer()
+from .security import security
 
 
 # ---------- base auth dependency ---------- #
 class BaseAuthDependency:
-    token_type: Literal["access", "refresh"]
+
+    token_type: ClassVar[Literal["access", "refresh"]]
 
     async def __call__(
         self,
         credentials: HTTPAuthorizationCredentials = Depends(security),
     ) -> User:
 
-        token = credentials.credentials
-
         # ---- decode token ---- #
-        payload = decode_token(token)
+        payload = decode_token(credentials.credentials)
 
         if not payload:
             raise HTTPException(
@@ -45,22 +43,15 @@ class BaseAuthDependency:
                 detail="Invalid token type",
             )
 
-        # ---- extract user id ---- #
-        user_id = payload.get("sub")
+        # ---- parse ids ---- #
+        try:
+            user_id = UUID(payload["sub"])
+            session_id = UUID(payload["session_id"])
 
-        if not user_id:
+        except Exception:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid token",
-            )
-
-        # ---- extract session id ---- #
-        session_id = payload.get("session_id")
-
-        if not session_id:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid session",
+                detail="Invalid token payload",
             )
 
         # ---- validate session + fetch user ---- #
@@ -69,8 +60,10 @@ class BaseAuthDependency:
             # ---- fetch session ---- #
             session_result = await session.execute(
                 select(UserSession).where(
-                    UserSession.id == UUID(session_id),
+                    UserSession.id == session_id,
                     UserSession.is_active.is_(True),
+                    UserSession.expires_at
+                    > datetime.now(timezone.utc),
                 )
             )
 
@@ -85,7 +78,7 @@ class BaseAuthDependency:
 
             # ---- fetch user ---- #
             user_result = await session.execute(
-                select(User).where(User.id == int(user_id))
+                select(User).where(User.id == user_id)
             )
 
             user = user_result.scalar_one_or_none()
