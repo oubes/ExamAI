@@ -74,3 +74,6 @@ class Settings(BaseSettings):
     smtp_user: str = Field(..., alias="SMTP_USER")
     smtp_password: str = Field(..., alias="SMTP_PASSWORD")
     smtp_from: str = Field(..., alias="SMTP_FROM")
+    email_secret_key: str = Field(..., alias="EMAIL_SECRET_KEY")
+    email_algorithm: str = Field(default="HS256", alias="EMAIL_ALGORITHM")
+    email_verification_token_expire_minutes: int = Field(default=30, alias="EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES")
