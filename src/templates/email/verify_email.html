@@ -1,13 +1,17 @@
-<!-- ---- Verify Email Template ---- -->
-<!DOCTYPE html>
-<html>
-  <body>
-    <h2>Email Verification</h2>
+# ---- Verify Email Template ---- #
 
-    <p>Hello {{ username }},</p>
+subject: "Verify Your Email"
 
-    <p>Please verify your email using the link below:</p>
+body: |
+  Hi {{ username }},
+  Please verify your email: {{ verification_link }}
 
-    <a href="{{ verification_link }}">Verify Email</a>
-  </body>
-</html>
+html: |
+  <!DOCTYPE html>
+  <html>
+    <body>
+      <h2>Email Verification</h2>
+      <p>Hello {{ username }}</p>
+      <a href="{{ verification_link }}">Verify Email</a>
+    </body>
+  </html>
