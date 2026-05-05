@@ -20,25 +20,26 @@ class SMTPClient:
         html: str | None = None,
     ) -> None:
 
+        # ---- Build Message ---- #
         msg = EmailMessage()
 
-        msg["From"] = settings.SMTP_FROM
+        msg["From"] = settings.smtp_from
         msg["To"] = to
         msg["Subject"] = subject
 
         # ---- Plain Text Body ---- #
         msg.set_content(body)
 
-        # ---- HTML Body (optional) ---- #
+        # ---- HTML Body ---- #
         if html:
             msg.add_alternative(html, subtype="html")
 
         # ---- Send Email ---- #
         await aiosmtplib.send(
             msg,
-            hostname=settings.SMTP_HOST,
-            port=settings.SMTP_PORT,
-            username=settings.SMTP_USER,
-            password=settings.SMTP_PASSWORD,
+            hostname=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_user,
+            password=settings.smtp_password,
             start_tls=True,
         )

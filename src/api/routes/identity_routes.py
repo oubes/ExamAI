@@ -6,7 +6,6 @@ from typing import cast
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials
 from src.auth.security import security
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.models.identity_models import (
@@ -22,17 +21,19 @@ from src.auth.auth import (
 )
 from src.auth.jwt import decode_token
 from src.infra.db.session import session_local
-from src.domains.identity.models import (
-    User,
-    UserSession,
-)
+from src.domains.identity.models import User
 from src.domains.identity.service import IdentityService
+from src.infra.email.service import EmailService
+from src.core.di.settings import get_settings
 
+# ---- Settings ---- #
+settings = get_settings()
 
 # ---------- Router ---------- #
 router = APIRouter()
 
 identity_service = IdentityService()
+email_service = EmailService()
 
 # ---------- DB Session ---------- #
 async def get_session():
@@ -54,6 +55,21 @@ async def register(
                 "email": payload.email,
                 "password": payload.password,
                 "user_name": payload.user_name,
+            }
+        )
+        await email_service.send_from_template(
+            to=user.email,
+            template_name="welcome.yml",
+            context={"username": user.user_name}
+        )
+        
+        await email_service.send_from_template(
+            to=user.email,
+            template_name="verify_email.yml",
+            context={
+                "username": user.user_name,
+                "verification_link": f"{settings.app_url}/api/v1/identity/verify/{user.id}/{user.email_verify_token}"
+                # "verification_link": "https://www.google.com/"
             }
         )
 
