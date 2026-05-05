@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     app_version: str
     debug: bool
     app_env: str
+    app_host: str
+    app_port: int
+    
+    @computed_field
+    @property
+    def app_url(self) -> str:
+        return f"http://{self.app_host}:{self.app_port}"
     
     # ---- Database settings ---- #
     postgres_host: str = Field(..., alias="POSTGRES_HOST")
@@ -62,8 +69,8 @@ class Settings(BaseSettings):
     max_password_length: int = Field(default=48, alias="MAX_PASSWORD_LENGTH")
     
     # ---- Email settings ---- #
-    SMTP_HOST: str = Field(..., alias="SMTP_HOST")
-    SMTP_PORT: int = Field(..., alias="SMTP_PORT")
-    SMTP_USER: str = Field(..., alias="SMTP_USER")
-    SMTP_PASSWORD: str = Field(..., alias="SMTP_PASSWORD")
-    SMTP_FROM: str = Field(..., alias="SMTP_FROM")
+    smtp_host: str = Field(..., alias="SMTP_HOST")
+    smtp_port: int = Field(..., alias="SMTP_PORT")
+    smtp_user: str = Field(..., alias="SMTP_USER")
+    smtp_password: str = Field(..., alias="SMTP_PASSWORD")
+    smtp_from: str = Field(..., alias="SMTP_FROM")
