@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 from uuid import UUID
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -21,7 +21,7 @@ from src.auth.auth import (
     get_refresh_user,
 )
 from src.auth.jwt import decode_token
-from src.db.session import session_local
+from src.infra.db.session import session_local
 from src.domains.identity.models import (
     User,
     UserSession,

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import DateTime, Text, Boolean, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 
-from src.db.base import Base
+from src.infra.db.base import Base
 
 
 # ---------- Models ---------- #

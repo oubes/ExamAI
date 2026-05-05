@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import BigInteger, Numeric, DateTime, ForeignKey, Text, Index
 from datetime import datetime
-from src.db.base import Base
+from src.infra.db.base import Base
 
 
 # ---------- Models ---------- #

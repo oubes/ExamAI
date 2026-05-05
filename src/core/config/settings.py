@@ -60,3 +60,10 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = Field(default=14, alias="REFRESH_TOKEN_EXPIRE_DAYS")
     min_password_length: int = Field(default=6, alias="MIN_PASSWORD_LENGTH")
     max_password_length: int = Field(default=48, alias="MAX_PASSWORD_LENGTH")
+    
+    # ---- Email settings ---- #
+    SMTP_HOST: str = Field(..., alias="SMTP_HOST")
+    SMTP_PORT: int = Field(..., alias="SMTP_PORT")
+    SMTP_USER: str = Field(..., alias="SMTP_USER")
+    SMTP_PASSWORD: str = Field(..., alias="SMTP_PASSWORD")
+    SMTP_FROM: str = Field(..., alias="SMTP_FROM")

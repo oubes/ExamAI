@@ -1,7 +1,7 @@
 # ---- Imports ---- #
 from sqlalchemy import text
-from src.db.base import Base
-from src.db.session import engine
+from src.infra.db.base import Base
+from src.infra.db.session import engine
 
 # ----- importing all models ----- #
 from src.domains.identity.models import *

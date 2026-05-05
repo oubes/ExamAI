@@ -2,7 +2,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import logging
-from src.db.init_db import init_db
+from src.infra.db.init_db import init_db
 from src.core.di.settings import get_settings
 
 # ---- Logging ---- #

@@ -8,7 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import select
 
 from src.auth.jwt import decode_token
-from src.db.session import session_local
+from src.infra.db.session import session_local
 from src.domains.identity.models import (
     User,
     UserSession,
