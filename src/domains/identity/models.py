@@ -21,8 +21,9 @@ class User(Base):
     user_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=False, unique=True)
     role: Mapped[str] = mapped_column(__name_pos=Text, nullable=False, default="user")
     email: Mapped[str] = mapped_column(__name_pos=Text, unique=True, index=True, nullable=False)
-    password_hash: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
+    password_hash: Mapped[str] = mapped_column(__name_pos=Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(__name_pos=Boolean, default=True, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -39,7 +40,8 @@ class User(Base):
             f"user_name='{self.user_name}', "
             f"email='{self.email}', "
             f"role='{self.role}', "
-            f"is_active={self.is_active}"
+            f"is_active={self.is_active}, "
+            f"is_verified={self.is_verified}"
             f")"
         )
 
