@@ -5,6 +5,7 @@ from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials
+from src.auth.email_token import create_email_verification_token, decode_email_verification_token
 from src.auth.security import security
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,13 +64,17 @@ async def register(
             context={"username": user.user_name}
         )
         
+        token = create_email_verification_token(
+            user_id=user.id,
+            email=user.email,
+        )
+        
         await email_service.send_from_template(
             to=user.email,
             template_name="verify_email.yml",
             context={
                 "username": user.user_name,
-                "verification_link": f"{settings.app_url}/api/v1/identity/verify/{user.id}/{user.email_verify_token}"
-                # "verification_link": "https://www.google.com/"
+                "verification_link": f"{settings.app_url}/api/v1/identity/verify?token={token}"
             }
         )
 
@@ -89,6 +94,30 @@ async def register(
             status_code=400,
             detail=str(e),
         )
+        
+# ---------- Verify Email ---------- #
+@router.get("/verify")
+async def verify_email(
+    token: str,
+    session: AsyncSession = Depends(get_session),
+):
+    # ---- decode token ---- #
+    payload = decode_email_verification_token(token)
+
+    user_id = payload.get("sub")
+    email = payload.get("email")
+
+    if not user_id or not email:
+        raise HTTPException(status_code=400, detail="Invalid token")
+
+    # ---- service call ---- #
+    await identity_service.verify_email(
+        session=session,
+        user_id=user_id,
+        email=email,
+    )
+
+    return {"message": "Email verified successfully"}
 
 
 # ---------- Login ---------- #

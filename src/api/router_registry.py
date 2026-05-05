@@ -4,5 +4,5 @@ from src.api.routes.identity_routes import router as identity_router
 
 # ---- Router registry ---- #
 def register_routers(app):
-    app.include_router(health_router, prefix="/api/v1", tags=["Health"])
-    app.include_router(identity_router, prefix="/api/v1", tags=["Identity"])
+    app.include_router(health_router, prefix="/api/v1/health", tags=["Health"])
+    app.include_router(identity_router, prefix="/api/v1/identity", tags=["Identity"])

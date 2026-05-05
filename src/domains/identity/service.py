@@ -65,6 +65,39 @@ class IdentityService:
         
         return user
 
+    # ------------ verify email ------------ #
+    async def verify_email(
+        self,
+        session: AsyncSession,
+        user_id: str,
+        email: str,
+    ) -> None:
+
+        # -------- fetch user -------- #
+        result = await session.execute(
+            select(User).where(User.id == user_id)
+        )
+
+        user = result.scalar_one_or_none()
+
+        # -------- validations -------- #
+        if not user:
+            raise ValueError("User not found")
+
+        if user.email != email:
+            raise ValueError("Email mismatch")
+
+        if user.is_verified:
+            return
+
+        # -------- update user -------- #
+        await session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(is_verified=True)
+        )
+
+        await session.commit()
     # ------------ login ------------ #
     async def login(
         self,
