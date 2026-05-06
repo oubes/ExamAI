@@ -56,11 +56,17 @@ class Settings(BaseSettings):
     # ---- LLM & Embedding settings ---- #
     alibaba_api_key: str = Field(..., alias="ALIBABA_API_KEY")
     alibaba_base_url: str = Field(..., alias="ALIBABA_BASE_URL")
-    alibaba_model_name: str = "qwen2.5-vl-72b-instruct"
     alibaba_model_temp: float = 0.2
-    llm_max_retries: int = 3
-    llm_base_delay: float = 1.0
-    llm_max_context_tokens: int = 4096
+    alibaba_llm_model_name: str = "qwen2.5-vl-72b-instruct"
+    alibaba_llm_max_concurrent_requests: int = 5
+    alibaba_llm_max_retries: int = 3
+    alibaba_llm_base_delay: float = 1.0
+    alibaba_llm_max_context_tokens: int = 4096
+    alibaba_embeddings_model_name: str = "text-embedding-v3"
+    alibaba_embeddings_max_concurrency: int = 5
+    alibaba_embeddings_max_retries: int = 3
+    alibaba_embeddings_base_delay: float = 1.0
+    
     
     # ---- Security settings ---- #
     jwt_secret_key: str = Field(..., alias="JWT_SECRET_KEY")

@@ -23,12 +23,12 @@ class LLMService:
         self._model = client.get_model()
 
         self._config = settings
-        self._max_retries = self._config.llm_max_retries
-        self._base_delay = self._config.llm_base_delay
-        self._max_context_tokens = self._config.llm_max_context_tokens
+        self._max_retries = self._config.alibaba_llm_max_retries
+        self._base_delay = self._config.alibaba_llm_base_delay
+        self._max_context_tokens = self._config.alibaba_llm_max_context_tokens
 
         self._semaphore = asyncio.Semaphore(
-            self._config.llm_max_concurrent_requests
+            self._config.alibaba_llm_max_concurrent_requests
         )
 
         logger.debug(f"LLMService initialized | model={self._model}")
