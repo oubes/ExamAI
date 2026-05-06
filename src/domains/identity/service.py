@@ -20,6 +20,10 @@ from src.domains.identity.models import (
     User,
     UserSession,
 )
+from src.auth.email_token import (
+    create_password_reset_token,
+    decode_password_reset_token,
+)
 
 
 # -------------------- settings -------------------- #
@@ -95,6 +99,70 @@ class IdentityService:
             update(User)
             .where(User.id == user_id)
             .values(is_verified=True)
+        )
+
+        await session.commit()
+        
+# -------------------- reset password -------------------- #
+
+    # ---- request reset ---- #
+    async def create_password_reset(
+        self,
+        session: AsyncSession,
+        email: str,
+    ) -> tuple[str, str]:
+
+        result = await session.execute(
+            select(User).where(User.email == email)
+        )
+
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise ValueError("User not found")
+
+        token = create_password_reset_token(
+            user_id=str(user.id),
+            email=user.email,
+        )
+
+        reset_link = f"{settings.app_url}/api/v1/identity/reset-password/confirm?token={token}"
+
+        return user.email, reset_link
+
+
+    # ---- confirm reset ---- #
+    async def reset_password(
+        self,
+        session: AsyncSession,
+        token: str,
+        new_password: str,
+    ) -> None:
+
+        payload = decode_password_reset_token(token)
+
+        user_id = payload.get("sub")
+        email = payload.get("email")
+
+        if not user_id or not email:
+            raise ValueError("Invalid token")
+
+        result = await session.execute(
+            select(User).where(
+                User.id == user_id,
+                User.email == email,
+            )
+        )
+
+        user = result.scalar_one_or_none()
+
+        if not user:
+            raise ValueError("User not found")
+
+        await session.execute(
+            update(User)
+            .where(User.id == user_id)
+            .values(password_hash=hash_password(new_password))
         )
 
         await session.commit()

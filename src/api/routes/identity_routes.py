@@ -3,7 +3,8 @@ from uuid import UUID
 from datetime import datetime
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Form, Depends
+from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from src.auth.email_token import create_email_verification_token, decode_email_verification_token
 from src.auth.security import security
@@ -26,6 +27,11 @@ from src.domains.identity.models import User
 from src.domains.identity.service import IdentityService
 from src.infra.email.service import EmailService
 from src.core.di.settings import get_settings
+from src.infra.queue.tasks import (
+    send_welcome_email,
+    send_verify_email,
+    send_reset_password_email,
+)
 
 # ---- Settings ---- #
 settings = get_settings()
@@ -40,7 +46,6 @@ email_service = EmailService()
 async def get_session():
     async with session_local() as session:
         yield session
-
 
 # ---------- Register ---------- #
 @router.post("/register", response_model=RegisterResponse)
@@ -58,24 +63,27 @@ async def register(
                 "user_name": payload.user_name,
             }
         )
-        await email_service.send_from_template(
-            to=user.email,
-            template_name="welcome.yml",
-            context={"username": user.user_name}
-        )
-        
+
         token = create_email_verification_token(
             user_id=user.id,
             email=user.email,
         )
-        
-        await email_service.send_from_template(
-            to=user.email,
-            template_name="verify_email.yml",
-            context={
+
+        verification_link = (
+            f"{settings.app_url}/api/v1/identity/verify?token={token}"
+        )
+
+        send_welcome_email.delay(
+            user.email,
+            {"username": user.user_name},
+        )
+
+        send_verify_email.delay(
+            user.email,
+            {
                 "username": user.user_name,
-                "verification_link": f"{settings.app_url}/api/v1/identity/verify?token={token}"
-            }
+                "verification_link": verification_link,
+            },
         )
 
         return RegisterResponse(
@@ -90,10 +98,7 @@ async def register(
         )
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e),
-        )
+        raise HTTPException(status_code=400, detail=str(e))
         
 # ---------- Verify Email ---------- #
 @router.get("/verify")
@@ -101,7 +106,6 @@ async def verify_email(
     token: str,
     session: AsyncSession = Depends(get_session),
 ):
-    # ---- decode token ---- #
     payload = decode_email_verification_token(token)
 
     user_id = payload.get("sub")
@@ -110,7 +114,6 @@ async def verify_email(
     if not user_id or not email:
         raise HTTPException(status_code=400, detail="Invalid token")
 
-    # ---- service call ---- #
     await identity_service.verify_email(
         session=session,
         user_id=user_id,
@@ -118,7 +121,6 @@ async def verify_email(
     )
 
     return {"message": "Email verified successfully"}
-
 
 # ---------- Login ---------- #
 @router.post("/login", response_model=TokenResponse)
@@ -146,6 +148,60 @@ async def login(
             detail="Invalid credentials",
         )
 
+# ---------- Request Password Reset ---------- #
+@router.post("/reset-password/request")
+async def request_reset(
+    email: str,
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        to, link = await identity_service.create_password_reset(
+            session=session,
+            email=email,
+        )
+
+        send_reset_password_email.delay(
+            to,
+            {
+                "username": email,
+                "reset_link": link,
+            },
+        )
+
+        return {"message": "reset email sent"}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/reset-password/confirm")
+def reset_password_page(token: str):
+
+    return HTMLResponse(f"""
+        <form action="/api/v1/identity/reset-password/confirm" method="post">
+            <input name="token" value="{token}" hidden />
+            <input name="new_password" type="password" />
+            <button type="submit">Reset</button>
+        </form>
+    """)
+
+# ---------- Confirm Password Reset ---------- #
+@router.post("/reset-password/confirm")
+async def reset_password_confirm(
+    token: str = Form(...),
+    new_password: str = Form(...),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        await identity_service.reset_password(
+            session=session,
+            token=token,
+            new_password=new_password,
+        )
+
+        return {"message": "password reset successful"}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # ---------- Refresh ---------- #
 @router.post("/refresh", response_model=TokenResponse)
@@ -154,7 +210,6 @@ async def refresh(
     user: User = Depends(get_refresh_user),
     session: AsyncSession = Depends(get_session),
 ):
-    # ---- extract session id only ---- #
     payload = decode_token(credentials.credentials)
 
     if not payload:
@@ -176,14 +231,12 @@ async def refresh(
 
     return TokenResponse(**tokens)
 
-
 # ---------- Logout ---------- #
 @router.post("/logout")
 async def logout(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     session: AsyncSession = Depends(get_session),
 ):
-    # ---- decode token ---- #
     payload = decode_token(credentials.credentials)
 
     if not payload:
@@ -194,7 +247,6 @@ async def logout(
     if not session_id:
         raise HTTPException(status_code=401, detail="Invalid session")
 
-    # ---- service call ---- #
     try:
         await identity_service.logout(
             session=session,
@@ -204,7 +256,6 @@ async def logout(
         raise HTTPException(status_code=400, detail="Logout failed")
 
     return {"message": "logged out"}
-
 
 # ---------- Protected ---------- #
 @router.get("/me", response_model=MeResponse)

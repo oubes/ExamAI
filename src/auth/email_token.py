@@ -40,3 +40,26 @@ def decode_email_verification_token(token: str) -> dict:
         raise ValueError("Invalid token type")
 
     return payload
+
+# ---- Create Password Reset Token ---- #
+def create_password_reset_token(user_id: str, email: str) -> str:
+    payload = {
+        "sub": str(user_id),
+        "email": email,
+        "type": "password_reset",
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+    }
+
+    return jwt.encode(
+        payload,
+        settings.email_secret_key,
+        algorithm=settings.email_algorithm,
+    )
+
+# ---- Decode Password Reset Token ---- #
+def decode_password_reset_token(token: str) -> dict:
+    return jwt.decode(
+        token,
+        settings.email_secret_key,
+        algorithms=[settings.email_algorithm],
+    )
