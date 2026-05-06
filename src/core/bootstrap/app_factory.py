@@ -4,7 +4,7 @@ import logging
 from src.core.bootstrap.lifespan import lifespan
 from src.core.di.settings import get_settings
 from src.api.router_registry import register_routers
-from src.core.middleware.middleware import register_middleware
+from src.core.middleware.request_timing import register_request_timing_middleware
 from src.core.middleware.rate_limit import register_rate_limit_middleware
 
 # ---- Settings ---- #
@@ -23,10 +23,11 @@ def create_app():
             lifespan=lifespan,
         )
         register_rate_limit_middleware(app)
-        register_middleware(app)
+        register_request_timing_middleware(app)
         register_routers(app)
         logging.info("App created successfully")
         return app
         
     except Exception as e:
         logging.error(f"Error creating app: {e}")
+        raise

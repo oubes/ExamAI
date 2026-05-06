@@ -3,25 +3,20 @@ import logging
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
+from src.core.di.settings import get_settings
+
+# ---- Settings ---- #
+settings = get_settings()
 
 # --- Logging ---- #
 logger = logging.getLogger(__name__)
 
 # ---- Redis Client ---- #
 redis_client = Redis(
-    host="localhost",
-    port=6379,
+    host=settings.rate_limit_host,
+    port=settings.rate_limit_port,
     decode_responses=True,
 )
-
-# ---- Limits ---- #
-GLOBAL_RATE_LIMIT = (30, 60) 
-
-RATE_LIMITS = {
-    "/api/v1/identity/login": (2, 10),
-    "/api/v1/identity/register": (2, 10),
-    "/api/v1/identity/reset-password/request": (2, 10),
-}
 
 
 # ---- Middleware Registration ---- #
@@ -33,9 +28,9 @@ def register_rate_limit_middleware(app):
         path = request.url.path
 
         # ---- config resolution ---- #
-        limit, window = RATE_LIMITS.get(
+        limit, window = settings.rate_limits.get(
             path,
-            GLOBAL_RATE_LIMIT,
+            settings.global_rate_limit,
         )
 
         ip = request.client.host if request.client else "unknown"
