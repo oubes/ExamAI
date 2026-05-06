@@ -7,7 +7,7 @@ from fastapi import Request
 logging = logging.getLogger(__name__)
 
 # --- Middleware Registration ---- #
-def register_middleware(app):
+def register_request_timing_middleware(app):
     @app.middleware("http")
     async def log_time(request: Request, call_next):
         start = time.perf_counter()
