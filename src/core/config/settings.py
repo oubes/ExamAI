@@ -77,3 +77,17 @@ class Settings(BaseSettings):
     email_secret_key: str = Field(..., alias="EMAIL_SECRET_KEY")
     email_algorithm: str = Field(default="HS256", alias="EMAIL_ALGORITHM")
     email_verification_token_expire_minutes: int = Field(default=30, alias="EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES")
+    
+    # ---- Celery & Redis settings ---- #
+    redis_broker_url: str = Field(..., alias="REDIS_BROKER_URL")
+    redis_backend_url: str = Field(..., alias="REDIS_BACKEND_URL")
+    
+    # ---- Rate Limiting settings ---- #
+    rate_limit_host: str = Field(..., alias="RATE_LIMIT_HOST")
+    rate_limit_port: int = Field(..., alias="RATE_LIMIT_PORT")
+    global_rate_limit: tuple = (30, 60) 
+    rate_limits: dict = {
+        "/api/v1/identity/login": (2, 10),
+        "/api/v1/identity/register": (2, 10),
+        "/api/v1/identity/reset-password/request": (2, 10),
+    }
