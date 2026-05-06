@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     alibaba_embeddings_max_retries: int = 3
     alibaba_embeddings_base_delay: float = 1.0
     alibaba_embeddings_max_context_tokens: int = 4096
+    alibaba_embeddings_dim: int = 1024
 
 
     # ---- Security settings ---- #

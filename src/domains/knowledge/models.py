@@ -4,6 +4,11 @@ from sqlalchemy import BigInteger, Text, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
 from src.infra.db.base import Base
+from src.core.di.settings import get_settings
+
+# ---- Settings ---- #
+settings = get_settings()
+
 
 
 # ---------- Models ---------- #
@@ -17,7 +22,7 @@ class KnowledgeBase(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
     content: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[list[float]] = mapped_column(Vector(1024))
+    embedding: Mapped[list[float]] = mapped_column(Vector(settings.alibaba_embeddings_dim))
 
     search_vector = mapped_column(TSVECTOR)
 

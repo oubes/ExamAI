@@ -4,6 +4,10 @@ from sqlalchemy import BigInteger, Text, Integer, ForeignKey, Boolean, Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
 from src.infra.db.base import Base
+from src.core.di.settings import get_settings
+
+# ---- Settings ---- #
+settings = get_settings()
 
 
 # ---------- Models ---------- #
@@ -88,7 +92,7 @@ class Question(Base):
     exam_id: Mapped[int] = mapped_column(ForeignKey("exams.id"))
     content: Mapped[str] = mapped_column(Text)
     type: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[list[float]] = mapped_column(Vector(1024))
+    embedding: Mapped[list[float]] = mapped_column(Vector(settings.alibaba_embeddings_dim))
 
     search_vector = mapped_column(TSVECTOR)
 
@@ -166,7 +170,7 @@ class ModelAnswer(Base):
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
     content: Mapped[str] = mapped_column(Text)
     rubric: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[list[float]] = mapped_column(Vector(1024))
+    embedding: Mapped[list[float]] = mapped_column(Vector(settings.alibaba_embeddings_dim))
 
     search_vector = mapped_column(TSVECTOR)
 
