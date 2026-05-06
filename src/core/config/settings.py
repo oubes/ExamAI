@@ -56,17 +56,17 @@ class Settings(BaseSettings):
     # ---- LLM & Embedding settings ---- #
     alibaba_api_key: str = Field(..., alias="ALIBABA_API_KEY")
     alibaba_base_url: str = Field(..., alias="ALIBABA_BASE_URL")
-    alibaba_model_name: str = Field(default="qwen2.5-vl-72b-instruct")
-    alibaba_model_temp: float = Field(default=0.2)
+    alibaba_model_name: str = "qwen2.5-vl-72b-instruct"
+    alibaba_model_temp: float = 0.2
     
     # ---- Security settings ---- #
     jwt_secret_key: str = Field(..., alias="JWT_SECRET_KEY")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     password_hash_algorithm: str = Field(default="argon2", alias="PASSWORD_HASH_ALGORITHM")
-    access_token_expire_minutes: int = Field(default=60, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
-    refresh_token_expire_days: int = Field(default=14, alias="REFRESH_TOKEN_EXPIRE_DAYS")
-    min_password_length: int = Field(default=6, alias="MIN_PASSWORD_LENGTH")
-    max_password_length: int = Field(default=48, alias="MAX_PASSWORD_LENGTH")
+    access_token_expire_minutes: int = 10
+    refresh_token_expire_days: int = 14
+    min_password_length: int = 6
+    max_password_length: int = 48
     
     # ---- Email settings ---- #
     smtp_host: str = Field(..., alias="SMTP_HOST")
@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     smtp_from: str = Field(..., alias="SMTP_FROM")
     email_secret_key: str = Field(..., alias="EMAIL_SECRET_KEY")
     email_algorithm: str = Field(default="HS256", alias="EMAIL_ALGORITHM")
-    email_verification_token_expire_minutes: int = Field(default=30, alias="EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES")
+    email_verification_token_expire_minutes: int = 30
     
     # ---- Celery & Redis settings ---- #
     redis_broker_url: str = Field(..., alias="REDIS_BROKER_URL")
