@@ -23,14 +23,18 @@ class EmbeddingService:
 
         self._client: AsyncOpenAI = client.get_client()
         self._model = client.get_model()
-        
+
         self.max_concurrency = settings.alibaba_embeddings_max_concurrency
         self._max_retries = settings.alibaba_embeddings_max_retries
         self._base_delay = settings.alibaba_embeddings_base_delay
+        self._max_context_tokens = settings.alibaba_embeddings_max_context_tokens
 
         self._semaphore = asyncio.Semaphore(self.max_concurrency)
 
-        logger.debug("EmbeddingService initialized using model: %s", self._model)
+        logger.debug(
+            "EmbeddingService initialized using model: %s",
+            self._model
+        )
 
     # ---- Prompt Safety ----
     def _sanitize_texts(self, texts: list[str]) -> list[str]:
@@ -41,7 +45,7 @@ class EmbeddingService:
             if not clean:
                 continue
 
-            sanitized.append(clean[:4000])
+            sanitized.append(clean[:self._max_context_tokens])
 
         return sanitized
 
@@ -52,30 +56,23 @@ class EmbeddingService:
             input=input_data,
         )
 
-    # ---- Single ----
-    async def embed(self, text: str) -> list[float]:
-        safe_texts = self._sanitize_texts([text])
-        if not safe_texts:
-            return []
-
+    # ---- Retry Engine (Unified) ----
+    async def _execute_with_retry(self, func):
         async with self._semaphore:
             last_error: Exception | None = None
 
             for attempt in range(self._max_retries):
                 try:
-                    logger.debug(f"Embedding attempt {attempt + 1}")
-
-                    response = await self._call_embedding(safe_texts[0])
-
-                    logger.debug("Single embedding succeeded")
-                    return response.data[0].embedding
+                    return await func()
 
                 except Exception as e:
                     last_error = e
                     error_msg = str(e).lower()
 
                     logger.warning(
-                        f"Embedding failed attempt {attempt + 1}: {error_msg}"
+                        "Embedding failed attempt %d: %s",
+                        attempt + 1,
+                        error_msg
                     )
 
                     sleep_time = (
@@ -86,43 +83,31 @@ class EmbeddingService:
 
                     await asyncio.sleep(sleep_time)
 
-            logger.error("Single embedding failed after retries")
+            logger.error("Embedding failed after retries")
             raise last_error if last_error else RuntimeError("Unknown failure")
+
+    # ---- Single ----
+    async def embed(self, text: str) -> list[float]:
+        safe_texts = self._sanitize_texts([text])
+
+        if not safe_texts:
+            return []
+
+        async def operation():
+            response = await self._call_embedding(safe_texts[0])
+            return response.data[0].embedding
+
+        return await self._execute_with_retry(operation)
 
     # ---- Batch Worker ----
     async def _embed_batch_worker(self, batch: list[str]) -> list[list[float]]:
         safe_batch = self._sanitize_texts(batch)
 
-        async with self._semaphore:
-            last_error: Exception | None = None
+        async def operation():
+            response = await self._call_embedding(safe_batch)
+            return [item.embedding for item in response.data]
 
-            for attempt in range(self._max_retries):
-                try:
-                    logger.debug(f"Batch attempt {attempt + 1} | size={len(safe_batch)}")
-
-                    response = await self._call_embedding(safe_batch)
-
-                    logger.debug("Batch embedding succeeded")
-                    return [item.embedding for item in response.data]
-
-                except Exception as e:
-                    last_error = e
-                    error_msg = str(e).lower()
-
-                    logger.warning(
-                        f"Batch embedding failed attempt {attempt + 1}: {error_msg}"
-                    )
-
-                    sleep_time = (
-                        self._base_delay * (2 ** attempt)
-                        if "rate" in error_msg
-                        else self._base_delay
-                    )
-
-                    await asyncio.sleep(sleep_time)
-
-            logger.error("Batch worker failed after retries")
-            raise last_error if last_error else RuntimeError("Unknown failure")
+        return await self._execute_with_retry(operation)
 
     # ---- Batch ----
     async def embed_batch(
@@ -140,7 +125,10 @@ class EmbeddingService:
             for i in range(0, len(sanitized), batch_size)
         ]
 
-        tasks = [self._embed_batch_worker(batch) for batch in batches]
+        tasks = [
+            self._embed_batch_worker(batch)
+            for batch in batches
+        ]
 
         results = await asyncio.gather(*tasks)
 
@@ -149,4 +137,5 @@ class EmbeddingService:
             embeddings.extend(batch)
 
         logger.debug("Batch embedding completed | batches=%d", len(batches))
+
         return embeddings
