@@ -1,4 +1,4 @@
-# ---- Imports ----
+# ---- Imports ---- #
 import asyncio
 import logging
 
@@ -6,14 +6,14 @@ from src.infra.llm.adapter import LLMClient
 from src.core.di.settings import Settings
 
 
-# ---- Logger ----
+# ---- Logger ---- #
 logger = logging.getLogger(__name__)
 
 
-# ---- LLM Service ----
+# ---- LLM Service ---- #
 class LLMService:
 
-    # ---- Constructor ----
+    # ---- Constructor ---- #
     def __init__(
         self,
         client: LLMClient,
@@ -27,7 +27,7 @@ class LLMService:
         self._base_delay = self._config.llm_base_delay
         self._max_context_tokens = self._config.llm_max_context_tokens
 
-    # ---- Prompt Safety ----
+    # ---- Prompt Safety ---- #
     def _sanitize_messages(self, messages: list[dict[str, str]]) -> list[dict[str, str]]:
         sanitized: list[dict[str, str]] = []
 
@@ -47,7 +47,7 @@ class LLMService:
 
         return sanitized
 
-    # ---- Core Call ----
+    # ---- Core Call ---- #
     async def _call_llm(
         self,
         messages: list[dict[str, str]],
@@ -64,7 +64,7 @@ class LLMService:
 
         return response.choices[0].message.content or ""
 
-    # ---- Public API ----
+    # ---- Public API ---- #
     async def generate(
         self,
         messages: list[dict[str, str]],
@@ -108,3 +108,105 @@ class LLMService:
 
         logger.error("LLM generation failed after all retries")
         raise last_error if last_error else RuntimeError("Unknown failure")
+
+    # ---- CrewAI Compatible Interface ---- #
+    class Crew:
+
+        # ---- Constructor ---- #
+        def __init__(self, outer: "LLMService"):
+            self._outer = outer
+
+        # ---- Chat Namespace ---- #
+        class chat:
+
+            # ---- Completions Namespace ---- #
+            class completions:
+
+                # ---- Constructor ---- #
+                def __init__(self, outer: "LLMService"):
+                    self._outer = outer
+
+                # ---- Create ---- #
+                async def create(
+                    self,
+                    model: str,
+                    messages: list[dict[str, str]],
+                    temperature: float = 0.0,
+                    max_tokens: int = 128,
+                    **kwargs,
+                ):
+                    return await self._outer._crew_generate(
+                        model=model,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+
+    # ---- CrewAI Execution Path ---- #
+    async def _crew_generate(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+    ):
+
+        logger.info("CrewAI generation started")
+
+        safe_messages = self._sanitize_messages(messages)
+
+        last_error: Exception | None = None
+
+        for attempt in range(self._max_retries):
+            try:
+                logger.debug(f"CrewAI attempt {attempt + 1} | model={model}")
+
+                result = await self._call_llm(
+                    safe_messages,
+                    temperature,
+                    max_tokens,
+                )
+
+                logger.info("CrewAI generation succeeded")
+
+                return type(
+                    "Response",
+                    (),
+                    {
+                        "choices": [
+                            type(
+                                "Choice",
+                                (),
+                                {
+                                    "message": type(
+                                        "Message",
+                                        (),
+                                        {"content": result},
+                                    )(),
+                                },
+                            )(),
+                        ],
+                    },
+                )()
+
+            except Exception as e:
+                last_error = e
+                error_msg = str(e).lower()
+
+                logger.warning(
+                    f"CrewAI generation failed attempt {attempt + 1}: {error_msg}"
+                )
+
+                if "rate" in error_msg:
+                    sleep_time = self._base_delay * (2 ** attempt)
+                else:
+                    sleep_time = self._base_delay
+
+                await asyncio.sleep(sleep_time)
+
+        logger.error("CrewAI generation failed after all retries")
+        raise last_error if last_error else RuntimeError("Unknown failure")
+
+    # ---- CrewAI Factory ---- #
+    def crew(self):
+        return self.__class__.crew(self)
