@@ -34,6 +34,7 @@ class User(Base):
     enrollments = relationship(argument="Enrollment", back_populates="user", lazy="selectin")
     attempts = relationship(argument="ExamAttempt", back_populates="user", lazy="selectin")
     sessions = relationship(argument="UserSession", back_populates="user", lazy="selectin")
+    subject_states = relationship(argument="StudentSubjectState", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
