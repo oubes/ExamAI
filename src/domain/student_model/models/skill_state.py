@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, Float, ForeignKey, DateTime, func, Index
+from sqlalchemy import BigInteger, Float, ForeignKey, DateTime, func, Index
 
 from src.infra.db.base import Base
 
@@ -10,40 +10,43 @@ from src.infra.db.base import Base
 # ---- Skill State ---- #
 class SkillState(Base):
     # ---- Table Name ---- #
-    __tablename__ = "skill_state"
+    __tablename__ = "skill_states"
 
     # ---- Columns ---- #
     id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-    user_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("users.id"), nullable=False)
-    subject_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("subjects.id"), nullable=False)
-    skill_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    mastery: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    confidence: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    retention: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    error_rate: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    improvement_rate: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    last_updated: Mapped[DateTime] = mapped_column(
-        __name_pos=DateTime(timezone=True),
-        server_default=func.now()
-    )
+
+    student_state_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("student_subject_states.id"), nullable=False)
+
+    skill_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("skills.id"), nullable=False)
+
+    mastery_score: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
+    confidence_score: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
+    retention_score: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
+
+    attempts_count: Mapped[int] = mapped_column(__name_pos=BigInteger, default=0)
+    success_count: Mapped[int] = mapped_column(__name_pos=BigInteger, default=0)
+
+    avg_response_time: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
+
+    last_practiced_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now())
 
     # ---- Indexes ---- #
     __table_args__ = (
-        Index("idx_skill_state_user_subject", "user_id", "subject_id"),
-        Index("idx_skill_state_skill_name", "skill_name"),
+        Index("idx_skill_state_student_state_id", "student_state_id"),
+        Index("idx_skill_state_skill_id", "skill_id"),
     )
 
     # ---- Relationships ---- #
-    user = relationship(argument="User", lazy="selectin")
-    subject = relationship(argument="Subject", lazy="selectin")
+    student_state = relationship(argument="StudentSubjectState", back_populates="skills", lazy="selectin")
+
+    skill = relationship(argument="Skill", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
         return (
             f"SkillState("
-            f"user_id={self.user_id}, "
-            f"skill='{self.skill_name}', "
-            f"mastery={self.mastery}, "
-            f"confidence={self.confidence}"
+            f"id={self.id}, "
+            f"skill_id={self.skill_id}, "
+            f"mastery_score={self.mastery_score}"
             f")"
         )

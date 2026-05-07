@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, ForeignKey, DateTime, Numeric, func, Index
+from sqlalchemy import BigInteger, Numeric, DateTime, Text, ForeignKey, func, Index
 
 from src.infra.db.base import Base
 
@@ -14,25 +14,21 @@ class ExamAttempt(Base):
 
     # ---- Columns ---- #
     id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
+    exam_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("exams.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("users.id"), nullable=False)
-    subject_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("subjects.id"), nullable=False)
-    status: Mapped[str] = mapped_column(__name_pos=Text, default="in_progress")
     final_score: Mapped[float] = mapped_column(__name_pos=Numeric, default=0.0)
     ai_score: Mapped[float] = mapped_column(__name_pos=Numeric, default=0.0)
     human_score: Mapped[float] = mapped_column(__name_pos=Numeric, default=0.0)
-    started_at: Mapped[DateTime] = mapped_column(
-        __name_pos=DateTime(timezone=True),
-        server_default=func.now()
-    )
-    completed_at: Mapped[DateTime | None] = mapped_column(
-        __name_pos=DateTime(timezone=True),
-        nullable=True
-    )
+    status: Mapped[str] = mapped_column(__name_pos=Text, default="pending")
+    duration_sec: Mapped[int | None] = mapped_column(__name_pos=BigInteger, nullable=True)
+    generation_mode: Mapped[str] = mapped_column(__name_pos=Text, default="manual")
+    adaptive_session_id: Mapped[int | None] = mapped_column(__name_pos=ForeignKey("generated_exam_sessions.id"), nullable=True)
+    completed_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now())
 
     # ---- Indexes ---- #
     __table_args__ = (
         Index("idx_attempt_user_id", "user_id"),
-        Index("idx_attempt_subject_id", "subject_id"),
+        Index("idx_attempt_exam_id", "exam_id"),
     )
 
     # ---- Relationships ---- #
@@ -45,7 +41,7 @@ class ExamAttempt(Base):
             f"ExamAttempt("
             f"id={self.id}, "
             f"user_id={self.user_id}, "
-            f"subject_id={self.subject_id}, "
-            f"status={self.status}"
+            f"exam_id={self.exam_id}, "
+            f"final_score={self.final_score}"
             f")"
         )

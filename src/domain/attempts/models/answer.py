@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, ForeignKey, Numeric, Float, Boolean, DateTime, Index, func
+from sqlalchemy import BigInteger, Text, ForeignKey, Numeric, Float, Boolean, Index
 
 from src.infra.db.base import Base
 
@@ -24,18 +24,15 @@ class Answer(Base):
     partial_credit: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
     is_correct: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
 
-    # ---- HITL Columns ---- #
-    human_corrected_score: Mapped[float | None] = mapped_column(__name_pos=Float, nullable=True)
-    human_corrected_label: Mapped[bool | None] = mapped_column(__name_pos=Boolean, nullable=True)
-    is_human_reviewed: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
-    human_reviewer_id: Mapped[int | None] = mapped_column(__name_pos=ForeignKey("users.id"), nullable=True)
-    human_reviewed_at: Mapped[DateTime | None] = mapped_column(__name_pos=DateTime(timezone=True), nullable=True)
+    # ---- HITL ---- #
+    needs_review: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
+    reviewed_by_human: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
+    human_override_score: Mapped[float | None] = mapped_column(__name_pos=Float, nullable=True)
 
     # ---- Indexes ---- #
     __table_args__ = (
         Index("idx_answer_attempt_id", "attempt_id"),
         Index("idx_answer_question_id", "question_id"),
-        Index("idx_answer_human_reviewed", "is_human_reviewed"),
     )
 
     # ---- Relationships ---- #
@@ -52,7 +49,6 @@ class Answer(Base):
             f"attempt_id={self.attempt_id}, "
             f"question_id={self.question_id}, "
             f"score={self.score}, "
-            f"is_correct={self.is_correct}, "
-            f"is_human_reviewed={self.is_human_reviewed}"
+            f"is_correct={self.is_correct}"
             f")"
         )
