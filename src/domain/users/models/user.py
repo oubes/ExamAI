@@ -31,10 +31,16 @@ class User(Base):
     updated_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now())
 
     # ---- Relationships ---- #
-    enrollments = relationship(argument="Enrollment", back_populates="user", lazy="selectin")
-    attempts = relationship(argument="ExamAttempt", back_populates="user", lazy="selectin")
-    sessions = relationship(argument="UserSession", back_populates="user", lazy="selectin")
+    enrollments = relationship(argument="Enrollment", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    attempts = relationship(argument="ExamAttempt", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    sessions = relationship(argument="UserSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
     subject_states = relationship(argument="StudentSubjectState", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    skill_states = relationship(argument="SkillState", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    analytics_snapshots = relationship(argument="StudentAnalyticsSnapshot", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    adaptation_events = relationship(argument="AdaptationEvent", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    generated_exam_sessions = relationship(argument="GeneratedExamSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    learning_sessions = relationship(argument="LearningSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    uploads = relationship(argument="UploadFile", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

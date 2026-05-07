@@ -17,19 +17,10 @@ class GeneratedExamSession(Base):
     user_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("users.id"), nullable=False)
     subject_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("subjects.id"), nullable=False)
     target_difficulty: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
-    generation_strategy: Mapped[str] = mapped_column(
-        __name_pos=Text,
-        default="adaptive"
-    )
+    generation_strategy: Mapped[str] = mapped_column(__name_pos=Text, default="adaptive")
     estimated_mastery: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    started_at: Mapped[DateTime] = mapped_column(
-        __name_pos=DateTime(timezone=True),
-        server_default=func.now()
-    )
-    completed_at: Mapped[DateTime | None] = mapped_column(
-        __name_pos=DateTime(timezone=True),
-        nullable=True
-    )
+    started_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[DateTime | None] = mapped_column(__name_pos=DateTime(timezone=True), nullable=True)
 
     # ---- Indexes ---- #
     __table_args__ = (
@@ -38,21 +29,9 @@ class GeneratedExamSession(Base):
     )
 
     # ---- Relationships ---- #
-    user = relationship(
-        argument="User",
-        lazy="selectin"
-    )
-
-    subject = relationship(
-        argument="Subject",
-        lazy="selectin"
-    )
-
-    questions = relationship(
-        argument="GeneratedExamQuestion",
-        back_populates="session",
-        lazy="selectin"
-    )
+    user = relationship(argument="User", lazy="selectin")
+    subject = relationship(argument="Subject", lazy="selectin")
+    questions = relationship(argument="GeneratedExamQuestion", back_populates="session", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

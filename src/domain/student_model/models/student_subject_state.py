@@ -51,9 +51,7 @@ class StudentSubjectState(Base):
 
     # ---- Relationships ---- #
     user = relationship(argument="User", lazy="selectin")
-
     subject = relationship(argument="Subject", lazy="selectin")
-
     skills = relationship(argument="SkillState", back_populates="student_state", lazy="selectin")
 
     # ---- Repr ---- #

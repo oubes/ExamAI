@@ -1,10 +1,12 @@
 # ---- Imports ---- #
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, Integer, ForeignKey, Boolean, Index
+from sqlalchemy import BigInteger, Text, Boolean, ForeignKey, Index
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
+
 from src.infra.db.base import Base
 from src.core.di.settings import get_settings
+
 
 # ---- Settings ---- #
 settings = get_settings()
@@ -12,78 +14,9 @@ settings = get_settings()
 
 # ---------- Models ---------- #
 
-# ---- Subjects ---- #
-class Subject(Base):
-    # ---- Table Name ---- #
-    __tablename__ = "subjects"
-
-    # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    title: Mapped[str] = mapped_column(Text)
-    code: Mapped[str] = mapped_column(Text)
-
-    # ---- Indexes ---- #
-    __table_args__ = (Index("idx_subject_code", "code"),)
-
-    # ---- Relationships ---- #
-    exams = relationship("Exam", back_populates="subject", lazy="selectin")
-    enrollments = relationship("Enrollment", back_populates="subject", lazy="selectin")
-
-    # ---- Repr ---- #
-    def __repr__(self) -> str:
-        return f"Subject(id={self.id}, title='{self.title}', code='{self.code}')"
-
-
-# ---- Enrollments ---- #
-class Enrollment(Base):
-    # ---- Table Name ---- #
-    __tablename__ = "enrollments"
-
-    # ---- Columns ---- #
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"), primary_key=True)
-
-    # ---- Relationships ---- #
-    user = relationship("User", back_populates="enrollments", lazy="selectin")
-    subject = relationship("Subject", back_populates="enrollments", lazy="selectin")
-
-    # ---- Repr ---- #
-    def __repr__(self) -> str:
-        return f"Enrollment(user_id={self.user_id}, subject_id={self.subject_id})"
-
-
-# ---- Exams ---- #
-class Exam(Base):
-    # ---- Table Name ---- #
-    __tablename__ = "exams"
-
-    # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    subject_id: Mapped[int] = mapped_column(ForeignKey("subjects.id"))
-    title: Mapped[str] = mapped_column(Text)
-    time_limit: Mapped[int] = mapped_column(Integer)
-
-    # ---- Indexes ---- #
-    __table_args__ = (Index("idx_exam_subject_id", "subject_id"),)
-
-    # ---- Relationships ---- #
-    subject = relationship("Subject", back_populates="exams", lazy="selectin")
-    questions = relationship("Question", back_populates="exam", lazy="selectin")
-
-    # ---- Repr ---- #
-    def __repr__(self) -> str:
-        return (
-            f"Exam("
-            f"id={self.id}, "
-            f"subject_id={self.subject_id}, "
-            f"title='{self.title}', "
-            f"time_limit={self.time_limit}"
-            f")"
-        )
-
-
 # ---- Questions ---- #
 class Question(Base):
+
     # ---- Table Name ---- #
     __tablename__ = "questions"
 
@@ -92,7 +25,10 @@ class Question(Base):
     exam_id: Mapped[int] = mapped_column(ForeignKey("exams.id"))
     content: Mapped[str] = mapped_column(Text)
     type: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[list[float]] = mapped_column(Vector(settings.alibaba_embeddings_dim))
+
+    embedding: Mapped[list[float]] = mapped_column(
+        Vector(settings.alibaba_embeddings_dim)
+    )
 
     search_vector = mapped_column(TSVECTOR)
 
@@ -111,7 +47,13 @@ class Question(Base):
     # ---- Relationships ---- #
     exam = relationship("Exam", back_populates="questions", lazy="selectin")
     options = relationship("QuestionOption", back_populates="question", lazy="selectin")
-    model_answer = relationship("ModelAnswer", back_populates="question", uselist=False, lazy="selectin")
+
+    model_answer = relationship(
+        "ModelAnswer",
+        back_populates="question",
+        uselist=False,
+        lazy="selectin",
+    )
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
@@ -126,6 +68,7 @@ class Question(Base):
 
 # ---- Question Options ---- #
 class QuestionOption(Base):
+
     # ---- Table Name ---- #
     __tablename__ = "question_options"
 
@@ -162,6 +105,7 @@ class QuestionOption(Base):
 
 # ---- Model Answers ---- #
 class ModelAnswer(Base):
+
     # ---- Table Name ---- #
     __tablename__ = "model_answers"
 
@@ -169,8 +113,11 @@ class ModelAnswer(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     question_id: Mapped[int] = mapped_column(ForeignKey("questions.id"))
     content: Mapped[str] = mapped_column(Text)
-    rubric: Mapped[str] = mapped_column(Text)
-    embedding: Mapped[list[float]] = mapped_column(Vector(settings.alibaba_embeddings_dim))
+    rubric: Mapped[dict] = mapped_column(Text)
+
+    embedding: Mapped[list[float]] = mapped_column(
+        Vector(settings.alibaba_embeddings_dim)
+    )
 
     search_vector = mapped_column(TSVECTOR)
 

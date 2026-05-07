@@ -30,15 +30,8 @@ class StudentAnalyticsSnapshot(Base):
     )
 
     # ---- Relationships ---- #
-    user = relationship(
-        argument="User",
-        lazy="selectin"
-    )
-
-    subject = relationship(
-        argument="Subject",
-        lazy="selectin"
-    )
+    user = relationship(argument="User", lazy="selectin")
+    subject = relationship(argument="Subject", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

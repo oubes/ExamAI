@@ -1,8 +1,10 @@
 # ---- Imports ---- #
 import uuid
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Integer, DateTime, ForeignKey, func
+from sqlalchemy import String, Integer, DateTime, ForeignKey, func, Text, Boolean, Index
 from sqlalchemy.dialects.postgresql import UUID
+
 from src.infra.db.base import Base
 
 
@@ -21,14 +23,27 @@ class UploadFileModel(Base):
         __type_pos=ForeignKey(column="users.id", ondelete="CASCADE"),
         nullable=False
     )
-    category: Mapped[str] = mapped_column(__name_pos=String, nullable=False)
+    category: Mapped[str] = mapped_column(__name_pos=String, default="general")
     original_name: Mapped[str] = mapped_column(__name_pos=String, nullable=False)
-    stored_name: Mapped[str] = mapped_column(__name_pos=String, nullable=False)
-    path: Mapped[str] = mapped_column(__name_pos=String, nullable=False)
-    content_type: Mapped[str | None] = mapped_column(__name_pos=String, nullable=True)
-    size: Mapped[int | None] = mapped_column(__name_pos=Integer, nullable=True)
+    stored_name: Mapped[str] = mapped_column(__name_pos=String, nullable=False, unique=True)
+    path: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
+    content_type: Mapped[str | None] = mapped_column(__name_pos=String, default=None, nullable=True)
+    extension: Mapped[str | None] = mapped_column(__name_pos=String, default=None, nullable=True)
+    storage_provider: Mapped[str] = mapped_column(__name_pos=String, default="local")
+    checksum: Mapped[str | None] = mapped_column(__name_pos=String, default=None, nullable=True)
+    size: Mapped[int] = mapped_column(__name_pos=Integer, default=0)
+    is_processed: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
+    processing_status: Mapped[str] = mapped_column(__name_pos=String, default="pending")
+    processing_error: Mapped[str | None] = mapped_column(__name_pos=Text, default=None, nullable=True)
     created_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now(), nullable=False)
-    
+
+    # ---- Indexes ---- #
+    __table_args__ = (
+        Index("idx_upload_user_id", "user_id"),
+        Index("idx_upload_category", "category"),
+        Index("idx_upload_processing_status", "processing_status"),
+    )
+
     # ---- Relationships ---- #
     user = relationship(argument="User", back_populates="uploads", lazy="selectin")
 

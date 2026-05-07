@@ -44,16 +44,8 @@ class GeneratedExamQuestion(Base):
     )
 
     # ---- Relationships ---- #
-    session = relationship(
-        argument="GeneratedExamSession",
-        back_populates="questions",
-        lazy="selectin"
-    )
-
-    question = relationship(
-        argument="Question",
-        lazy="selectin"
-    )
+    session = relationship(argument="GeneratedExamSession", back_populates="questions", lazy="selectin")
+    question = relationship(argument="Question", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
