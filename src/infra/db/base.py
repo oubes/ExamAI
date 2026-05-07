@@ -11,3 +11,4 @@ from src.domains.identity.models import *
 from src.domains.academic.models import *
 from src.domains.assessment.models import *
 from src.domains.knowledge.models import *
+from src.domains.upload.models import *
