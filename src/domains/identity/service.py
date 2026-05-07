@@ -32,6 +32,7 @@ settings = get_settings()
 # ---- logging ---- #
 logger = logging.getLogger(__name__)
 
+
 # -------------------- identity service -------------------- #
 class IdentityService:
 
@@ -42,18 +43,15 @@ class IdentityService:
         payload: dict,
     ) -> User:
 
-        # -------- check existing user -------- #
         result = await session.execute(
             select(User).where(User.email == payload["email"])
         )
 
         existing = result.scalar_one_or_none()
 
-        # -------- validation -------- #
         if existing:
             raise ValueError("Email already exists")
 
-        # -------- create user -------- #
         user = User(
             full_name=payload["full_name"],
             email=payload["email"],
@@ -61,12 +59,13 @@ class IdentityService:
             password_hash=hash_password(payload["password"]),
         )
 
-        # -------- persist -------- #
         session.add(user)
 
         await session.commit()
         await session.refresh(user)
-        
+
+        logger.debug(f"[IdentityService] Registered user id={user.id}")
+
         return user
 
     # ------------ verify email ------------ #
@@ -77,14 +76,12 @@ class IdentityService:
         email: str,
     ) -> None:
 
-        # -------- fetch user -------- #
         result = await session.execute(
             select(User).where(User.id == user_id)
         )
 
         user = result.scalar_one_or_none()
 
-        # -------- validations -------- #
         if not user:
             raise ValueError("User not found")
 
@@ -94,7 +91,6 @@ class IdentityService:
         if user.is_verified:
             return
 
-        # -------- update user -------- #
         await session.execute(
             update(User)
             .where(User.id == user_id)
@@ -102,10 +98,10 @@ class IdentityService:
         )
 
         await session.commit()
-        
-# -------------------- reset password -------------------- #
 
-    # ---- request reset ---- #
+        logger.debug(f"[IdentityService] Verified user id={user_id}")
+
+    # ------------ create password reset ------------ #
     async def create_password_reset(
         self,
         session: AsyncSession,
@@ -126,12 +122,16 @@ class IdentityService:
             email=user.email,
         )
 
-        reset_link = f"{settings.app_url}/api/v1/identity/reset-password/confirm?token={token}"
+        reset_link = (
+            f"{settings.app_url}"
+            f"/api/v1/identity/reset-password/confirm?token={token}"
+        )
+
+        logger.debug(f"[IdentityService] Created reset token user_id={user.id}")
 
         return user.email, reset_link
 
-
-    # ---- confirm reset ---- #
+    # ------------ reset password ------------ #
     async def reset_password(
         self,
         session: AsyncSession,
@@ -166,6 +166,9 @@ class IdentityService:
         )
 
         await session.commit()
+
+        logger.debug(f"[IdentityService] Reset password user_id={user_id}")
+
     # ------------ login ------------ #
     async def login(
         self,
@@ -173,14 +176,12 @@ class IdentityService:
         payload: dict,
     ) -> dict:
 
-        # -------- fetch user -------- #
         result = await session.execute(
             select(User).where(User.email == payload["email"])
         )
 
         user = result.scalar_one_or_none()
 
-        # -------- authentication -------- #
         if not user:
             raise ValueError("Invalid credentials")
 
@@ -190,7 +191,9 @@ class IdentityService:
         ):
             raise ValueError("Invalid credentials")
 
-        # -------- create session -------- #
+        if not user.is_active:
+            raise ValueError("User is inactive")
+
         user_session = UserSession(
             user_id=user.id,
             ip_address=payload.get("ip_address"),
@@ -204,7 +207,10 @@ class IdentityService:
         await session.commit()
         await session.refresh(user_session)
 
-        # -------- generate tokens -------- #
+        logger.debug(
+            f"[IdentityService] Created session id={user_session.id}"
+        )
+
         return self.generate_tokens(
             user=user,
             session_id=str(user_session.id),
@@ -218,7 +224,6 @@ class IdentityService:
         session_id: UUID,
     ) -> dict:
 
-        # -------- fetch session -------- #
         result = await session.execute(
             select(UserSession).where(
                 UserSession.id == session_id,
@@ -227,7 +232,6 @@ class IdentityService:
 
         db_session = result.scalar_one_or_none()
 
-        # -------- validate session -------- #
         if not db_session:
             raise ValueError("Session not found")
 
@@ -237,7 +241,10 @@ class IdentityService:
         if cast(datetime, db_session.expires_at) < datetime.now(timezone.utc):
             raise ValueError("Session expired")
 
-        # -------- rotate tokens -------- #
+        logger.debug(
+            f"[IdentityService] Refreshed tokens session_id={session_id}"
+        )
+
         return self.generate_tokens(
             user=user,
             session_id=str(session_id),
@@ -250,7 +257,6 @@ class IdentityService:
         session_id: UUID,
     ) -> None:
 
-        # -------- deactivate session -------- #
         await session.execute(
             update(UserSession)
             .where(UserSession.id == session_id)
@@ -259,6 +265,162 @@ class IdentityService:
 
         await session.commit()
 
+        logger.debug(
+            f"[IdentityService] Logged out session_id={session_id}"
+        )
+
+    # ------------ get user by id ------------ #
+    async def get_user_by_id(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+    ) -> User | None:
+
+        logger.debug(f"[IdentityService] Fetching user id={user_id}")
+
+        return await session.get(User, user_id)
+
+    # ------------ get user by email ------------ #
+    async def get_user_by_email(
+        self,
+        session: AsyncSession,
+        email: str,
+    ) -> User | None:
+
+        result = await session.execute(
+            select(User).where(User.email == email)
+        )
+
+        return result.scalar_one_or_none()
+
+    # ------------ get user by username ------------ #
+    async def get_user_by_username(
+        self,
+        session: AsyncSession,
+        user_name: str,
+    ) -> User | None:
+
+        result = await session.execute(
+            select(User).where(User.user_name == user_name)
+        )
+
+        return result.scalar_one_or_none()
+
+    # ------------ list users ------------ #
+    async def list_users(
+        self,
+        session: AsyncSession,
+    ) -> list[User]:
+
+        result = await session.execute(select(User))
+
+        rows = result.scalars().all()
+
+        return list(rows)
+
+    # ------------ update user ------------ #
+    async def update_user(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+        updates: dict,
+    ) -> User:
+
+        user = await session.get(User, user_id)
+
+        if not user:
+            raise ValueError("User not found")
+
+        for k, v in updates.items():
+            setattr(user, k, v)
+
+        await session.commit()
+        await session.refresh(user)
+
+        logger.debug(f"[IdentityService] Updated user id={user_id}")
+
+        return user
+
+    # ------------ delete user ------------ #
+    async def delete_user(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+    ) -> None:
+
+        user = await session.get(User, user_id)
+
+        if not user:
+            raise ValueError("User not found")
+
+        await session.delete(user)
+
+        await session.commit()
+
+        logger.debug(f"[IdentityService] Deleted user id={user_id}")
+
+    # ------------ list user sessions ------------ #
+    async def list_user_sessions(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+    ) -> list[UserSession]:
+
+        result = await session.execute(
+            select(UserSession).where(
+                UserSession.user_id == user_id
+            )
+        )
+
+        rows = result.scalars().all()
+
+        return list(rows)
+
+    # ------------ revoke all sessions ------------ #
+    async def revoke_all_sessions(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+    ) -> None:
+
+        await session.execute(
+            update(UserSession)
+            .where(UserSession.user_id == user_id)
+            .values(is_active=False)
+        )
+
+        await session.commit()
+
+        logger.debug(
+            f"[IdentityService] Revoked all sessions user_id={user_id}"
+        )
+
+    # ------------ exists by email ------------ #
+    async def exists_by_email(
+        self,
+        session: AsyncSession,
+        email: str,
+    ) -> bool:
+
+        result = await session.execute(
+            select(User).where(User.email == email)
+        )
+
+        return result.scalar_one_or_none() is not None
+
+    # ------------ exists by username ------------ #
+    async def exists_by_username(
+        self,
+        session: AsyncSession,
+        user_name: str,
+    ) -> bool:
+
+        result = await session.execute(
+            select(User).where(User.user_name == user_name)
+        )
+
+        return result.scalar_one_or_none() is not None
+
     # ------------ generate tokens ------------ #
     def generate_tokens(
         self,
@@ -266,13 +428,11 @@ class IdentityService:
         session_id: str,
     ) -> dict:
 
-        # -------- create access token -------- #
         access_token = create_access_token(
             user_id=str(user.id),
             session_id=session_id,
         )
 
-        # -------- create refresh token -------- #
         refresh_token = create_refresh_token(
             user_id=str(user.id),
             session_id=session_id,
