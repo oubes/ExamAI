@@ -12,7 +12,7 @@ storage_repository = StorageRepository()
 class UploadService:
 
     # ---- Handle Upload ---- #
-    async def handle_upload(self, session: AsyncSession, user, file):
+    async def handle_upload(self, session: AsyncSession, user, category, file):
 
         # ---- Save file to disk ---- #
         file_data = await storage_service.save_file(file=file, user_id=user.id)
@@ -27,6 +27,7 @@ class UploadService:
             "path": file_data["path"],
             "content_type": file_data["content_type"],
             "size": file_data["size"],
+            "category": category
         })
 
         return {

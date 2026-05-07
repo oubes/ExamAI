@@ -21,6 +21,7 @@ class UploadFileModel(Base):
         __type_pos=ForeignKey(column="users.id", ondelete="CASCADE"),
         nullable=False
     )
+    category: Mapped[str] = mapped_column(__name_pos=String, nullable=False)
     original_name: Mapped[str] = mapped_column(__name_pos=String, nullable=False)
     stored_name: Mapped[str] = mapped_column(__name_pos=String, nullable=False)
     path: Mapped[str] = mapped_column(__name_pos=String, nullable=False)

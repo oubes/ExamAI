@@ -25,12 +25,13 @@ async def get_session():
 
 
 # ---- Upload Endpoint ---- #
-@router.post("/")
+@router.post("/{category}")
 async def upload_file(
+    category: str,
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
     file: UploadFile = File(...),
     _= Depends(admin_required)
 ):
 
-    return await upload_service.handle_upload(session=session, user=user, file=file)
+    return await upload_service.handle_upload(session=session, user=user, category=category, file=file)
