@@ -1,11 +1,11 @@
 # ---- Imports ---- #
 from src.infra.storage.service import StorageService
-from src.domains.upload.service import UploadRepository
+from src.domains.storage.service import StorageRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---- Services ---- #
 storage_service = StorageService()
-upload_repository = UploadRepository()
+storage_repository = StorageRepository()
 
 
 # ---- Upload Service ---- #
@@ -18,7 +18,7 @@ class UploadService:
         file_data = await storage_service.save_file(file=file, user_id=user.id)
 
         # ---- Persist metadata ---- #
-        record = await upload_repository.create(
+        record = await storage_repository.create(
         session=session, 
         data={
             "user_id": user.id,
