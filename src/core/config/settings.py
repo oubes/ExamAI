@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = Field(..., alias="JWT_SECRET_KEY")
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     password_hash_algorithm: str = Field(default="argon2", alias="PASSWORD_HASH_ALGORITHM")
-    access_token_expire_minutes: int = 10
+    access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 14
     min_password_length: int = 6
     max_password_length: int = 48
@@ -104,3 +104,6 @@ class Settings(BaseSettings):
         "/api/v1/identity/register": (2, 10),
         "/api/v1/identity/reset-password/request": (2, 10),
     }
+    
+    # ---- Storage settings ---- #
+    upload_dir: str = Field(default="storage/uploads", alias="UPLOAD_DIR")
