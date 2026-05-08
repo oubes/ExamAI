@@ -27,7 +27,7 @@ from src.domains.identity.models import User
 from src.domains.identity.service import IdentityService
 from src.infra.email.service import EmailService
 from src.core.di.settings import get_settings
-from src.infra.queue.tasks import (
+from src.infra.queue.email_tasks import (
     send_welcome_email,
     send_verify_email,
     send_reset_password_email,

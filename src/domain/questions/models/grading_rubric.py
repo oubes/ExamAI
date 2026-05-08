@@ -14,13 +14,9 @@ class GradingRubric(Base):
 
     # ---- Columns ---- #
     id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-
     question_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("questions.id"), nullable=False)
-
     criterion: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-
     description: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
-
     max_score: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
     weight: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
 
@@ -30,16 +26,8 @@ class GradingRubric(Base):
     )
 
     # ---- Relationships ---- #
-    question = relationship(
-        argument="Question",
-        lazy="selectin"
-    )
-
-    rubric_results = relationship(
-        argument="RubricResult",
-        back_populates="rubric",
-        lazy="selectin"
-    )
+    question = relationship(argument="Question", lazy="selectin")
+    rubric_results = relationship(argument="RubricResult", back_populates="rubric", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

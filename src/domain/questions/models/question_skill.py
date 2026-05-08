@@ -14,10 +14,8 @@ class QuestionSkill(Base):
 
     # ---- Columns ---- #
     id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-
     question_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("questions.id"), nullable=False)
     skill_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("skills.id"), nullable=False)
-
     weight: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
 
     # ---- Indexes ---- #
@@ -27,17 +25,8 @@ class QuestionSkill(Base):
     )
 
     # ---- Relationships ---- #
-    question = relationship(
-        argument="Question",
-        back_populates="skill_links",
-        lazy="selectin"
-    )
-
-    skill = relationship(
-        argument="Skill",
-        back_populates="skill_questions",
-        lazy="selectin"
-    )
+    question = relationship(argument="Question", back_populates="skill_links", lazy="selectin")
+    skill = relationship(argument="Skill", back_populates="skill_questions", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

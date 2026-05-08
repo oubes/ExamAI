@@ -27,16 +27,8 @@ class RubricResult(Base):
     )
 
     # ---- Relationships ---- #
-    answer = relationship(
-        argument="Answer",
-        lazy="selectin"
-    )
-
-    rubric = relationship(
-        argument="GradingRubric",
-        back_populates="rubric_results",
-        lazy="selectin"
-    )
+    answer = relationship(argument="Answer", lazy="selectin")
+    rubric = relationship(argument="GradingRubric", back_populates="rubric_results", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

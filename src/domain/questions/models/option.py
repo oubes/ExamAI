@@ -14,12 +14,9 @@ class QuestionOption(Base):
 
     # ---- Columns ---- #
     id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-
     question_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("questions.id"), nullable=False)
-
     option_text: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
     is_correct: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
-
     order: Mapped[int] = mapped_column(__name_pos=BigInteger, default=0)
 
     # ---- Indexes ---- #
