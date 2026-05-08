@@ -248,6 +248,7 @@ uvicorn src.main:app --reload
 ## Terminal 2 — Start Redis Container
 
 ```bash id="j8w3pm"
+cd src
 docker compose up -d
 ```
 
