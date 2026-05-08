@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/services/auth.service";
 import { Loader2, Lock, Mail, ShieldCheck, Sparkles, UserPlus, User, AtSign, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -14,6 +14,7 @@ const APP_NAME = "ExamAI";
 
 export default function AuthPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [isLogin, setIsLogin] = useState(true);
   const [isReset, setIsReset] = useState(false);
@@ -27,6 +28,15 @@ export default function AuthPage() {
     email: "",
     password: ""
   });
+
+  // ---- Handle Verification Success from URL ----
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    if (verified === "1") {
+      setSuccess("Email verified successfully! You can sign in now.");
+      setIsLogin(true);
+    }
+  }, [searchParams]);
 
   const switchToReset = () => { setIsReset(true); setIsLogin(false); setError(null); setSuccess(null); };
   const switchToLogin = () => { setIsReset(false); setIsLogin(true); setError(null); setSuccess(null); };
@@ -50,17 +60,11 @@ export default function AuthPage() {
         const res = await authService.resetPassword(formData.email);
         setSuccess(res.message || "Reset link sent successfully!");
       } else if (!isLogin) {
-        // ---- REGISTER FLOW ----
         await authService.register(formData);
-        setSuccess("Account created! You need to verify your email before logging in.");
-        
-        // ---- CLEAR PASSWORD AFTER REGISTRATION ----
+        setSuccess("Account created! Please check your email to verify your account.");
         setFormData(prev => ({ ...prev, password: "" }));
-        
-        // Delay slightly for UX then switch
-        setTimeout(() => setIsLogin(true), 2000);
+        setTimeout(() => setIsLogin(true), 3000);
       } else {
-        // ---- LOGIN FLOW ----
         const data = await authService.login(formData.email, formData.password);
         if (data?.access_token) {
           localStorage.setItem("token", data.access_token);
@@ -81,6 +85,7 @@ export default function AuthPage() {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 overflow-hidden px-4 py-10 md:py-24 antialiased">
       
+      {/* Background Decor */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/15 via-transparent to-indigo-600/15" />
         <div className="absolute inset-0 bg-gradient-to-bl from-indigo-600/10 via-transparent to-blue-600/10" />
@@ -91,17 +96,20 @@ export default function AuthPage() {
       <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse pointer-events-none [animation-delay:2s]" />
 
       <div className="relative z-10 w-full max-w-[440px]">
-        <div className="flex flex-col items-center mb-8 space-y-4">
-          <div className="group relative flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900 border border-zinc-800 shadow-inner">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-700 opacity-20 blur-sm group-hover:opacity-40 transition-opacity" />
-            <Sparkles className="h-7 w-7 text-white relative z-10" />
+        
+        {/* ---- Updated Branding: Logo to the Left ---- */}
+        <div className="flex flex-row items-center justify-center mb-8 gap-4">
+          <div className="group relative flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 shadow-inner shrink-0">
+            <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-700 opacity-20 blur-sm group-hover:opacity-40 transition-opacity" />
+            <Sparkles className="h-6 w-6 text-white relative z-10" />
           </div>
-          <div className="text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-white">{APP_NAME}</h1>
-            <p className="text-sm text-zinc-600 mt-1 uppercase tracking-widest font-medium">Smart Learning Platform</p>
+          <div className="flex flex-col">
+            <h1 className="text-3xl font-bold tracking-tight text-white leading-none">{APP_NAME}</h1>
+            <p className="text-[10px] text-zinc-600 mt-1 uppercase tracking-[0.2em] font-medium leading-none">Smart Learning Platform</p>
           </div>
         </div>
 
+        {/* Auth Card */}
         <Card className="border border-white/5 bg-zinc-900/60 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] rounded-3xl overflow-hidden">
           <CardHeader className="pb-4 pt-8">
             <CardTitle className="text-xl font-medium text-white flex items-center gap-2">
@@ -178,7 +186,7 @@ export default function AuthPage() {
               )}
 
               <Button type="submit" disabled={loading} className="w-full h-12 bg-blue-950/80 hover:bg-blue-900 text-blue-100 border border-blue-500/30 font-semibold shadow-2xl transition-all active:scale-[0.98]">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isReset ? "Reset Password" : (isLogin ? "Sign In" : "Get Started"))}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isReset ? "Reset Password" : (isLogin ? "Sign In" : "Sign Up"))}
               </Button>
 
               {!isReset && (

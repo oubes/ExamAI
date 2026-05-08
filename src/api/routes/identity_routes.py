@@ -100,6 +100,10 @@ async def register(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
         
+from fastapi import HTTPException, Depends
+from fastapi.responses import RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
 # ---------- Verify Email ---------- #
 @router.get("/verify")
 async def verify_email(
@@ -120,7 +124,11 @@ async def verify_email(
         email=email,
     )
 
-    return {"message": "Email verified successfully"}
+    # ---- redirect to frontend ---- #
+    return RedirectResponse(
+        url=f"{settings.frontend_url}/AuthPage?verified=1",
+        status_code=302
+    )
 
 # ---------- Login ---------- #
 @router.post("/login", response_model=TokenResponse)

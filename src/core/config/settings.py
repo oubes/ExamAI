@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     def app_url(self) -> str:
         return f"http://{self.app_host}:{self.app_port}"
     
+    # ---------- Frontend settings ---------- #
+    frontend_url: str = Field(..., alias="FRONTEND_URL")
+
     # ---- Database settings ---- #
     postgres_host: str = Field(..., alias="POSTGRES_HOST")
     postgres_user: str = Field(..., alias="POSTGRES_USER")
