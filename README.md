@@ -1,176 +1,327 @@
-# 🎓 ExamAI — Intelligent Assessment & Feedback Ecosystem
+# ExamAI Setup Guide
 
-<p align="center">
+## Project Overview
 
-<img src="https://img.shields.io/badge/Timeline-Feb%202026%20--%20Present-blue?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Status-Active%20Development-success?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Architecture-Agentic%20AI-orange?style=for-the-badge" />
+ExamAI is an AI-powered educational platform for:
 
-<br/>
-
-<img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white" />
-<img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" />
-<img src="https://img.shields.io/badge/LLMs-OpenAI%20Compatible-412991?style=for-the-badge&logo=openai&logoColor=white" />
-
-<br/>
-
-<img src="https://img.shields.io/badge/PostgreSQL-Relational%20DB-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" />
-<img src="https://img.shields.io/badge/Vector%20DB-RAG%20Ready-yellow?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
-
-</p>
+* Adaptive exam generation
+* Intelligent grading
+* Personalized feedback generation
+* Student performance analytics
+* RAG-powered educational retrieval
 
 ---
 
-## 📌 Project Overview
+# 1) Clone The Project
 
-**ExamAI** is an intelligent, end-to-end academic assessment ecosystem designed to **automate and enhance the entire examination lifecycle**.
+Clone the repository:
 
-By combining **Optical Character Recognition (OCR)**, **Generative AI**, and **Retrieval-Augmented Generation (RAG)**, the platform transforms traditional paper-based exams into structured, analyzable, and feedback-rich digital assets.
+```bash id="q4t8nm"
+git clone https://github.com/oubes/ExamAI
+cd ExamAI
+```
 
-Unlike conventional assessment systems limited to MCQs, ExamAI supports **open-ended**, **analytical**, and **reasoning-based** answers while delivering **instant, explainable, and personalized feedback**.
+Repository:
 
----
-
-## 🏗️ System Architecture & Workflow
-
-ExamAI follows a **modular, agentic architecture**, where specialized AI components collaborate in a controlled workflow.
-
-### 🔍 1. Ingestion & Document Understanding
-- Accepts digital exam submissions and scanned handwritten sheets  
-- OCR pipeline segments documents into **questions, sub-questions, and answers**  
-- Text normalization and semantic cleanup ensure **high AI grading accuracy**
-
-### 🧠 2. Rubric-Aware Automated Grading
-- Semantic understanding agents evaluate **correctness, reasoning quality, and conceptual coverage**  
-- Grading is aligned with **instructor-defined rubrics and policies**  
-- Ensures **consistent and unbiased scoring at scale**
-
-### 📚 3. RAG-Driven Personalized Feedback
-- Uses a Vector Database to retrieve context such as:
-  - Student historical performance
-  - Previous misconceptions
-  - Topic-level mastery trends
-- Generates **context-aware, personalized feedback** per student
-
-### 📊 4. Institutional-Level Analytics
-- Aggregates insights at class, department, and institution levels  
-- Provides dashboards and reports for:
-  - Outcome-based tracking  
-  - Performance gap analysis  
-  - Curriculum evaluation and academic planning
+* [ExamAI GitHub Repository](https://github.com/oubes/ExamAI?utm_source=chatgpt.com)
 
 ---
 
-## 🌟 Key Features
+# 2) Create Conda Environment
 
-> **High-Fidelity OCR**  
-> Accurate recognition of scanned and handwritten exams, structured into digital format.
+Create a new conda environment using Python 3.11:
 
-> **Adaptive Assessment Logic**  
-> Supports dynamic adjustment of exam difficulty and evaluation depth based on student performance.
+```bash id="x7m2pr"
+conda create -n exam_ai python=3.11
+```
 
-> **Actionable AI Feedback**  
-> Explainable feedback highlighting strengths, weaknesses, and targeted improvement steps.
+Activate the environment:
 
-> **Role-Based Dashboards**  
-> Tailored interfaces for Students, Instructors, Administrators, and Institutions.
+```bash id="c1v9zs"
+conda activate exam_ai
+```
 
----
+Install project requirements:
 
-## 📂 Project Roadmap — MVP + Capability Expansion
-
-<p align="center">
-
-<img src="https://img.shields.io/badge/Phase%201-System%20Analysis-success?style=flat-square" />
-<img src="https://img.shields.io/badge/Phase%202-System%20Architecture-blue?style=flat-square" />
-<img src="https://img.shields.io/badge/Phase%203-First%20MVP-yellow?style=flat-square" />
-<img src="https://img.shields.io/badge/Phase%204-Capability%20Expansion%20%231-orange?style=flat-square" />
-<img src="https://img.shields.io/badge/Phase%205-Capability%20Expansion%20%232-red?style=flat-square" />
-<img src="https://img.shields.io/badge/Phase%206-Capability%20Expansion%20%233-purple?style=flat-square" />
-<img src="https://img.shields.io/badge/Phase%207-Pilot%20Deployment-lightblue?style=flat-square" />
-
-</p>
+```bash id="l5r3wd"
+pip install -r requirements.txt
+```
 
 ---
 
-### 🔹 Phase 1 — System Analysis
-- Gather functional and non-functional requirements  
-- Define user roles: Students, Instructors, Admins  
-- Document workflows, edge cases, and constraints  
-- Feasibility study for AI, OCR, and RAG integration  
+# 3) Install PostgreSQL
 
-### 🔹 Phase 2 — System Architecture
-- Design **modular architecture** supporting agentic AI, RAG, and grading  
-- Define **data flow**: Upload → OCR → AI → Feedback → Analytics  
-- Plan API endpoints, DB models, service layers  
-- Set up configuration management, logging, and security  
+Download and install PostgreSQL:
 
-### 🔹 Phase 3 — First MVP
-**Goal:** Minimal functional product for **1 digital subject/course**
+* [PostgreSQL Official Website](https://www.postgresql.org/download/?utm_source=chatgpt.com)
 
-- Process **full digital course/exam**  
-- Detailed feedback for **each question/part**  
-- Overall rubric/score based on **student’s history**  
-- Minimal FastAPI app with config + Pydantic v2 models  
-- Health check endpoint + manual grading fallback  
-- Validate **end-to-end flow** on sample data  
+After installation:
 
-### 🔹 Phase 4 — Capability Expansion #1
-- Add support for **additional exam scenarios or question types**  
-- Incorporate **tools or content** not in MVP  
-- Extend grading to **new rubrics or scoring policies**  
+* Open PostgreSQL
+* Create a database named:
 
-### 🔹 Phase 5 — Capability Expansion #2
-- Add **extra course materials or topics**  
-- Handle **complex edge-case scenarios** in grading or feedback  
-- Enhance dashboards or reporting per new use cases  
-
-### 🔹 Phase 6 — Capability Expansion #3
-- Integrate **optional tools/modules** for instructors (e.g., automated hints, analytics filters)  
-- Extend system coverage to **advanced student interactions**  
-
-### 🔹 Phase 7 — Pilot Deployment
-- Deploy in **controlled academic environment**  
-- Monitor system performance and grading accuracy  
-- Collect **user feedback** and iterate  
-- Prepare for **full-scale rollout**
+```text id="b8y1qk"
+exam_ai_db
+```
 
 ---
 
-## 🛠️ Technology Stack
+# 4) Enable PostgreSQL Extensions
 
-- **Core Engine:** Python 3.10+  
-- **API Layer:** FastAPI  
-- **AI Layer:** LLMs for grading and feedback  
-- **Databases:** PostgreSQL (relational) + Vector DB (RAG)  
-- **Deployment:** Dockerized microservices  
-- **MLOps:** Model versioning, monitoring, and evaluation pipelines  
+Open PostgreSQL Query Tool and execute:
 
----
+```sql id="n6w4tf"
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+```
 
-## 📄 Documentation
+These extensions are required for:
 
-Technical and functional documentation available in `/docs`:
-
-- **System Analysis:** Functional and non-functional requirements  
-- **Architecture:** Component interaction diagrams  
-- **User Stories:** End-to-end usage scenarios for all roles  
+* Vector embeddings search
+* Semantic retrieval
+* Hybrid RAG search
+* Trigram similarity matching
 
 ---
 
-## 🤝 Contributing
+# 5) Open The Project In VSCode Or Any IDE
 
-Contributions are welcome and highly appreciated.  
-Whether improving documentation, system design, or experimental pipelines, your input helps push ExamAI forward.
+Recommended IDEs:
 
----
-
-## ⚖️ License
-
-This project is licensed under the **MIT License**.  
-See the `LICENSE` file for details.
+* [Visual Studio Code](https://code.visualstudio.com/?utm_source=chatgpt.com)
+* [PyCharm](https://www.jetbrains.com/pycharm/?utm_source=chatgpt.com)
 
 ---
 
-**ExamAI** — *Redefining the Future of Academic Assessment.*
+# 6) Create Alibaba DashScope API Key
+
+ExamAI uses Alibaba DashScope for:
+
+* LLM inference
+* Embedding models
+
+Create an account here:
+
+* [Alibaba DashScope](https://dashscope.console.aliyun.com/?utm_source=chatgpt.com)
+
+Generate your API key.
+
+---
+
+# 7) Configure Gmail SMTP
+
+ExamAI uses Gmail SMTP for:
+
+* Verification emails
+* Password reset emails
+* Notification emails
+
+---
+
+## Step 1 — Enable 2-Step Verification
+
+Open Google Account Security:
+
+* [Google Account Security](https://myaccount.google.com/security?utm_source=chatgpt.com)
+
+Enable:
+
+```text id="q9f4wk"
+2-Step Verification
+```
+
+Direct link:
+
+* [Enable 2-Step Verification](https://myaccount.google.com/signinoptions/two-step-verification?utm_source=chatgpt.com)
+
+---
+
+## Step 2 — Generate Gmail App Password
+
+Open App Passwords:
+
+* [Google App Passwords](https://myaccount.google.com/apppasswords?utm_source=chatgpt.com)
+
+Then:
+
+1. Select:
+
+```text id="t3m8xy"
+Mail
+```
+
+2. Select device:
+
+```text id="g5w2lh"
+Other (Custom name)
+```
+
+3. Enter:
+
+```text id="u1r7zc"
+ExamAI
+```
+
+4. Click:
+
+```text id="y6k9vd"
+Generate
+```
+
+Google will generate a 16-character password.
+
+Example:
+
+```text id="m2q4pe"
+abcd efgh ijkl mnop
+```
+
+Use this generated password inside:
+
+```text id="h8v1rk"
+SMTP_PASSWORD
+```
+
+---
+
+# 8) Configure Environment Variables
+
+Inside the project root:
+
+* Copy `.env.example`
+* Rename the copied file to `.env`
+* Update all variables according to your local machine and accounts
+
+Example:
+
+```bash id="d7x5mb"
+cp .env.example .env
+```
+
+Update values such as:
+
+* PostgreSQL credentials
+* Alibaba API key
+* JWT secrets
+* Gmail SMTP credentials
+* Redis URLs
+
+Example SMTP configuration:
+
+```env id="w4n8qs"
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASSWORD=your_generated_app_password
+SMTP_FROM=your_email@gmail.com
+```
+
+---
+
+# 9) Install Docker
+
+Download and install Docker Desktop:
+
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/?utm_source=chatgpt.com)
+
+After installation:
+
+* Open Docker Desktop
+* Make sure Docker is running
+
+---
+
+# 10) Run The Project
+
+You will need multiple terminals.
+
+---
+
+## Terminal 1 — Run FastAPI
+
+```bash id="s5k1qn"
+uvicorn src.main:app --reload
+```
+
+---
+
+## Terminal 2 — Start Redis Container
+
+```bash id="j8w3pm"
+cd src
+docker compose up -d
+```
+
+---
+
+## Terminal 3 — Run Celery Worker
+
+```bash id="f6x9tv"
+celery -A src.infra.queue.celery_app.celery_app worker --loglevel=info --concurrency=4 --pool=solo -E
+```
+
+---
+
+## Terminal 4 (Optional) — Run Flower Dashboard
+
+```bash id="r2v7yc"
+celery -A src.infra.queue.celery_app.celery_app flower
+```
+
+Flower is used for:
+
+* Monitoring Celery tasks
+* Monitoring queues and workers
+* Debugging async jobs
+
+---
+
+# 11) Access The API
+
+Open:
+
+```text id="k1m6we"
+127.0.0.1:8000
+```
+
+Swagger documentation:
+
+```text id="p9t3xs"
+127.0.0.1:8000/docs
+```
+
+You can now start using the APIs.
+
+---
+
+# Recommended Tools
+
+## API Testing
+
+* [Postman](https://www.postman.com/?utm_source=chatgpt.com)
+* [Insomnia](https://insomnia.rest/?utm_source=chatgpt.com)
+
+---
+
+# Main Technologies Used
+
+| Component        | Technology        |
+| ---------------- | ----------------- |
+| Backend          | FastAPI           |
+| Database         | PostgreSQL        |
+| Vector Search    | pgvector          |
+| Async Tasks      | Celery            |
+| Queue Broker     | Redis             |
+| LLM Provider     | Alibaba DashScope |
+| ORM              | SQLAlchemy        |
+| Validation       | Pydantic          |
+| Containerization | Docker            |
+
+---
+
+# Notes
+
+* PostgreSQL must be running before starting the backend.
+* Docker Desktop must be running before starting Redis.
+* Redis is required for Celery tasks.
+* Make sure all environment variables are configured correctly before running the system.
