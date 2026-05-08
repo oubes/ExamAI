@@ -4,6 +4,7 @@ import logging
 from src.core.bootstrap.lifespan import lifespan
 from src.core.di.settings import get_settings
 from src.api.router_registry import register_routers
+from src.core.middleware.cors import register_cors_middleware
 from src.core.middleware.request_timing import register_request_timing_middleware
 from src.core.middleware.rate_limit import register_rate_limit_middleware
 
@@ -22,6 +23,7 @@ def create_app():
             version=settings.app_version,
             lifespan=lifespan,
         )
+        register_cors_middleware(app)
         register_rate_limit_middleware(app)
         register_request_timing_middleware(app)
         register_routers(app)
