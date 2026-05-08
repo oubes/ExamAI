@@ -12,316 +12,249 @@ ExamAI is an AI-powered educational platform for:
 
 ---
 
-# 1) Clone The Project
+# 1) Install Prerequisites
 
-Clone the repository:
+## Install Python (3.11)
 
-```bash id="q4t8nm"
+[https://www.python.org/downloads/](https://www.python.org/downloads/)
+
+Verify:
+
+```bash id="py1"
+python --version
+```
+
+---
+
+## Install Node.js (Frontend requirement)
+
+[https://nodejs.org/](https://nodejs.org/)
+
+Verify:
+
+```bash id="node1"
+node -v
+npm -v
+```
+
+---
+
+## Install Git
+
+[https://git-scm.com/downloads](https://git-scm.com/downloads)
+
+Verify:
+
+```bash id="git1"
+git --version
+```
+
+---
+
+## Install Docker
+
+[https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
+
+Make sure Docker is running.
+
+---
+
+# 2) Clone The Project
+
+```bash id="cl1"
 git clone https://github.com/oubes/ExamAI
 cd ExamAI
 ```
 
-Repository:
-
-* [ExamAI GitHub Repository](https://github.com/oubes/ExamAI?utm_source=chatgpt.com)
+[https://github.com/oubes/ExamAI](https://github.com/oubes/ExamAI)
 
 ---
 
-# 2) Create Conda Environment
+# 3) Create Conda Environment
 
-Create a new conda environment using Python 3.11:
-
-```bash id="x7m2pr"
+```bash id="co1"
 conda create -n exam_ai python=3.11
-```
-
-Activate the environment:
-
-```bash id="c1v9zs"
 conda activate exam_ai
 ```
 
-Install project requirements:
+---
 
-```bash id="l5r3wd"
+# 4) Install Backend Dependencies
+
+```bash id="pip1"
 pip install -r requirements.txt
 ```
 
 ---
 
-# 3) Install PostgreSQL
+# 5) Install PostgreSQL
 
-Download and install PostgreSQL:
-
-* [PostgreSQL Official Website](https://www.postgresql.org/download/?utm_source=chatgpt.com)
+[https://www.postgresql.org/download/](https://www.postgresql.org/download/)
 
 After installation:
 
-* Open PostgreSQL
-* Create a database named:
+* Create database:
 
-```text id="b8y1qk"
+```text id="db1"
 exam_ai_db
 ```
 
 ---
 
-# 4) Enable PostgreSQL Extensions
+# 6) Enable PostgreSQL Extensions
 
-Open PostgreSQL Query Tool and execute:
+Run in PostgreSQL:
 
-```sql id="n6w4tf"
+```sql id="sql1"
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 ```
 
-These extensions are required for:
+---
 
-* Vector embeddings search
-* Semantic retrieval
-* Hybrid RAG search
-* Trigram similarity matching
+# 7) Create Alibaba API Key
+
+[https://dashscope.console.aliyun.com/](https://dashscope.console.aliyun.com/)
+
+Used for:
+
+* LLM
+* Embeddings
 
 ---
 
-# 5) Open The Project In VSCode Or Any IDE
+# 8) Configure Gmail SMTP
 
-Recommended IDEs:
+## Enable 2-Step Verification
 
-* [Visual Studio Code](https://code.visualstudio.com/?utm_source=chatgpt.com)
-* [PyCharm](https://www.jetbrains.com/pycharm/?utm_source=chatgpt.com)
-
----
-
-# 6) Create Alibaba DashScope API Key
-
-ExamAI uses Alibaba DashScope for:
-
-* LLM inference
-* Embedding models
-
-Create an account here:
-
-* [Alibaba DashScope](https://dashscope.console.aliyun.com/?utm_source=chatgpt.com)
-
-Generate your API key.
+[https://myaccount.google.com/signinoptions/two-step-verification](https://myaccount.google.com/signinoptions/two-step-verification)
 
 ---
 
-# 7) Configure Gmail SMTP
+## Generate App Password
 
-ExamAI uses Gmail SMTP for:
+[https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 
-* Verification emails
-* Password reset emails
-* Notification emails
+Use it as:
 
----
-
-## Step 1 — Enable 2-Step Verification
-
-Open Google Account Security:
-
-* [Google Account Security](https://myaccount.google.com/security?utm_source=chatgpt.com)
-
-Enable:
-
-```text id="q9f4wk"
-2-Step Verification
-```
-
-Direct link:
-
-* [Enable 2-Step Verification](https://myaccount.google.com/signinoptions/two-step-verification?utm_source=chatgpt.com)
-
----
-
-## Step 2 — Generate Gmail App Password
-
-Open App Passwords:
-
-* [Google App Passwords](https://myaccount.google.com/apppasswords?utm_source=chatgpt.com)
-
-Then:
-
-1. Select:
-
-```text id="t3m8xy"
-Mail
-```
-
-2. Select device:
-
-```text id="g5w2lh"
-Other (Custom name)
-```
-
-3. Enter:
-
-```text id="u1r7zc"
-ExamAI
-```
-
-4. Click:
-
-```text id="y6k9vd"
-Generate
-```
-
-Google will generate a 16-character password.
-
-Example:
-
-```text id="m2q4pe"
-abcd efgh ijkl mnop
-```
-
-Use this generated password inside:
-
-```text id="h8v1rk"
+```text id="mail1"
 SMTP_PASSWORD
 ```
 
 ---
 
-# 8) Configure Environment Variables
+# 9) Setup Environment Variables
 
-Inside the project root:
-
-* Copy `.env.example`
-* Rename the copied file to `.env`
-* Update all variables according to your local machine and accounts
-
-Example:
-
-```bash id="d7x5mb"
+```bash id="env1"
 cp .env.example .env
 ```
 
-Update values such as:
+Then update:
 
 * PostgreSQL credentials
-* Alibaba API key
-* JWT secrets
-* Gmail SMTP credentials
 * Redis URLs
-
-Example SMTP configuration:
-
-```env id="w4n8qs"
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your_email@gmail.com
-SMTP_PASSWORD=your_generated_app_password
-SMTP_FROM=your_email@gmail.com
-```
+* JWT secrets
+* Alibaba API key
+* SMTP credentials
 
 ---
 
-# 9) Install Docker
+# 10) Run Backend System
 
-Download and install Docker Desktop:
+## Terminal 1 — FastAPI
 
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/?utm_source=chatgpt.com)
-
-After installation:
-
-* Open Docker Desktop
-* Make sure Docker is running
-
----
-
-# 10) Run The Project
-
-You will need multiple terminals.
-
----
-
-## Terminal 1 — Run FastAPI
-
-```bash id="s5k1qn"
+```bash id="b1"
 uvicorn src.main:app --reload
 ```
 
 ---
 
-## Terminal 2 — Start Redis Container
+## Terminal 2 — Redis (Docker)
 
-```bash id="j8w3pm"
+```bash id="b2"
 cd src
 docker compose up -d
 ```
 
 ---
 
-## Terminal 3 — Run Celery Worker
+## Terminal 3 — Celery Worker
 
-```bash id="f6x9tv"
+```bash id="b3"
 celery -A src.infra.queue.celery_app.celery_app worker --loglevel=info --concurrency=4 --pool=solo -E
 ```
 
 ---
 
-## Terminal 4 (Optional) — Run Flower Dashboard
+## Terminal 4 — (Optional) Flower
 
-```bash id="r2v7yc"
+```bash id="b4"
 celery -A src.infra.queue.celery_app.celery_app flower
 ```
 
-Flower is used for:
-
-* Monitoring Celery tasks
-* Monitoring queues and workers
-* Debugging async jobs
-
 ---
 
-# 11) Access The API
+# 11) Run Frontend (Next.js)
 
-Open:
+## Step 1 — Install Node Modules
 
-```text id="k1m6we"
-127.0.0.1:8000
+```bash id="f1"
+cd frontend
+npm install
 ```
 
-Swagger documentation:
+---
 
-```text id="p9t3xs"
-127.0.0.1:8000/docs
+## Step 2 — Run Frontend
+
+```bash id="f2"
+npm run dev
 ```
 
-You can now start using the APIs.
+---
+
+## Step 3 — Open App
+
+[http://localhost:3000](http://localhost:3000)
 
 ---
 
-# Recommended Tools
+# ⚠️ Frontend Notes
 
-## API Testing
+If issues happen:
 
-* [Postman](https://www.postman.com/?utm_source=chatgpt.com)
-* [Insomnia](https://insomnia.rest/?utm_source=chatgpt.com)
+```bash id="f3"
+rm -rf .next
+npm install
+npm run dev
+```
 
----
+Backend must be running at:
 
-# Main Technologies Used
-
-| Component        | Technology        |
-| ---------------- | ----------------- |
-| Backend          | FastAPI           |
-| Database         | PostgreSQL        |
-| Vector Search    | pgvector          |
-| Async Tasks      | Celery            |
-| Queue Broker     | Redis             |
-| LLM Provider     | Alibaba DashScope |
-| ORM              | SQLAlchemy        |
-| Validation       | Pydantic          |
-| Containerization | Docker            |
+```text id="f4"
+http://127.0.0.1:8000
+```
 
 ---
 
-# Notes
+# 12) Access API
 
-* PostgreSQL must be running before starting the backend.
-* Docker Desktop must be running before starting Redis.
-* Redis is required for Celery tasks.
-* Make sure all environment variables are configured correctly before running the system.
+* [http://127.0.0.1:8000](http://127.0.0.1:8000)
+* [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+
+---
+
+# Tech Stack
+
+| Layer     | Tech              |
+| --------- | ----------------- |
+| Backend   | FastAPI           |
+| DB        | PostgreSQL        |
+| Vector DB | pgvector          |
+| Queue     | Celery            |
+| Broker    | Redis             |
+| LLM       | Alibaba DashScope |
+| Frontend  | Next.js           |
+| UI        | shadcn            |
+
+---
