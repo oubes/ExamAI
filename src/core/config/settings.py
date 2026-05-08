@@ -100,9 +100,9 @@ class Settings(BaseSettings):
     rate_limit_port: int = Field(..., alias="RATE_LIMIT_PORT")
     global_rate_limit: tuple = (30, 60) 
     rate_limits: dict = {
-        "/api/v1/identity/login": (2, 10),
-        "/api/v1/identity/register": (2, 10),
-        "/api/v1/identity/reset-password/request": (2, 10),
+        "/api/v1/identity/login": (10, 10),
+        "/api/v1/identity/register": (10, 10),
+        "/api/v1/identity/reset-password/request": (10, 10),
     }
     
     # ---- Storage settings ---- #

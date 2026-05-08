@@ -185,6 +185,10 @@ class IdentityService:
         if not user:
             raise ValueError("Invalid credentials")
 
+        # ---- NEW: verification check ---- #
+        if not user.is_verified:
+            raise ValueError("User is not verified")
+
         if not verify_password(
             password=payload["password"],
             hashed=user.password_hash,

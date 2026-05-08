@@ -142,10 +142,11 @@ async def login(
 
         return TokenResponse(**tokens)
 
-    except ValueError:
+    except ValueError as e:
+        # ---- pass real message ---- #
         raise HTTPException(
             status_code=401,
-            detail="Invalid credentials",
+            detail=str(e),
         )
 
 # ---------- Request Password Reset ---------- #
