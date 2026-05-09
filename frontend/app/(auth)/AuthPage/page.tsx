@@ -19,6 +19,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [isReset, setIsReset] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true); // حالة جديدة للتحقق من التوكن
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
@@ -29,7 +30,21 @@ export default function AuthPage() {
     password: ""
   });
 
-  // ---- Handle URL Parameters ----
+  // ---- 1. Auto-Login Check (New) ----
+  useEffect(() => {
+    const checkExistingAuth = () => {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        // إذا وجد التوكن، توجه مباشرة للـ dashboard
+        router.replace("/dashboard");
+      } else {
+        setCheckingAuth(false);
+      }
+    };
+    checkExistingAuth();
+  }, [router]);
+
+  // ---- 2. Handle URL Parameters ----
   useEffect(() => {
     const verified = searchParams.get("verified");
     const resetSuccess = searchParams.get("reset");
@@ -67,32 +82,55 @@ export default function AuthPage() {
       if (isReset) {
         const res = await authService.resetPassword(formData.email);
         setSuccess(res.message || "Reset link sent successfully!");
-      } else if (!isLogin) {
-        await authService.register(formData);
-        setSuccess("Account created! Please check your email to verify your account.");
-        setFormData(prev => ({ ...prev, password: "" }));
-        setTimeout(() => setIsLogin(true), 3000);
-      } else {
-        const data = await authService.login(formData.email, formData.password);
-        // ---- Redirect Logic ----
-        if (data?.access_token) {
-          localStorage.setItem("token", data.access_token);
-          setSuccess("Login successful! Redirecting...");
-          setTimeout(() => router.push("/dashboard"), 1500);
-        }
+        return;
       }
+
+      if (!isLogin) {
+        const res = await authService.register(formData);
+        setSuccess(res.message || "Account created successfully. Please verify your email.");
+        setFormData((prev) => ({ ...prev, password: "" }));
+        setTimeout(() => setIsLogin(true), 3000);
+        return;
+      }
+
+      // ---- Login Logic ----
+      const response = await authService.login(formData.email, formData.password);
+      const authData = response?.data || response;
+      const accessToken = authData?.access_token;
+      const refreshToken = authData?.refresh_token;
+
+      if (accessToken) {
+        localStorage.setItem("access_token", accessToken);
+        if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
+
+        setSuccess(response.message || "Login successful! Redirecting...");
+        setTimeout(() => router.push("/dashboard"), 1500);
+        return;
+      }
+
+      setError("Invalid server response: Access token missing.");
     } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+      setError(err?.response?.data?.detail || err?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
+
+  // شاشة تحميل بسيطة أثناء التحقق من التوكن لمنع وميض (Flicker) صفحة التسجيل
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-zinc-950">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
   const inputClasses = "pl-10 h-12 bg-zinc-950 border-zinc-800/50 text-zinc-100 placeholder:text-white/20 focus:border-blue-900/50 autofill:shadow-[inset_0_0_0px_1000px_rgb(9,9,11)] [-webkit-text-fill-color:white] transition-colors";
   const smallInputClasses = "pl-9 h-11 bg-zinc-950 border-zinc-800/50 text-zinc-100 text-sm placeholder:text-white/20 focus:border-blue-900/50 autofill:shadow-[inset_0_0_0px_1000px_rgb(9,9,11)] [-webkit-text-fill-color:white] transition-colors";
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 overflow-hidden px-4 py-10 md:py-24 antialiased">
+      {/* Background elements remain same */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/15 via-transparent to-indigo-600/15" />
         <div className="absolute inset-0 bg-gradient-to-bl from-indigo-600/10 via-transparent to-blue-600/10" />
@@ -100,6 +138,7 @@ export default function AuthPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-[440px]">
+        {/* Header Branding */}
         <div className="flex flex-row items-center justify-center mb-8 gap-4">
           <div className="group relative flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 shadow-inner shrink-0">
             <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-700 opacity-20 blur-sm group-hover:opacity-40 transition-opacity" />
