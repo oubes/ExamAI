@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import cast
 
-from fastapi import APIRouter, HTTPException, Request, status, Form, Depends
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from fastapi.security import HTTPAuthorizationCredentials
 from src.auth.email_token import create_email_verification_token, decode_email_verification_token
 from src.auth.security import security
@@ -24,7 +24,7 @@ from src.auth.auth import (
 from src.auth.jwt import decode_token
 from src.infra.db.session import session_local
 from src.domains.identity.models import User
-from src.domains.identity.service import IdentityService
+from src.auth.service import IdentityService
 from src.infra.email.service import EmailService
 from src.core.di.settings import get_settings
 from src.infra.queue.tasks import (
