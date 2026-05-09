@@ -1,5 +1,5 @@
 # ---- Imports ---- #
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import BigInteger, Text, ForeignKey, Index, Float
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from pgvector.sqlalchemy import Vector
@@ -26,6 +26,12 @@ class KnowledgeBase(Base):
 
     document_id: Mapped[int] = mapped_column(BigInteger)
     chunk_index: Mapped[int] = mapped_column(BigInteger, default=0)
+    page_number: Mapped[int] = mapped_column(BigInteger, default=0)
+    section_title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    main_heading: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_file: Mapped[str] = mapped_column(Text, default="")
+    content_hash: Mapped[str] = mapped_column(Text, default="")
+    search_text: Mapped[str] = mapped_column(Text, default="")
 
     content: Mapped[str] = mapped_column(Text)
     summary: Mapped[str] = mapped_column(Text, nullable=True)
@@ -45,7 +51,16 @@ class KnowledgeBase(Base):
     __table_args__ = (
         Index("idx_kb_subject_id", "subject_id"),
         Index("idx_kb_document_id", "document_id"),
+        Index("idx_kb_source_file", "source_file"),
+        Index("idx_kb_content_hash", "content_hash"),
         Index("idx_kb_search_vector", "search_vector", postgresql_using="gin"),
+    )
+
+    # ---- Relationships ---- #
+    generated_questions = relationship(
+        argument="GeneratedExamQuestion",
+        back_populates="chunk",
+        lazy="selectin",
     )
 
     # ---- Repr ---- #

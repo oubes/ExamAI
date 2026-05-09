@@ -20,6 +20,11 @@ class GeneratedExamQuestion(Base):
         nullable=False
     )
 
+    knowledge_base_id: Mapped[int | None] = mapped_column(
+        __name_pos=ForeignKey("knowledge_base.id"),
+        nullable=True
+    )
+
     question_id: Mapped[int] = mapped_column(
         __name_pos=ForeignKey("questions.id"),
         nullable=False
@@ -41,10 +46,12 @@ class GeneratedExamQuestion(Base):
     __table_args__ = (
         Index("idx_generated_exam_question_session_id", "session_id"),
         Index("idx_generated_exam_question_question_id", "question_id"),
+        Index("idx_generated_exam_question_chunk_id", "knowledge_base_id"),
     )
 
     # ---- Relationships ---- #
     session = relationship(argument="GeneratedExamSession", back_populates="questions", lazy="selectin")
+    chunk = relationship(argument="KnowledgeBase", back_populates="generated_questions", lazy="selectin")
     question = relationship(argument="Question", lazy="selectin")
 
     # ---- Repr ---- #
