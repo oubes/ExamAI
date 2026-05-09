@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 from src.infra.storage.service import StorageService
-from src.domains.storage.service import StorageRepository
+from src.domain.storage.services.upload_file import UploadService as StorageRepository
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---- Services ---- #

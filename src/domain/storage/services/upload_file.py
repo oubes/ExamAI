@@ -2,11 +2,10 @@
 import logging
 import uuid
 
-from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 
-from src.domains.storage.models import UploadFileModel
+from src.domain.storage.models.upload_file import UploadFile
 
 
 # ---- logging ---- #
@@ -21,21 +20,21 @@ class UploadService:
         self,
         session: AsyncSession,
         data: dict,
-    ) -> UploadFileModel:
+    ) -> UploadFile:
 
         try:
             logger.debug(f"[UploadService] create: {data}")
 
             # ---- check duplicate stored_name ---- #
-            stmt = select(UploadFileModel).where(
-                UploadFileModel.stored_name == data.get("stored_name")
+            stmt = select(UploadFile).where(
+                UploadFile.stored_name == data.get("stored_name")
             )
             result = await session.execute(stmt)
 
             if result.scalar_one_or_none():
                 raise ValueError("stored_name already exists")
 
-            record = UploadFileModel(**data)
+            record = UploadFile(**data)
 
             session.add(record)
             await session.commit()
@@ -53,10 +52,10 @@ class UploadService:
         self,
         session: AsyncSession,
         file_id: uuid.UUID,
-    ) -> UploadFileModel | None:
+    ) -> UploadFile | None:
 
         try:
-            return await session.get(UploadFileModel, file_id)
+            return await session.get(UploadFile, file_id)
 
         except Exception as e:
             logger.error(f"[UploadService] get_by_id error: {e}", exc_info=True)
@@ -71,17 +70,17 @@ class UploadService:
         category: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> list[UploadFileModel]:
+    ) -> list[UploadFile]:
 
         try:
-            stmt = select(UploadFileModel).where(
-                UploadFileModel.user_id == user_id
+            stmt = select(UploadFile).where(
+                UploadFile.user_id == user_id
             )
 
             if category:
-                stmt = stmt.where(UploadFileModel.category == category)
+                stmt = stmt.where(UploadFile.category == category)
 
-            stmt = stmt.order_by(UploadFileModel.created_at.desc())
+            stmt = stmt.order_by(UploadFile.created_at.desc())
             stmt = stmt.offset(offset).limit(limit)
 
             result = await session.execute(stmt)
@@ -99,16 +98,16 @@ class UploadService:
         session: AsyncSession,
         user_id: uuid.UUID,
         query: str,
-    ) -> list[UploadFileModel]:
+    ) -> list[UploadFile]:
 
         try:
-            stmt = select(UploadFileModel).where(
+            stmt = select(UploadFile).where(
                 and_(
-                    UploadFileModel.user_id == user_id,
+                    UploadFile.user_id == user_id,
                     or_(
-                        UploadFileModel.original_name.ilike(f"%{query}%"),
-                        UploadFileModel.stored_name.ilike(f"%{query}%"),
-                        UploadFileModel.path.ilike(f"%{query}%"),
+                        UploadFile.original_name.ilike(f"%{query}%"),
+                        UploadFile.stored_name.ilike(f"%{query}%"),
+                        UploadFile.path.ilike(f"%{query}%"),
                     ),
                 )
             )
@@ -128,10 +127,10 @@ class UploadService:
         session: AsyncSession,
         file_id: uuid.UUID,
         updates: dict,
-    ) -> UploadFileModel:
+    ) -> UploadFile:
 
         try:
-            record = await session.get(UploadFileModel, file_id)
+            record = await session.get(UploadFile, file_id)
 
             if not record:
                 raise ValueError("upload not found")
@@ -162,7 +161,7 @@ class UploadService:
     ) -> bool:
 
         try:
-            record = await session.get(UploadFileModel, file_id)
+            record = await session.get(UploadFile, file_id)
 
             if not record:
                 return False
@@ -185,8 +184,8 @@ class UploadService:
     ) -> int:
 
         try:
-            stmt = select(UploadFileModel).where(
-                UploadFileModel.user_id == user_id
+            stmt = select(UploadFile).where(
+                UploadFile.user_id == user_id
             )
 
             result = await session.execute(stmt)
@@ -214,8 +213,8 @@ class UploadService:
     ) -> int:
 
         try:
-            stmt = select(UploadFileModel).where(
-                UploadFileModel.id.in_(ids)
+            stmt = select(UploadFile).where(
+                UploadFile.id.in_(ids)
             )
 
             result = await session.execute(stmt)
@@ -240,9 +239,9 @@ class UploadService:
         self,
         session: AsyncSession,
         file_id: uuid.UUID,
-    ) -> UploadFileModel:
+    ) -> UploadFile:
 
-        record = await session.get(UploadFileModel, file_id)
+        record = await session.get(UploadFile, file_id)
 
         if not record:
             raise ValueError("upload not found")
@@ -260,9 +259,9 @@ class UploadService:
         self,
         session: AsyncSession,
         file_id: uuid.UUID,
-    ) -> UploadFileModel:
+    ) -> UploadFile:
 
-        record = await session.get(UploadFileModel, file_id)
+        record = await session.get(UploadFile, file_id)
 
         if not record:
             raise ValueError("upload not found")
@@ -283,9 +282,9 @@ class UploadService:
         session: AsyncSession,
         file_id: uuid.UUID,
         error: str,
-    ) -> UploadFileModel:
+    ) -> UploadFile:
 
-        record = await session.get(UploadFileModel, file_id)
+        record = await session.get(UploadFile, file_id)
 
         if not record:
             raise ValueError("upload not found")
@@ -305,9 +304,9 @@ class UploadService:
         self,
         session: AsyncSession,
         file_id: uuid.UUID,
-    ) -> UploadFileModel:
+    ) -> UploadFile:
 
-        record = await session.get(UploadFileModel, file_id)
+        record = await session.get(UploadFile, file_id)
 
         if not record:
             raise ValueError("upload not found")
@@ -333,15 +332,15 @@ class UploadService:
 
         total = await session.execute(
             select(func.count()).where(
-                UploadFileModel.user_id == user_id
+                UploadFile.user_id == user_id
             )
         )
 
         processed = await session.execute(
             select(func.count()).where(
                 and_(
-                    UploadFileModel.user_id == user_id,
-                    UploadFileModel.is_processed == True,
+                    UploadFile.user_id == user_id,
+                    UploadFile.is_processed == True,
                 )
             )
         )
@@ -349,8 +348,8 @@ class UploadService:
         failed = await session.execute(
             select(func.count()).where(
                 and_(
-                    UploadFileModel.user_id == user_id,
-                    UploadFileModel.processing_status == "failed",
+                    UploadFile.user_id == user_id,
+                    UploadFile.processing_status == "failed",
                 )
             )
         )

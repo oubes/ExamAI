@@ -1,8 +1,8 @@
 # ---- Imports ---- #
+import uuid
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import BigInteger, Text, ForeignKey, Float, Index
-from sqlalchemy.dialects.postgresql import TSVECTOR
-
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from pgvector.sqlalchemy import Vector
 
 from src.infra.db.base import Base
@@ -21,23 +21,18 @@ class KnowledgeBase(Base):
     __tablename__ = "knowledge_base"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-    subject_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("subjects.id"), nullable=False)
-    chapter_id: Mapped[int | None] = mapped_column(__name_pos=ForeignKey("chapters.id"), nullable=True)
-    document_id: Mapped[int] = mapped_column(__name_pos=BigInteger)
-    chunk_index: Mapped[int] = mapped_column(__name_pos=BigInteger, default=0)
-    content: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    summary: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
-    keywords: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
-    source_type: Mapped[str] = mapped_column(__name_pos=Text, default="text")
-    quality_score: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    importance_score: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-
-    # ---- Retrieval ---- #
-    embedding: Mapped[list[float]] = mapped_column(
-        __name_pos=Vector(settings.alibaba_embeddings_dim)
-    )
-
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subjects.id"), nullable=False)
+    chapter_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("chapters.id"), nullable=True)
+    document_id: Mapped[int] = mapped_column(BigInteger)
+    chunk_index: Mapped[int] = mapped_column(BigInteger, default=0)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    keywords: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_type: Mapped[str] = mapped_column(Text, default="text")
+    quality_score: Mapped[float] = mapped_column(Float, default=0.0)
+    importance_score: Mapped[float] = mapped_column(Float, default=0.0)
+    embedding: Mapped[list[float]] = mapped_column(Vector(settings.alibaba_embeddings_dim))
     search_vector = mapped_column(TSVECTOR)
 
     # ---- Indexes ---- #

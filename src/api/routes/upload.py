@@ -3,7 +3,7 @@ from fastapi import APIRouter, UploadFile, Depends, File
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.roles import admin_required
-from src.domains.identity.models import User
+from src.domain.identity.models.user import User
 from src.infra.db.session import session_local
 from src.infra.storage.service import StorageService
 from src.auth.auth import get_current_user

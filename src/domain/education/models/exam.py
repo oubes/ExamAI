@@ -1,6 +1,8 @@
 # ---- Imports ---- #
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import BigInteger, Text, Integer, ForeignKey, Index, Float
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 from src.infra.db.base import Base
 
@@ -13,13 +15,13 @@ class Exam(Base):
     __tablename__ = "exams"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-    subject_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("subjects.id"), nullable=False)
-    title: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    exam_type: Mapped[str] = mapped_column(__name_pos=Text, default="static")
-    difficulty_profile: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
-    time_limit: Mapped[int] = mapped_column(__name_pos=Integer, default=0)
-    scope_config: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subjects.id"), nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    exam_type: Mapped[str] = mapped_column(Text, default="static")
+    difficulty_profile: Mapped[float] = mapped_column(Float, default=1.0)
+    time_limit: Mapped[int] = mapped_column(Integer, default=0)
+    scope_config: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # ---- Indexes ---- #
     __table_args__ = (
@@ -27,8 +29,8 @@ class Exam(Base):
     )
 
     # ---- Relationships ---- #
-    subject = relationship(argument="Subject", back_populates="exams", lazy="selectin")
-    questions = relationship(argument="Question", back_populates="exam", lazy="selectin")
+    subject = relationship("Subject", back_populates="exams", lazy="selectin")
+    questions = relationship("Question", back_populates="exam", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

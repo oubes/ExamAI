@@ -1,6 +1,8 @@
 # ---- Imports ---- #
+import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, Float, ForeignKey, Index
+from sqlalchemy import Text, Float, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import UUID
 
 from src.infra.db.base import Base
 
@@ -9,19 +11,15 @@ from src.infra.db.base import Base
 
 # ---- Topic ---- #
 class Topic(Base):
-    # ---- Table Name ---- #
     __tablename__ = "topics"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-
-    subject_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("subjects.id"), nullable=False)
-    chapter_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("chapters.id"), nullable=False)
-
-    title: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    description: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
-
-    difficulty_weight: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subjects.id"), nullable=False)
+    chapter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chapters.id"), nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    difficulty_weight: Mapped[float] = mapped_column(Float, default=1.0)
 
     # ---- Indexes ---- #
     __table_args__ = (
@@ -30,25 +28,10 @@ class Topic(Base):
     )
 
     # ---- Relationships ---- #
-    subject = relationship(argument="Subject", lazy="selectin")
-
-    chapter = relationship(
-        argument="Chapter",
-        back_populates="topics",
-        lazy="selectin"
-    )
-
-    skills = relationship(
-        argument="Skill",
-        back_populates="topic",
-        lazy="selectin"
-    )
-
-    questions = relationship(
-        argument="Question",
-        back_populates="topic",
-        lazy="selectin"
-    )
+    subject = relationship("Subject", lazy="selectin")
+    chapter = relationship("Chapter", back_populates="topics", lazy="selectin")
+    skills = relationship("Skill", back_populates="topic", lazy="selectin")
+    questions = relationship("Question", back_populates="topic", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

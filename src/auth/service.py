@@ -14,8 +14,11 @@ from src.auth.email_token import (
 )
 
 from src.core.di.settings import get_settings
-from src.domains.identity.models import User, UserSession
-from src.domains.identity.service import IdentityService as ORMService
+from src.domain.identity.models.user import User
+from src.domain.identity.models.session import UserSession
+
+from src.domain.identity.services.user import UserService
+from src.domain.identity.services.session import SessionService
 
 
 # ---- settings ---- #
@@ -27,8 +30,8 @@ logger = logging.getLogger(__name__)
 class IdentityService:
 
     def __init__(self):
-        self.user_repo = ORMService(User)
-        self.session_repo = ORMService(UserSession)
+        self.user_repo = UserService()
+        self.session_repo = SessionService()
 
     # ------------ register ------------ #
     async def register(self, session: AsyncSession, payload: dict) -> User:
@@ -150,7 +153,12 @@ class IdentityService:
         return self.generate_tokens(user, str(user_session.id))
 
     # ------------ refresh tokens ------------ #
-    async def refresh_tokens(self, session: AsyncSession, user: User, session_id: UUID) -> dict:
+    async def refresh_tokens(
+        self,
+        session: AsyncSession,
+        user: User,
+        session_id: UUID,
+    ) -> dict:
 
         db_session = await self.session_repo.get_by_id(session, session_id)
 
@@ -175,14 +183,22 @@ class IdentityService:
         )
 
     # ------------ sessions ------------ #
-    async def list_user_sessions(self, session: AsyncSession, user_id: UUID) -> list[UserSession]:
+    async def list_user_sessions(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+    ) -> list[UserSession]:
 
         return await self.session_repo.list_by_filters(
             session,
             user_id=user_id,
         )
 
-    async def revoke_all_sessions(self, session: AsyncSession, user_id: UUID) -> None:
+    async def revoke_all_sessions(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+    ) -> None:
 
         sessions = await self.session_repo.list_by_filters(
             session,

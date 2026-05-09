@@ -1,7 +1,8 @@
 # ---- Imports ---- #
+import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, Integer, ForeignKey, Index
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy import Text, Integer, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 
 from pgvector.sqlalchemy import Vector
 
@@ -21,17 +22,17 @@ class Question(Base):
     __tablename__ = "questions"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-    subject_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("subjects.id"), nullable=False)
-    chapter_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("chapters.id"), nullable=False)
-    topic_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("topics.id"), nullable=False)
-    content: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    explanation: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
-    type: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    difficulty: Mapped[int] = mapped_column(__name_pos=Integer, default=1)
-    importance: Mapped[int] = mapped_column(__name_pos=Integer, default=1)
-    tags: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
-    embedding: Mapped[list[float]] = mapped_column(__name_pos=Vector(settings.alibaba_embeddings_dim))
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subjects.id"), nullable=False)
+    chapter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chapters.id"), nullable=False)
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("topics.id"), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    type: Mapped[str] = mapped_column(Text, nullable=False)
+    difficulty: Mapped[int] = mapped_column(Integer, default=1)
+    importance: Mapped[int] = mapped_column(Integer, default=1)
+    tags: Mapped[str | None] = mapped_column(Text, nullable=True)
+    embedding: Mapped[list[float]] = mapped_column(Vector(settings.alibaba_embeddings_dim))
     search_vector = mapped_column(TSVECTOR)
 
     # ---- Indexes ---- #
@@ -43,12 +44,12 @@ class Question(Base):
     )
 
     # ---- Relationships ---- #
-    subject = relationship(argument="Subject", lazy="selectin")
-    chapter = relationship(argument="Chapter", back_populates="questions", lazy="selectin")
-    topic = relationship(argument="Topic", back_populates="questions", lazy="selectin")
-    options = relationship(argument="QuestionOption", back_populates="question", lazy="selectin")
-    model_answer = relationship(argument="ModelAnswer", back_populates="question", uselist=False, lazy="selectin")
-    skill_links = relationship(argument="QuestionSkill", back_populates="question", lazy="selectin")
+    subject = relationship("Subject", lazy="selectin")
+    chapter = relationship("Chapter", back_populates="questions", lazy="selectin")
+    topic = relationship("Topic", back_populates="questions", lazy="selectin")
+    options = relationship("QuestionOption", back_populates="question", lazy="selectin")
+    model_answer = relationship("ModelAnswer", back_populates="question", uselist=False, lazy="selectin")
+    skill_links = relationship("QuestionSkill", back_populates="question", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

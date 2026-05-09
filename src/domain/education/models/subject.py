@@ -1,6 +1,8 @@
 # ---- Imports ---- #
+import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Text, Index
+from sqlalchemy import Text, Index
+from sqlalchemy.dialects.postgresql import UUID
 
 from src.infra.db.base import Base
 
@@ -9,13 +11,13 @@ from src.infra.db.base import Base
 
 # ---- Subject ---- #
 class Subject(Base):
-    # ---- Table Name ---- #
+    #--- Table Name ---- #
     __tablename__ = "subjects"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-    title: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
-    code: Mapped[str] = mapped_column(__name_pos=Text, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    code: Mapped[str] = mapped_column(Text, nullable=False)
 
     # ---- Indexes ---- #
     __table_args__ = (
@@ -23,10 +25,10 @@ class Subject(Base):
     )
 
     # ---- Relationships ---- #
-    chapters = relationship(argument="Chapter", back_populates="subject", lazy="selectin")
-    enrollments = relationship(argument="Enrollment", back_populates="subject", lazy="selectin")
-    exams = relationship(argument="Exam", back_populates="subject", lazy="selectin")
-    student_states = relationship(argument="StudentSubjectState", back_populates="subject", lazy="selectin")
+    chapters = relationship("Chapter", back_populates="subject", lazy="selectin")
+    enrollments = relationship("Enrollment", back_populates="subject", lazy="selectin")
+    exams = relationship("Exam", back_populates="subject", lazy="selectin")
+    student_states = relationship("StudentSubjectState", back_populates="subject", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

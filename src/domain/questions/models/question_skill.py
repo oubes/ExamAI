@@ -1,6 +1,8 @@
 # ---- Imports ---- #
+import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Float, ForeignKey, Index
+from sqlalchemy import Float, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import UUID
 
 from src.infra.db.base import Base
 
@@ -13,10 +15,10 @@ class QuestionSkill(Base):
     __tablename__ = "question_skills"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-    question_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("questions.id"), nullable=False)
-    skill_id: Mapped[int] = mapped_column(__name_pos=ForeignKey("skills.id"), nullable=False)
-    weight: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("questions.id"), nullable=False)
+    skill_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("skills.id"), nullable=False)
+    weight: Mapped[float] = mapped_column(Float, default=1.0)
 
     # ---- Indexes ---- #
     __table_args__ = (
@@ -25,8 +27,8 @@ class QuestionSkill(Base):
     )
 
     # ---- Relationships ---- #
-    question = relationship(argument="Question", back_populates="skill_links", lazy="selectin")
-    skill = relationship(argument="Skill", back_populates="skill_questions", lazy="selectin")
+    question = relationship("Question", back_populates="skill_links", lazy="selectin")
+    skill = relationship("Skill", back_populates="skill_questions", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

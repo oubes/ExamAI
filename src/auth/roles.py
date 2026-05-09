@@ -3,7 +3,7 @@ from collections.abc import Sequence
 
 from fastapi import Depends, HTTPException
 
-from src.domains.identity.models import User
+from src.domain.identity.models.user import User
 
 from .auth import get_current_user
 

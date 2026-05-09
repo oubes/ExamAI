@@ -11,7 +11,7 @@ from src.infra.db.base import Base
 # ---------- Models ---------- #
 
 # ---- Upload File ---- #
-class UploadFileModel(Base):
+class UploadFile(Base):
 
     # ---- Table Name ---- #
     __tablename__ = "uploads"

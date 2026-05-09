@@ -1,6 +1,8 @@
 # ---- Imports ---- #
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, Float, Text, ForeignKey, Index
+from sqlalchemy import Float, Text, ForeignKey, Index
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
 
 from src.infra.db.base import Base
 
@@ -13,29 +15,12 @@ class GeneratedExamQuestion(Base):
     __tablename__ = "generated_exam_questions"
 
     # ---- Columns ---- #
-    id: Mapped[int] = mapped_column(__name_pos=BigInteger, primary_key=True)
-
-    session_id: Mapped[int] = mapped_column(
-        __name_pos=ForeignKey("generated_exam_sessions.id"),
-        nullable=False
-    )
-
-    question_id: Mapped[int] = mapped_column(
-        __name_pos=ForeignKey("questions.id"),
-        nullable=False
-    )
-
-    question_order: Mapped[int] = mapped_column(__name_pos=BigInteger, default=0)
-
-    selection_reason: Mapped[str | None] = mapped_column(
-        __name_pos=Text,
-        nullable=True
-    )
-
-    predicted_difficulty_fit: Mapped[float] = mapped_column(
-        __name_pos=Float,
-        default=0.0
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("generated_exam_sessions.id"), nullable=False)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("questions.id"), nullable=False)
+    question_order: Mapped[int] = mapped_column(default=0)
+    selection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    predicted_difficulty_fit: Mapped[float] = mapped_column(Float, default=0.0)
 
     # ---- Indexes ---- #
     __table_args__ = (
@@ -44,15 +29,9 @@ class GeneratedExamQuestion(Base):
     )
 
     # ---- Relationships ---- #
-    session = relationship(argument="GeneratedExamSession", back_populates="questions", lazy="selectin")
-    question = relationship(argument="Question", lazy="selectin")
+    session = relationship("GeneratedExamSession", back_populates="questions", lazy="selectin")
+    question = relationship("Question", lazy="selectin")
 
     # ---- Repr ---- #
-    def __repr__(self) -> str:
-        return (
-            f"GeneratedExamQuestion("
-            f"id={self.id}, "
-            f"session_id={self.session_id}, "
-            f"question_id={self.question_id}"
-            f")"
-        )
+    def __repr__(self):
+        return f"GeneratedExamQuestion(id={self.id}, session_id={self.session_id}, question_id={self.question_id})"
