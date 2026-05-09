@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import cast
 
-from fastapi import APIRouter, HTTPException, Request, Form, Depends
+from fastapi import APIRouter, HTTPException, Request, status, Form, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from src.auth.email_token import create_email_verification_token, decode_email_verification_token
@@ -16,6 +16,7 @@ from src.api.models.identity_models import (
     TokenResponse,
     RegisterResponse,
     MeResponse,
+    ResetPasswordRequest,
 )
 from src.auth.auth import (
     get_current_user,
@@ -182,39 +183,35 @@ async def request_reset(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
+from fastapi.responses import RedirectResponse
+
+# ---- Password Reset Page (for frontend redirection) ----
 @router.get("/reset-password/confirm")
-def reset_password_page(token: str):
+def reset_password_page(token: str) -> RedirectResponse:
+    frontend_url = settings.frontend_url
+    redirect_url = f"{frontend_url}/reset_password?token={token}"
+    return RedirectResponse(url=redirect_url, status_code=302)
 
-    return HTMLResponse(f"""
-        <form action="/api/v1/identity/reset-password/confirm" method="post">
-            <input name="token" value="{token}" hidden />
-            <input name="new_password" type="password" />
-            <button type="submit">Reset</button>
-        </form>
-    """)
-
-# ---------- Confirm Password Reset ---------- #
+# ---- Confirm Password Reset ----
 @router.post("/reset-password/confirm")
 async def reset_password_confirm(
-    token: str = Form(...),
-    new_password: str = Form(...),
+    payload: ResetPasswordRequest,
     session: AsyncSession = Depends(get_session),
 ):
     try:
         await identity_service.reset_password(
             session=session,
-            token=token,
-            new_password=new_password,
+            token=payload.token,
+            new_password=payload.new_password,
         )
         
+        return {"message": "Password updated successfully"}
+        
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    
-    # ---- redirect to frontend ---- #
-    return RedirectResponse(
-        url=f"{settings.frontend_url}/AuthPage?reset=1",
-        status_code=302
-    )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=str(e)
+        )
 
 
 # ---------- Refresh ---------- #

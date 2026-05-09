@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
-import { AuthLogo, AuthStatusMessages, AuthBackground } from "@/components/auth/auth-elements";
+import {
+  AuthLogo,
+  AuthStatusMessages,
+  AuthBackground,
+} from "@/components/auth/auth-elements";
 
 const APP_NAME = "ExamAI";
 
@@ -23,27 +27,34 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isTokenValid, setIsTokenValid] = useState<boolean>(true);
-  
+
   const [formData, setFormData] = useState({
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
 
+  // ---- Token validation ----
   useEffect(() => {
-    if (!token) {
+    const handledToken = authService.handleResetRedirect(token);
+
+    if (!handledToken) {
       setError("Reset token is missing or invalid.");
       setIsTokenValid(false);
     }
   }, [token]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+
     if (error) setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -53,16 +64,20 @@ export default function ResetPasswordPage() {
     setError(null);
 
     try {
-      await authService.confirmResetPassword(token!, formData.password);
+      // Logic inside service handles extraction of error string
+      await authService.confirmResetPassword(
+        token!,
+        formData.password
+      );
+
       setSuccess("Password updated! Redirecting to login...");
-      
+
       setTimeout(() => {
         router.push("/AuthPage?reset=1");
       }, 2000);
-
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || err?.message || "Failed to reset password.";
-      setError(msg);
+      // Use the string message thrown by the service
+      setError(err.message || "Failed to reset password.");
       setLoading(false);
     }
   };
@@ -82,7 +97,9 @@ export default function ResetPasswordPage() {
         <AuthLogo appName={APP_NAME} />
 
         <Card className="border border-white/5 bg-zinc-900/60 backdrop-blur-2xl rounded-3xl overflow-hidden shadow-2xl">
-          <CardHeader className={`pb-0 ${!isTokenValid ? "pt-2" : "pt-8"}`}>
+          <CardHeader
+            className={`pb-0 ${!isTokenValid ? "pt-2" : "pt-8"}`}
+          >
             <CardTitle className="text-xl font-medium text-white flex items-center gap-2.5">
               {!isTokenValid && (
                 <span className="flex h-2 w-2 rounded-full bg-red-900 shadow-[0_0_8px_rgba(127,29,29,0.4)]" />
@@ -98,19 +115,23 @@ export default function ResetPasswordPage() {
                   <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center">
                     <AlertCircle className="h-6 w-6 text-red-500" />
                   </div>
+
                   <div className="space-y-1">
-                    <h3 className="text-zinc-200 font-medium text-sm">Reset Link Error</h3>
+                    <h3 className="text-zinc-200 font-medium text-sm">
+                      Reset Link Error
+                    </h3>
                     <p className="text-[11px] text-zinc-500 leading-tight">
-                      The password reset link is invalid, expired, or has already been used. 
+                      The password reset link is invalid, expired, or has already been used.
                     </p>
                   </div>
                 </div>
-                
-                <Button 
+
+                <Button
                   onClick={() => router.push("/AuthPage")}
                   className="w-full h-10 bg-zinc-900 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300 font-bold rounded-xl transition-all duration-200 cursor-pointer border border-white/5"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Login
                 </Button>
               </div>
             ) : (
@@ -118,49 +139,61 @@ export default function ResetPasswordPage() {
                 <AuthStatusMessages error={error} success={success} />
 
                 <div className="space-y-2">
-                  <Label className="text-zinc-500 text-xs ml-1">New Password</Label>
+                  <Label className="text-zinc-500 text-xs ml-1">
+                    New Password
+                  </Label>
+
                   <div className="relative group">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 z-10" />
-                    <Input 
-                      name="password" 
-                      required 
-                      type="password" 
-                      value={formData.password} 
-                      onChange={handleChange} 
-                      placeholder="••••••••" 
-                      className={inputClasses} 
+
+                    <Input
+                      name="password"
+                      required
+                      type="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      className={inputClasses}
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-zinc-500 text-xs ml-1">Confirm New Password</Label>
+                  <Label className="text-zinc-500 text-xs ml-1">
+                    Confirm New Password
+                  </Label>
+
                   <div className="relative group">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 z-10" />
-                    <Input 
-                      name="confirmPassword" 
-                      required 
-                      type="password" 
-                      value={formData.confirmPassword} 
-                      onChange={handleChange} 
-                      placeholder="••••••••" 
-                      className={inputClasses} 
+
+                    <Input
+                      name="confirmPassword"
+                      required
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      className={inputClasses}
                     />
                   </div>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  disabled={loading || !!success} 
+                <Button
+                  type="submit"
+                  disabled={loading || !!success}
                   className="w-full h-12 bg-blue-900/20 hover:bg-blue-900/40 text-blue-700 hover:text-blue-500 border border-blue-900/30 hover:border-blue-800 font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer"
                 >
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update Password"}
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Update Password"
+                  )}
                 </Button>
 
                 <div className="pt-2 text-center border-t border-white/5">
-                  <button 
-                    type="button" 
-                    onClick={() => router.push("/AuthPage")} 
+                  <button
+                    type="button"
+                    onClick={() => router.push("/AuthPage")}
                     className="text-sm text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer"
                   >
                     Return to Sign In

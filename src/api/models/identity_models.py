@@ -51,3 +51,6 @@ class MeResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
