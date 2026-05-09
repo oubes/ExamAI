@@ -41,3 +41,12 @@ def send_reset_password_email(to: str, context: dict):
         template_name="reset_password.yml",
         context=context,
     )
+    
+@celery_app.task
+def send_password_changed_email(to: str, context: dict):
+
+    return async_to_sync(email_service.send_from_template)(
+        to=to,
+        template_name="password_changed.yml",
+        context=context,
+    )

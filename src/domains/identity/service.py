@@ -137,7 +137,7 @@ class IdentityService:
         session: AsyncSession,
         token: str,
         new_password: str,
-    ) -> None:
+    ):
 
         payload = decode_password_reset_token(token)
 
@@ -168,6 +168,7 @@ class IdentityService:
         await session.commit()
 
         logger.debug(f"[IdentityService] Reset password user_id={user_id}")
+        return user
 
     # ------------ login ------------ #
     async def login(

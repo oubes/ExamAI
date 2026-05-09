@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import cast
 
 from fastapi import APIRouter, HTTPException, Request, status, Form, Depends
-from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from src.auth.email_token import create_email_verification_token, decode_email_verification_token
 from src.auth.security import security
@@ -32,6 +31,7 @@ from src.infra.queue.tasks import (
     send_welcome_email,
     send_verify_email,
     send_reset_password_email,
+    send_password_changed_email,
 )
 
 # ---- Settings ---- #
@@ -192,25 +192,35 @@ def reset_password_page(token: str) -> RedirectResponse:
     redirect_url = f"{frontend_url}/reset_password?token={token}"
     return RedirectResponse(url=redirect_url, status_code=302)
 
-# ---- Confirm Password Reset ----
+# ---------- Confirm Password Reset ---------- #
 @router.post("/reset-password/confirm")
 async def reset_password_confirm(
     payload: ResetPasswordRequest,
     session: AsyncSession = Depends(get_session),
 ):
     try:
-        await identity_service.reset_password(
+        user = await identity_service.reset_password(
             session=session,
             token=payload.token,
             new_password=payload.new_password,
         )
-        
-        return {"message": "Password updated successfully"}
-        
+
+        # ---- Send Success Email ---- #
+        send_password_changed_email.delay(
+            user.email,
+            {
+                "username": user.user_name,
+            },
+        )
+
+        return {
+            "message": "Password updated successfully",
+        }
+
     except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail=str(e)
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
         )
 
 
