@@ -21,7 +21,7 @@ class User(Base):
     user_name: Mapped[str] = mapped_column(__name_pos=Text, nullable=False, unique=True)
     role: Mapped[str] = mapped_column(__name_pos=Text, default="user")
     email: Mapped[str] = mapped_column(__name_pos=Text, unique=True, index=True)
-    password_hash: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
+    password_hash: Mapped[str] = mapped_column(__name_pos=Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(__name_pos=Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
     global_learning_velocity: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
