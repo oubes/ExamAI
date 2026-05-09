@@ -204,7 +204,7 @@ class TopicService:
 
             result = await session.execute(stmt)
 
-            return result.scalars().all()
+            return list(result.scalars().all())
 
         except Exception as e:
             logger.error(f"[TopicService] search error: {e}", exc_info=True)
