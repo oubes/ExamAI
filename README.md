@@ -1,6 +1,6 @@
-# ExamAI Setup Guide
+# 🚀 ExamAI Setup Guide
 
-## Project Overview
+## 🧠 Project Overview
 
 ExamAI is an AI-powered educational platform for:
 
@@ -12,249 +12,246 @@ ExamAI is an AI-powered educational platform for:
 
 ---
 
-# 1) Install Prerequisites
+# 1️⃣ Install Prerequisites
 
-## Install Python (3.11)
+## 🐍 Python (3.11)
 
+Download:
 [https://www.python.org/downloads/](https://www.python.org/downloads/)
 
 Verify:
 
-```bash id="py1"
+```bash
 python --version
 ```
 
 ---
 
-## Install Node.js (Frontend requirement)
+## 🌐 Node.js (Frontend)
 
+Download:
 [https://nodejs.org/](https://nodejs.org/)
 
 Verify:
 
-```bash id="node1"
+```bash
 node -v
 npm -v
 ```
 
 ---
 
-## Install Git
+## 🐳 Docker
 
-[https://git-scm.com/downloads](https://git-scm.com/downloads)
-
-Verify:
-
-```bash id="git1"
-git --version
-```
-
----
-
-## Install Docker
-
+Download:
 [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
 
-Make sure Docker is running.
+> تأكد إن Docker شغال قبل أي خطوة لاحقة
 
 ---
 
-# 2) Clone The Project
+## 🧱 Visual Studio C++ Build Tools (Windows فقط)
 
-```bash id="cl1"
+Required for `pgvector` builds
+
+* Install Visual Studio Community
+  [https://visualstudio.microsoft.com/downloads/](https://visualstudio.microsoft.com/downloads/)
+* اختر: **Desktop development with C++**
+
+---
+
+# 2️⃣ Clone Project
+
+```bash
 git clone https://github.com/oubes/ExamAI
 cd ExamAI
 ```
 
-[https://github.com/oubes/ExamAI](https://github.com/oubes/ExamAI)
-
 ---
 
-# 3) Create Conda Environment
+# 3️⃣ Create Environment
 
-```bash id="co1"
+```bash
 conda create -n exam_ai python=3.11
 conda activate exam_ai
 ```
 
 ---
 
-# 4) Install Backend Dependencies
+# 4️⃣ Install Backend Dependencies
 
-```bash id="pip1"
+```bash
 pip install -r requirements.txt
 ```
 
 ---
 
-# 5) Install PostgreSQL
+# 5️⃣ PostgreSQL + pgvector Setup
 
-[https://www.postgresql.org/download/](https://www.postgresql.org/download/)
+## 🗄️ Install PostgreSQL
 
-After installation:
+* Version: 16+
+* Components: Server + pgAdmin + CLI
+* Set password for `postgres`
 
-* Create database:
+[https://www.postgresql.org/download/windows/](https://www.postgresql.org/download/windows/)
 
-```text id="db1"
+---
+
+## ⚙️ Build pgvector
+
+Run in **x64 Native Tools Command Prompt (Admin)**:
+
+```bat
+set "PGROOT=C:\Program Files\PostgreSQL\16"
+
+cd %TEMP%
+git clone https://github.com/pgvector/pgvector.git
+cd pgvector
+nmake /F Makefile.win
+nmake /F Makefile.win install
+```
+
+---
+
+## 🧪 Initialize DB
+
+Restart PostgreSQL service → open pgAdmin → create DB:
+
+```
 exam_ai_db
 ```
 
----
+ثم نفّذ:
 
-# 6) Enable PostgreSQL Extensions
-
-Run in PostgreSQL:
-
-```sql id="sql1"
+```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE TABLE test_vector (
+    id SERIAL PRIMARY KEY,
+    embedding VECTOR(384)
+);
+
+DROP TABLE test_vector;
 ```
 
 ---
 
-# 7) Create Alibaba API Key
+# 6️⃣ Alibaba API Key
 
 [https://dashscope.console.aliyun.com/](https://dashscope.console.aliyun.com/)
 
-Used for:
-
-* LLM
-* Embeddings
-
 ---
 
-# 8) Configure Gmail SMTP
+# 7️⃣ Gmail SMTP Setup
 
-## Enable 2-Step Verification
+## Enable 2FA
 
 [https://myaccount.google.com/signinoptions/two-step-verification](https://myaccount.google.com/signinoptions/two-step-verification)
-
----
 
 ## Generate App Password
 
 [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 
-Use it as:
-
-```text id="mail1"
-SMTP_PASSWORD
-```
-
 ---
 
-# 9) Setup Environment Variables
+# 8️⃣ Environment Variables
 
-```bash id="env1"
+```bash
 cp .env.example .env
 ```
 
-Then update:
+## Fill:
 
-* PostgreSQL credentials
+* PostgreSQL config
 * Redis URLs
 * JWT secrets
-* Alibaba API key
+* `DASHSCOPE_API_KEY`
 * SMTP credentials
 
 ---
 
-# 10) Run Backend System
+# 9️⃣ Run Backend
 
-## Terminal 1 — FastAPI
+## FastAPI
 
-```bash id="b1"
+```bash
 uvicorn src.main:app --reload
 ```
 
 ---
 
-## Terminal 2 — Redis (Docker)
+## Redis (Docker)
 
-```bash id="b2"
+```bash
 cd src
 docker compose up -d
 ```
 
 ---
 
-## Terminal 3 — Celery Worker
+## Celery Worker
 
-```bash id="b3"
-celery -A src.infra.queue.celery_app.celery_app worker --loglevel=info --concurrency=4 --pool=solo -E
+```bash
+celery -A src.infra.queue.celery_app.celery_app worker \
+--loglevel=info --concurrency=4 --pool=solo -E
 ```
 
 ---
 
-## Terminal 4 — (Optional) Flower
+## Flower (Optional)
 
-```bash id="b4"
+```bash
 celery -A src.infra.queue.celery_app.celery_app flower
 ```
 
 ---
 
-# 11) Run Frontend (Next.js)
+# 🔟 Run Frontend
 
-## Step 1 — Install Node Modules
-
-```bash id="f1"
+```bash
 cd frontend
 npm install
-```
-
----
-
-## Step 2 — Run Frontend
-
-```bash id="f2"
 npm run dev
 ```
 
+Open:
+
+```
+http://localhost:3000
+```
+
 ---
 
-## Step 3 — Open App
+# ⚠️ Troubleshooting
 
-[http://localhost:3000](http://localhost:3000)
+## Frontend Reset
 
----
-
-# ⚠️ Frontend Notes
-
-If issues happen:
-
-```bash id="f3"
+```bash
 rm -rf .next
 npm install
 npm run dev
 ```
 
-Backend must be running at:
+---
 
-```text id="f4"
-http://127.0.0.1:8000
-```
+## Backend URL
+
+* API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+* Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
-# 12) Access API
+# 🧱 Tech Stack
 
-* [http://127.0.0.1:8000](http://127.0.0.1:8000)
-* [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-
----
-
-# Tech Stack
-
-| Layer     | Tech              |
-| --------- | ----------------- |
-| Backend   | FastAPI           |
-| DB        | PostgreSQL        |
-| Vector DB | pgvector          |
-| Queue     | Celery            |
-| Broker    | Redis             |
-| LLM       | Alibaba DashScope |
-| Frontend  | Next.js           |
-| UI        | shadcn            |
-
----
+| Layer     | Tech                     |
+| --------- | ------------------------ |
+| Backend   | FastAPI                  |
+| DB        | PostgreSQL 16+           |
+| Vector DB | pgvector                 |
+| Queue     | Celery                   |
+| Broker    | Redis                    |
+| AI        | Alibaba DashScope (Qwen) |
+| Frontend  | Next.js 14               |
+| UI        | Tailwind + shadcn/ui     |
