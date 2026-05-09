@@ -206,11 +206,16 @@ async def reset_password_confirm(
             token=token,
             new_password=new_password,
         )
-
-        return {"message": "password reset successful"}
-
+        
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+    # ---- redirect to frontend ---- #
+    return RedirectResponse(
+        url=f"{settings.frontend_url}/AuthPage?reset=1",
+        status_code=302
+    )
+
 
 # ---------- Refresh ---------- #
 @router.post("/refresh", response_model=TokenResponse)

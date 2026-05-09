@@ -29,12 +29,21 @@ export default function AuthPage() {
     password: ""
   });
 
-  // ---- Handle Verification Success from URL ----
+  // ---- Handle URL Parameters ----
   useEffect(() => {
     const verified = searchParams.get("verified");
+    const resetSuccess = searchParams.get("reset");
+
     if (verified === "1") {
       setSuccess("Email verified successfully! You can sign in now.");
       setIsLogin(true);
+      setIsReset(false);
+    }
+
+    if (resetSuccess === "1") {
+      setSuccess("Password has been reset successfully. You can now login.");
+      setIsLogin(true);
+      setIsReset(false);
     }
   }, [searchParams]);
 
@@ -48,7 +57,6 @@ export default function AuthPage() {
     if (success) setSuccess(null);
   };
 
-  // ---- Form Submission ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -66,6 +74,7 @@ export default function AuthPage() {
         setTimeout(() => setIsLogin(true), 3000);
       } else {
         const data = await authService.login(formData.email, formData.password);
+        // ---- Redirect Logic ----
         if (data?.access_token) {
           localStorage.setItem("token", data.access_token);
           setSuccess("Login successful! Redirecting...");
@@ -84,20 +93,13 @@ export default function AuthPage() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center bg-zinc-950 overflow-hidden px-4 py-10 md:py-24 antialiased">
-      
-      {/* Background Decor */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/15 via-transparent to-indigo-600/15" />
         <div className="absolute inset-0 bg-gradient-to-bl from-indigo-600/10 via-transparent to-blue-600/10" />
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
 
-      <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full animate-pulse pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse pointer-events-none [animation-delay:2s]" />
-
       <div className="relative z-10 w-full max-w-[440px]">
-        
-        {/* ---- Updated Branding: Logo to the Left ---- */}
         <div className="flex flex-row items-center justify-center mb-8 gap-4">
           <div className="group relative flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-900 border border-zinc-800 shadow-inner shrink-0">
             <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-700 opacity-20 blur-sm group-hover:opacity-40 transition-opacity" />
@@ -109,7 +111,6 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Auth Card */}
         <Card className="border border-white/5 bg-zinc-900/60 backdrop-blur-2xl shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] rounded-3xl overflow-hidden">
           <CardHeader className="pb-4 pt-8">
             <CardTitle className="text-xl font-medium text-white flex items-center gap-2">
