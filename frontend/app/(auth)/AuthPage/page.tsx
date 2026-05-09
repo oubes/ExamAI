@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/services/auth.service";
-import { Loader2, Lock, Mail, ShieldCheck, UserPlus, User, AtSign, ArrowLeft } from "lucide-react";
+import { 
+  Loader2, Lock, Mail, ShieldCheck, UserPlus, 
+  User, AtSign, ArrowLeft, Eye, EyeOff 
+} from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,6 +25,7 @@ export default function AuthPage() {
   const [isReset, setIsReset] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [showPassword, setShowPassword] = useState(false); // ---- Password Visibility State ----
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   
@@ -64,7 +68,6 @@ export default function AuthPage() {
     if (error) setError(null);
   };
 
-  // ---- Authentication Handler ----
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -87,11 +90,9 @@ export default function AuthPage() {
         return;
       }
 
-      // Execution for Login
       const response = await authService.login(formData.email, formData.password);
       const authData = response?.data || response;
 
-      // ---- Success Guard: Only redirect if token exists ----
       if (authData && authData.access_token) {
         localStorage.setItem("access_token", authData.access_token);
         if (authData.refresh_token) {
@@ -100,17 +101,13 @@ export default function AuthPage() {
         setSuccess("Success! Redirecting...");
         setTimeout(() => router.push("/dashboard"), 800);
       } else {
-        // Fallback if response is 200 but data is missing
         setError(authData?.detail || "Unexpected response from server.");
         setLoading(false);
       }
-
     } catch (err: any) {
-      // ---- Fixed Error Handling for 401 Unauthorized ----
       const msg = err?.response?.data?.detail || err?.message || "Auth failed.";
       setError(msg);
       setLoading(false);
-      // No router.push here ensures the user stays on the login page
     }
   };
 
@@ -124,7 +121,7 @@ export default function AuthPage() {
 
   // ---- Styles Constants ----
   const inputClasses = `
-    pl-10 h-12 bg-zinc-950 border-zinc-800/50 text-zinc-100 placeholder:text-white/20 
+    pl-10 pr-10 h-12 bg-zinc-950 border-zinc-800/50 text-zinc-100 placeholder:text-white/20 
     focus:border-blue-900/50 transition-colors
     autofill:shadow-[0_0_0_30px_#09090b_inset] 
     autofill:text-zinc-100
@@ -152,7 +149,7 @@ export default function AuthPage() {
                 <button 
                   type="button" 
                   onClick={() => { setIsReset(false); setIsLogin(true); setError(null); }} 
-                  className="flex items-center gap-2 hover:text-blue-400 transition-colors"
+                  className="flex items-center gap-2 hover:text-blue-400 transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-5 h-5" /> Reset Password
                 </button>
@@ -203,7 +200,7 @@ export default function AuthPage() {
                       <button 
                         type="button" 
                         onClick={() => { setIsReset(true); setIsLogin(false); setError(null); }} 
-                        className="text-[11px] text-blue-500/80 hover:text-blue-400 font-medium"
+                        className="text-[11px] text-blue-500/80 hover:text-blue-400 font-medium cursor-pointer"
                       >
                         Forgot password?
                       </button>
@@ -211,7 +208,23 @@ export default function AuthPage() {
                   </div>
                   <div className="relative group">
                     <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 z-10" />
-                    <Input name="password" required type="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className={inputClasses} />
+                    <Input 
+                      name="password" 
+                      required 
+                      type={showPassword ? "text" : "password"} 
+                      value={formData.password} 
+                      onChange={handleChange} 
+                      placeholder="••••••••" 
+                      className={inputClasses} 
+                    />
+                    {/* ---- Toggle Visibility Button ---- */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer z-20"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
               )}
@@ -219,7 +232,7 @@ export default function AuthPage() {
               <Button 
                 type="submit" 
                 disabled={loading} 
-                className="w-full h-12 bg-blue-950/80 hover:bg-blue-900 text-blue-100 border border-blue-500/30 font-semibold transition-all active:scale-[0.98]"
+                className="w-full h-12 bg-blue-950/80 hover:bg-blue-900 text-blue-100 border border-blue-500/30 font-semibold transition-all active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isReset ? "Reset Password" : (isLogin ? "Sign In" : "Sign Up"))}
               </Button>
@@ -229,7 +242,7 @@ export default function AuthPage() {
                   <button 
                     type="button" 
                     onClick={() => { setIsLogin(!isLogin); setError(null); }} 
-                    className="text-sm text-zinc-600 hover:text-white transition-colors"
+                    className="text-sm text-zinc-600 hover:text-white transition-colors cursor-pointer"
                   >
                     {isLogin ? "Don't have an account? Create one" : "Already have an account? Sign in"}
                   </button>

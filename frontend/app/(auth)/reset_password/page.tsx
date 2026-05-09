@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authService } from "@/services/auth.service";
-import { Loader2, Lock, AlertCircle, ArrowLeft } from "lucide-react";
+import { Loader2, Lock, AlertCircle, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,13 +27,16 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isTokenValid, setIsTokenValid] = useState<boolean>(true);
+  
+  // ---- Visibility States ----
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
   });
 
-  // ---- Token validation ----
   useEffect(() => {
     const handledToken = authService.handleResetRedirect(token);
 
@@ -64,7 +67,6 @@ export default function ResetPasswordPage() {
     setError(null);
 
     try {
-      // Logic inside service handles extraction of error string
       await authService.confirmResetPassword(
         token!,
         formData.password
@@ -76,14 +78,13 @@ export default function ResetPasswordPage() {
         router.push("/AuthPage?reset=1");
       }, 2000);
     } catch (err: any) {
-      // Use the string message thrown by the service
       setError(err.message || "Failed to reset password.");
       setLoading(false);
     }
   };
 
   const inputClasses = `
-    pl-10 h-12 bg-zinc-950 border-zinc-800/50 text-zinc-100 placeholder:text-white/20 
+    pl-10 pr-10 h-12 bg-zinc-950 border-zinc-800/50 text-zinc-100 placeholder:text-white/20 
     focus:border-blue-900/50 transition-colors
     autofill:shadow-[0_0_0_30px_#09090b_inset] 
     [-webkit-text-fill-color:white]
@@ -149,12 +150,19 @@ export default function ResetPasswordPage() {
                     <Input
                       name="password"
                       required
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="••••••••"
                       className={inputClasses}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer z-20"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -169,19 +177,26 @@ export default function ResetPasswordPage() {
                     <Input
                       name="confirmPassword"
                       required
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       placeholder="••••••••"
                       className={inputClasses}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors cursor-pointer z-20"
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={loading || !!success}
-                  className="w-full h-12 bg-blue-900/20 hover:bg-blue-900/40 text-blue-700 hover:text-blue-500 border border-blue-900/30 hover:border-blue-800 font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer"
+                  className="w-full h-12 bg-blue-900/20 hover:bg-blue-900/40 text-blue-700 hover:text-blue-500 border border-blue-900/30 hover:border-blue-800 font-semibold transition-all duration-200 active:scale-[0.98] cursor-pointer disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
