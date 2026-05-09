@@ -23,6 +23,7 @@ Verify:
 
 ```bash
 python --version
+
 ```
 
 ---
@@ -37,6 +38,7 @@ Verify:
 ```bash
 node -v
 npm -v
+
 ```
 
 ---
@@ -46,17 +48,16 @@ npm -v
 Download:
 [https://www.docker.com/products/docker-desktop/](https://www.docker.com/products/docker-desktop/)
 
-> تأكد إن Docker شغال قبل أي خطوة لاحقة
+> **Note:** Ensure Docker Desktop is running before proceeding to subsequent steps.
 
 ---
 
-## 🧱 Visual Studio C++ Build Tools (Windows فقط)
+## 🧱 Visual Studio C++ Build Tools (Windows Only)
 
-Required for `pgvector` builds
+Required for building `pgvector` from source.
 
-* Install Visual Studio Community
-  [https://visualstudio.microsoft.com/downloads/](https://visualstudio.microsoft.com/downloads/)
-* اختر: **Desktop development with C++**
+* Install Visual Studio Community: [https://visualstudio.microsoft.com/downloads/](https://visualstudio.microsoft.com/downloads/)
+* During installation, select the workload: **Desktop development with C++**
 
 ---
 
@@ -65,6 +66,7 @@ Required for `pgvector` builds
 ```bash
 git clone https://github.com/oubes/ExamAI
 cd ExamAI
+
 ```
 
 ---
@@ -74,6 +76,7 @@ cd ExamAI
 ```bash
 conda create -n exam_ai python=3.11
 conda activate exam_ai
+
 ```
 
 ---
@@ -82,6 +85,7 @@ conda activate exam_ai
 
 ```bash
 pip install -r requirements.txt
+
 ```
 
 ---
@@ -90,19 +94,20 @@ pip install -r requirements.txt
 
 ## 🗄️ Install PostgreSQL
 
-* Version: 16+
-* Components: Server + pgAdmin + CLI
-* Set password for `postgres`
+* **Version:** 16+
+* **Components:** Server + pgAdmin + CLI
+* Set a password for the `postgres` user and keep it secure.
 
-[https://www.postgresql.org/download/windows/](https://www.postgresql.org/download/windows/)
+Download: [https://www.postgresql.org/download/windows/](https://www.postgresql.org/download/windows/)
 
 ---
 
 ## ⚙️ Build pgvector
 
-Run in **x64 Native Tools Command Prompt (Admin)**:
+Run the following commands in the **x64 Native Tools Command Prompt for VS 2022** (Run as Administrator):
 
 ```bat
+# Set the PostgreSQL root path (Update '16' if your version differs)
 set "PGROOT=C:\Program Files\PostgreSQL\16"
 
 cd %TEMP%
@@ -110,36 +115,36 @@ git clone https://github.com/pgvector/pgvector.git
 cd pgvector
 nmake /F Makefile.win
 nmake /F Makefile.win install
+
 ```
 
 ---
 
-## 🧪 Initialize DB
+## 🧪 Initialize Database
 
-Restart PostgreSQL service → open pgAdmin → create DB:
-
-```
-exam_ai_db
-```
-
-ثم نفّذ:
+1. Restart the PostgreSQL service via Windows Services (`postgresql-x64-16`).
+2. Open **pgAdmin** and create a new database named: `exam_ai_db`.
+3. Open the **Query Tool** for `exam_ai_db` and execute:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
+-- Verify vector support
 CREATE TABLE test_vector (
     id SERIAL PRIMARY KEY,
     embedding VECTOR(384)
 );
 
 DROP TABLE test_vector;
+
 ```
 
 ---
 
 # 6️⃣ Alibaba API Key
 
+Create and obtain your API key from the DashScope console:
 [https://dashscope.console.aliyun.com/](https://dashscope.console.aliyun.com/)
 
 ---
@@ -153,6 +158,7 @@ DROP TABLE test_vector;
 ## Generate App Password
 
 [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+*Select 'Other' and name it 'ExamAI' to get your 16-character password.*
 
 ---
 
@@ -160,50 +166,49 @@ DROP TABLE test_vector;
 
 ```bash
 cp .env.example .env
+
 ```
 
-## Fill:
+## Update values in `.env`:
 
-* PostgreSQL config
-* Redis URLs
-* JWT secrets
-* `DASHSCOPE_API_KEY`
-* SMTP credentials
+* **Database:** PostgreSQL credentials and DB name.
+* **Cache/Broker:** Redis URLs.
+* **Security:** JWT secrets.
+* **AI:** `DASHSCOPE_API_KEY`.
+* **Mail:** SMTP credentials and App Password.
 
 ---
 
 # 9️⃣ Run Backend
 
-## FastAPI
+## Terminal 1: FastAPI
 
 ```bash
 uvicorn src.main:app --reload
+
 ```
 
----
-
-## Redis (Docker)
+## Terminal 2: Redis (Docker)
 
 ```bash
 cd src
 docker compose up -d
+
 ```
 
----
-
-## Celery Worker
+## Terminal 3: Celery Worker
 
 ```bash
 celery -A src.infra.queue.celery_app.celery_app worker \
 --loglevel=info --concurrency=4 --pool=solo -E
+
 ```
 
----
-
-## Flower (Optional)
+## Terminal 4: Flower (Optional Monitoring)
 
 ```bash
 celery -A src.infra.queue.celery_app.celery_app flower
+
 ```
 
 ---
@@ -214,13 +219,10 @@ celery -A src.infra.queue.celery_app.celery_app flower
 cd frontend
 npm install
 npm run dev
-```
-
-Open:
 
 ```
-http://localhost:3000
-```
+
+Access the application at: `http://localhost:3000`
 
 ---
 
@@ -228,30 +230,31 @@ http://localhost:3000
 
 ## Frontend Reset
 
+If the frontend behaves unexpectedly or fails to build:
+
 ```bash
 rm -rf .next
 npm install
 npm run dev
+
 ```
 
----
+## Backend Access
 
-## Backend URL
-
-* API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-* Docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **API Base:** [http://127.0.0.1:8000](http://127.0.0.1:8000)
+* **Interactive Docs (Swagger):** [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
 # 🧱 Tech Stack
 
-| Layer     | Tech                     |
-| --------- | ------------------------ |
-| Backend   | FastAPI                  |
-| DB        | PostgreSQL 16+           |
-| Vector DB | pgvector                 |
-| Queue     | Celery                   |
-| Broker    | Redis                    |
-| AI        | Alibaba DashScope (Qwen) |
-| Frontend  | Next.js 14               |
-| UI        | Tailwind + shadcn/ui     |
+| Layer | Tech |
+| --- | --- |
+| **Backend** | FastAPI |
+| **Database** | PostgreSQL 16+ |
+| **Vector Engine** | pgvector |
+| **Task Queue** | Celery |
+| **Message Broker** | Redis |
+| **AI Engine** | Alibaba DashScope (Qwen) |
+| **Frontend** | Next.js 14 |
+| **UI Library** | Tailwind CSS + shadcn/ui |
