@@ -25,6 +25,7 @@ class Question(Base):
     exam_id: Mapped[int] = mapped_column(ForeignKey("exams.id"))
     content: Mapped[str] = mapped_column(Text)
     type: Mapped[str] = mapped_column(Text)
+    search_text: Mapped[str] = mapped_column(Text, default="")
 
     embedding: Mapped[list[float]] = mapped_column(
         Vector(settings.alibaba_embeddings_dim)
