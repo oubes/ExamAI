@@ -1,7 +1,8 @@
 # ---- Imports ---- #
 from src.api.routes.health_routes import router as health_router
-from src.api.routes.identity_routes import router as identity_router
+# from src.api.routes.identity_routes import router as identity_router
 from src.api.routes.upload import router as upload_router
+from src.api.routes.identity_routes.router import router as identity_router
 
 # ---- Router registry ---- #
 def register_routers(app):
