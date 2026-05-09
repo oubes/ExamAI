@@ -26,6 +26,7 @@ class Question(Base):
     subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subjects.id"), nullable=False)
     chapter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("chapters.id"), nullable=False)
     topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("topics.id"), nullable=False)
+    exam_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("exams.id"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
     type: Mapped[str] = mapped_column(Text, nullable=False)
@@ -47,9 +48,15 @@ class Question(Base):
     subject = relationship("Subject", lazy="selectin")
     chapter = relationship("Chapter", back_populates="questions", lazy="selectin")
     topic = relationship("Topic", back_populates="questions", lazy="selectin")
+    exam = relationship("Exam", back_populates="questions", lazy="selectin")
     options = relationship("QuestionOption", back_populates="question", lazy="selectin")
-    model_answer = relationship("ModelAnswer", back_populates="question", uselist=False, lazy="selectin")
     skill_links = relationship("QuestionSkill", back_populates="question", lazy="selectin")
+    model_answer = relationship(
+        "ModelAnswer",
+        back_populates="question",
+        uselist=False,
+        lazy="selectin"
+    )
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

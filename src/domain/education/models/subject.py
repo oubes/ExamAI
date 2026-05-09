@@ -28,7 +28,6 @@ class Subject(Base):
     chapters = relationship("Chapter", back_populates="subject", lazy="selectin")
     enrollments = relationship("Enrollment", back_populates="subject", lazy="selectin")
     exams = relationship("Exam", back_populates="subject", lazy="selectin")
-    student_states = relationship("StudentSubjectState", back_populates="subject", lazy="selectin")
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

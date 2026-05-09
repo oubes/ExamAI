@@ -1,7 +1,7 @@
 # ---- Imports ---- #
 import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import Text, ForeignKey, Index
+from sqlalchemy import Text, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.infra.db.base import Base
@@ -12,15 +12,23 @@ from src.infra.db.base import Base
 # ---- Model Answer ---- #
 class ModelAnswer(Base):
     # ---- Table Name ---- #
-    __tablename__ = "model_answer"
+    __tablename__ = "model_answers"
 
     # ---- Columns ---- #
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("questions.id"), nullable=False)
+    question_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("questions.id"),
+        nullable=False,
+        unique=True
+    )
     answer_text: Mapped[str] = mapped_column(Text, nullable=False)
 
     # ---- Relationships ---- #
-    question = relationship("Question", lazy="selectin")
+    question = relationship(
+        "Question",
+        back_populates="model_answer",
+        lazy="selectin"
+    )
 
     # ---- Repr ---- #
     def __repr__(self) -> str:
