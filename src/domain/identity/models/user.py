@@ -25,7 +25,6 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(__name_pos=Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False)
     global_learning_velocity: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
-    risk_of_dropout: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
     preferred_difficulty_band: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
     created_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now())
@@ -34,12 +33,6 @@ class User(Base):
     enrollments = relationship(argument="Enrollment", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
     attempts = relationship(argument="ExamAttempt", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
     sessions = relationship(argument="UserSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    subject_states = relationship(argument="StudentSubjectState", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    skill_states = relationship(argument="SkillState", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    analytics_snapshots = relationship(argument="StudentAnalyticsSnapshot", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    adaptation_events = relationship(argument="AdaptationEvent", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    generated_exam_sessions = relationship(argument="GeneratedExamSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    learning_sessions = relationship(argument="LearningSession", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
     uploads = relationship(argument="UploadFile", back_populates="user", cascade="all, delete-orphan", lazy="selectin")
 
     # ---- Repr ---- #
@@ -48,6 +41,9 @@ class User(Base):
             f"User("
             f"id={self.id}, "
             f"user_name='{self.user_name}', "
-            f"email='{self.email}'"
+            f"email='{self.email}', "
+            f"role='{self.role}', "
+            f"is_active={self.is_active}, "
+            f"is_verified={self.is_verified}"
             f")"
         )

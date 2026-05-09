@@ -56,6 +56,12 @@ class UploadFileModel(Base):
             f"original_name='{self.original_name}', "
             f"stored_name='{self.stored_name}', "
             f"path='{self.path}', "
-            f"size={self.size}"
+            f"size={self.size}, "
+            f"extension='{self.extension}', "
+            f"storage_provider='{self.storage_provider}', "
+            f"checksum='{self.checksum}', "
+            f"is_processed={self.is_processed}, "
+            f"processing_status='{self.processing_status}', "
+            f"processing_error='{self.processing_error}'"
             f")"
         )

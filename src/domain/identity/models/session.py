@@ -35,6 +35,10 @@ class UserSession(Base):
             f"id={self.id}, "
             f"user_id={self.user_id}, "
             f"is_active={self.is_active}, "
-            f"ip_address='{self.ip_address}'"
+            f"ip_address='{self.ip_address}', "
+            f"user_agent='{self.user_agent}', "
+            f"created_at={self.created_at}, "
+            f"expires_at={self.expires_at}, "
+            f"last_seen_at={self.last_seen_at}"
             f")"
         )

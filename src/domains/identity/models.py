@@ -2,7 +2,7 @@
 import uuid
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import DateTime, Text, Boolean, ForeignKey, func
+from sqlalchemy import DateTime, Text, Boolean, ForeignKey, Float, func
 from sqlalchemy.dialects.postgresql import UUID
 
 from src.infra.db.base import Base
@@ -24,6 +24,8 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(__name_pos=Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(__name_pos=Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(__name_pos=Boolean, default=False, nullable=False)
+    global_learning_velocity: Mapped[float] = mapped_column(__name_pos=Float, default=0.0)
+    preferred_difficulty_band: Mapped[float] = mapped_column(__name_pos=Float, default=1.0)
     created_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -56,12 +58,11 @@ class UserSession(Base):
     id: Mapped[uuid.UUID] = mapped_column(__name_pos=UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(__name_pos=ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     is_active: Mapped[bool] = mapped_column(__name_pos=Boolean, default=True, nullable=False)
-
     ip_address: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
     user_agent: Mapped[str | None] = mapped_column(__name_pos=Text, nullable=True)
-
     created_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), server_default=func.now(), nullable=False)
     expires_at: Mapped[DateTime] = mapped_column(__name_pos=DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[DateTime | None] = mapped_column(__name_pos=DateTime(timezone=True), nullable=True)
 
     # ---- Relationships ---- #
     user = relationship(argument="User", back_populates="sessions", lazy="selectin")
@@ -73,6 +74,10 @@ class UserSession(Base):
             f"id={self.id}, "
             f"user_id={self.user_id}, "
             f"is_active={self.is_active}, "
-            f"ip_address='{self.ip_address}'"
+            f"ip_address='{self.ip_address}', "
+            f"user_agent='{self.user_agent}', "
+            f"created_at={self.created_at}, "
+            f"expires_at={self.expires_at}, "
+            f"last_seen_at={self.last_seen_at}"
             f")"
         )
