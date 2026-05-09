@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { StudentMetricCard, InsightBlock } from "@/components/dashboard/ui-cards";
 import { meService, MeResponse } from "@/services/dashboard.service";
-
 export default function DashboardPage() {
   const [user, setUser] = useState<MeResponse | null>(null);
 
