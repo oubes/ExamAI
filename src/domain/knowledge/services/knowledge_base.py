@@ -1,11 +1,10 @@
 # ---- Imports ---- #
 import logging
-from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_, func
 
-from src.domains.knowledge.models import KnowledgeBase
+from src.domain.knowledge.models.knowledge_base import KnowledgeBase
 
 
 # ---- logging ---- #
