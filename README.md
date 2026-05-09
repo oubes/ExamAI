@@ -256,5 +256,5 @@ npm run dev
 | **Task Queue** | Celery |
 | **Message Broker** | Redis |
 | **AI Engine** | Alibaba DashScope (Qwen) |
-| **Frontend** | Next.js 14 |
+| **Frontend** | Next.js 16 |
 | **UI Library** | Tailwind CSS + shadcn/ui |
