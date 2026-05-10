@@ -22,7 +22,7 @@ class GeneratedExamSession(Base):
     generation_strategy: Mapped[str] = mapped_column(Text, default="adaptive")
     estimated_mastery: Mapped[float] = mapped_column(Float, default=0.0)
     started_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    completed_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # ---- Indexes ---- #
     __table_args__ = (

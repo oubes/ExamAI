@@ -1,44 +1,56 @@
 # ---- Imports ---- #
 import logging
-from typing import cast
+from uuid import UUID
 
+from sqlalchemy import select, delete, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.engine import CursorResult
-from sqlalchemy import select, delete, func, and_, exists
+from sqlalchemy.orm import selectinload
 
 from src.domain.education.models.enrollment import Enrollment
+from src.domain.education.models.subject import Subject
+from src.domain.identity.models.user import User
 
 
-# ---- logging ---- #
+# ---- Logging ---- #
 logger = logging.getLogger(__name__)
 
 
 # ---- Enrollment Service ---- #
 class EnrollmentService:
 
-    # ---- Enroll User ---- #
-    async def enroll(
+    # ---- Create ---- #
+    async def create(
         self,
         session: AsyncSession,
-        user_id: int,
-        subject_id: int,
+        user_id: UUID,
+        subject_id: UUID,
     ) -> Enrollment:
 
         try:
-            logger.debug(f"[EnrollmentService] enroll user={user_id} subject={subject_id}")
-
-            stmt = select(Enrollment).where(
-                and_(
-                    Enrollment.user_id == user_id,
-                    Enrollment.subject_id == subject_id,
-                )
+            user_stmt = select(User.id).where(User.id == user_id)
+            subject_stmt = select(Subject.id).where(
+                Subject.id == subject_id
             )
 
-            result = await session.execute(stmt)
-            existing = result.scalar_one_or_none()
+            user_result = await session.execute(user_stmt)
+            subject_result = await session.execute(subject_stmt)
 
-            if existing:
-                return existing
+            if not user_result.scalar_one_or_none():
+                raise ValueError("user not found")
+
+            if not subject_result.scalar_one_or_none():
+                raise ValueError("subject not found")
+
+            exists_stmt = select(Enrollment).where(
+                Enrollment.user_id == user_id,
+                Enrollment.subject_id == subject_id,
+            )
+
+            exists_result = await session.execute(exists_stmt)
+
+            if exists_result.scalar_one_or_none():
+                raise ValueError("already enrolled")
 
             record = Enrollment(
                 user_id=user_id,
@@ -46,120 +58,132 @@ class EnrollmentService:
             )
 
             session.add(record)
+
             await session.commit()
             await session.refresh(record)
 
             return record
 
+        except IntegrityError as e:
+            await session.rollback()
+
+            logger.error(
+                f"[EnrollmentService] create integrity error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
         except Exception as e:
-            logger.error(f"[EnrollmentService] enroll error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[EnrollmentService] create error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
-    # ---- Bulk Enroll ---- #
-    async def bulk_enroll(
+    # ---- Bulk Create ---- #
+    async def bulk_create(
         self,
         session: AsyncSession,
-        user_id: int,
-        subject_ids: list[int],
+        user_id: UUID,
+        subject_ids: list[UUID],
     ) -> list[Enrollment]:
 
         try:
-            stmt = select(Enrollment.subject_id).where(
-                Enrollment.user_id == user_id
+            if not subject_ids:
+                return []
+
+            user_stmt = select(User.id).where(User.id == user_id)
+            user_result = await session.execute(user_stmt)
+
+            if not user_result.scalar_one_or_none():
+                raise ValueError("user not found")
+
+            existing_stmt = select(Enrollment.subject_id).where(
+                Enrollment.user_id == user_id,
+                Enrollment.subject_id.in_(subject_ids),
             )
 
-            result = await session.execute(stmt)
-            existing = {row[0] for row in result.all()}
+            existing_result = await session.execute(existing_stmt)
 
-            new_records = []
+            existing_subjects = set(existing_result.scalars().all())
 
-            for subject_id in subject_ids:
-                if subject_id in existing:
-                    continue
+            to_create = [
+                sid for sid in subject_ids
+                if sid not in existing_subjects
+            ]
 
-                new_records.append(
-                    Enrollment(
-                        user_id=user_id,
-                        subject_id=subject_id,
-                    )
-                )
+            records = [
+                Enrollment(user_id=user_id, subject_id=sid)
+                for sid in to_create
+            ]
 
-            session.add_all(new_records)
+            session.add_all(records)
+
             await session.commit()
 
-            for r in new_records:
-                await session.refresh(r)
+            for record in records:
+                await session.refresh(record)
 
-            return new_records
+            return records
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] bulk_enroll error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[EnrollmentService] bulk_create error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
-    # ---- Unenroll User ---- #
-    async def unenroll(
+    # ---- Exists ---- #
+    async def exists(
         self,
         session: AsyncSession,
-        user_id: int,
-        subject_id: int,
+        user_id: UUID,
+        subject_id: UUID,
     ) -> bool:
 
         try:
-            stmt = delete(Enrollment).where(
-                and_(
-                    Enrollment.user_id == user_id,
-                    Enrollment.subject_id == subject_id,
-                )
+            stmt = select(Enrollment.user_id).where(
+                Enrollment.user_id == user_id,
+                Enrollment.subject_id == subject_id,
             )
 
-            result = cast(CursorResult, await session.execute(stmt))
-            await session.commit()
+            result = await session.execute(stmt)
 
-            return result.rowcount > 0
+            return result.scalar_one_or_none() is not None
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] unenroll error: {e}", exc_info=True)
+            logger.error(
+                f"[EnrollmentService] exists error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Bulk Unenroll ---- #
-    async def bulk_unenroll(
+    # ---- Get By User ---- #
+    async def list_by_user(
         self,
         session: AsyncSession,
-        user_id: int,
-        subject_ids: list[int],
-    ) -> int:
-
-        try:
-            stmt = delete(Enrollment).where(
-                and_(
-                    Enrollment.user_id == user_id,
-                    Enrollment.subject_id.in_(subject_ids),
-                )
-            )
-
-            result = cast(CursorResult, await session.execute(stmt))
-            await session.commit()
-
-            return result.rowcount
-
-        except Exception as e:
-            logger.error(f"[EnrollmentService] bulk_unenroll error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Get User Subjects ---- #
-    async def get_user_subjects(
-        self,
-        session: AsyncSession,
-        user_id: int,
+        user_id: UUID,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Enrollment]:
 
         try:
-            stmt = select(Enrollment).where(
-                Enrollment.user_id == user_id
+            stmt = (
+                select(Enrollment)
+                .where(Enrollment.user_id == user_id)
+                .options(selectinload(Enrollment.subject))
+                .limit(limit)
+                .offset(offset)
             )
 
             result = await session.execute(stmt)
@@ -167,20 +191,29 @@ class EnrollmentService:
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] get_user_subjects error: {e}", exc_info=True)
+            logger.error(
+                f"[EnrollmentService] list_by_user error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Get Subject Users ---- #
-    async def get_subject_users(
+    # ---- Get By Subject ---- #
+    async def list_by_subject(
         self,
         session: AsyncSession,
-        subject_id: int,
+        subject_id: UUID,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[Enrollment]:
 
         try:
-            stmt = select(Enrollment).where(
-                Enrollment.subject_id == subject_id
+            stmt = (
+                select(Enrollment)
+                .where(Enrollment.subject_id == subject_id)
+                .options(selectinload(Enrollment.user))
+                .limit(limit)
+                .offset(offset)
             )
 
             result = await session.execute(stmt)
@@ -188,71 +221,44 @@ class EnrollmentService:
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] get_subject_users error: {e}", exc_info=True)
+            logger.error(
+                f"[EnrollmentService] list_by_subject error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Check Enrollment ---- #
-    async def is_enrolled(
+    # ---- Count ---- #
+    async def count(
         self,
         session: AsyncSession,
-        user_id: int,
-        subject_id: int,
-    ) -> bool:
+    ) -> int:
 
         try:
-            stmt = select(
-                exists().where(
-                    and_(
-                        Enrollment.user_id == user_id,
-                        Enrollment.subject_id == subject_id,
-                    )
-                )
-            )
+            stmt = select(func.count()).select_from(Enrollment)
 
             result = await session.execute(stmt)
 
-            # result.scalar() may return None; ensure a bool is returned
-            return bool(result.scalar())
+            return int(result.scalar() or 0)
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] is_enrolled error: {e}", exc_info=True)
+            logger.error(
+                f"[EnrollmentService] count error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Count User Enrollments ---- #
-    async def count_user_enrollments(
+    # ---- Count By User ---- #
+    async def count_by_user(
         self,
         session: AsyncSession,
-        user_id: int,
+        user_id: UUID,
     ) -> int:
 
         try:
             stmt = select(func.count()).where(
                 Enrollment.user_id == user_id
-            )
-
-            result = await session.execute(stmt)
-
-            # result.scalar() may return None; ensure an int is returned
-            val = result.scalar()
-            return int(val or 0)
-
-        except Exception as e:
-            logger.error(f"[EnrollmentService] count_user_enrollments error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Count Subject Enrollments ---- #
-    async def count_subject_enrollments(
-        self,
-        session: AsyncSession,
-        subject_id: int,
-    ) -> int:
-
-        try:
-            stmt = select(func.count()).where(
-                Enrollment.subject_id == subject_id
             )
 
             result = await session.execute(stmt)
@@ -260,36 +266,50 @@ class EnrollmentService:
             return int(result.scalar() or 0)
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] count_subject_enrollments error: {e}", exc_info=True)
+            logger.error(
+                f"[EnrollmentService] count_by_user error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Get User Subject IDs ---- #
-    async def get_user_subject_ids(
+    # ---- Delete ---- #
+    async def delete(
         self,
         session: AsyncSession,
-        user_id: int,
-    ) -> set[int]:
+        user_id: UUID,
+        subject_id: UUID,
+    ) -> bool:
 
         try:
-            stmt = select(Enrollment.subject_id).where(
-                Enrollment.user_id == user_id
+            stmt = delete(Enrollment).where(
+                Enrollment.user_id == user_id,
+                Enrollment.subject_id == subject_id,
             )
 
             result = await session.execute(stmt)
 
-            return {row[0] for row in result.all()}
+            await session.commit()
+
+            affected_rows = result.rowcount # type: ignore
+
+            return bool(affected_rows and affected_rows > 0)
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] get_user_subject_ids error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[EnrollmentService] delete error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Clear User Enrollments ---- #
-    async def clear_user_enrollments(
+    # ---- Delete By User ---- #
+    async def delete_by_user(
         self,
         session: AsyncSession,
-        user_id: int,
+        user_id: UUID,
     ) -> int:
 
         try:
@@ -298,10 +318,48 @@ class EnrollmentService:
             )
 
             result = await session.execute(stmt)
+
             await session.commit()
 
-            return cast(CursorResult, result).rowcount
+            affected_rows = result.rowcount # type: ignore
+
+            return int(affected_rows or 0)
 
         except Exception as e:
-            logger.error(f"[EnrollmentService] clear_user_enrollments error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[EnrollmentService] delete_by_user error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Delete By Subject ---- #
+    async def delete_by_subject(
+        self,
+        session: AsyncSession,
+        subject_id: UUID,
+    ) -> int:
+
+        try:
+            stmt = delete(Enrollment).where(
+                Enrollment.subject_id == subject_id
+            )
+
+            result = await session.execute(stmt)
+
+            await session.commit()
+
+            affected_rows = result.rowcount # type: ignore
+
+            return int(affected_rows or 0)
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[EnrollmentService] delete_by_subject error: {e}",
+                exc_info=True,
+            )
             raise

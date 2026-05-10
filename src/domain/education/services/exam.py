@@ -1,40 +1,160 @@
 # ---- Imports ---- #
 import logging
-import json
+from uuid import UUID
 
+from sqlalchemy import select, func, delete, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from src.domain.education.models.exam import Exam
+from src.domain.education.models.subject import Subject
+from src.domain.questions.models.question import Question
 
 
-# ---- logging ---- #
+# ---- Logging ---- #
 logger = logging.getLogger(__name__)
 
 
 # ---- Exam Service ---- #
 class ExamService:
 
-    # ---- Create Exam ---- #
+    # ---- Create ---- #
     async def create(
         self,
         session: AsyncSession,
-        data: dict,
+        payload: dict,
     ) -> Exam:
 
         try:
-            logger.debug(f"[ExamService] create: {data}")
+            subject_id = payload["subject_id"]
 
-            record = Exam(**data)
+            subject_stmt = select(Subject.id).where(
+                Subject.id == subject_id
+            )
+
+            subject_result = await session.execute(subject_stmt)
+
+            if not subject_result.scalar_one_or_none():
+                raise ValueError("subject not found")
+
+            record = Exam(
+                subject_id=subject_id,
+                title=str(payload["title"]).strip(),
+                exam_type=str(
+                    payload.get("exam_type", "static")
+                ).strip(),
+                difficulty_profile=float(
+                    payload.get("difficulty_profile", 1.0)
+                ),
+                time_limit=int(payload.get("time_limit", 0)),
+                scope_config=payload.get("scope_config"),
+            )
 
             session.add(record)
+
             await session.commit()
             await session.refresh(record)
 
             return record
 
+        except IntegrityError as e:
+            await session.rollback()
+
+            logger.error(
+                f"[ExamService] create integrity error: {e}",
+                exc_info=True,
+            )
+            raise
+
         except Exception as e:
-            logger.error(f"[ExamService] create error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[ExamService] create error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Bulk Create ---- #
+    async def bulk_create(
+        self,
+        session: AsyncSession,
+        payloads: list[dict],
+    ) -> list[Exam]:
+
+        try:
+            if not payloads:
+                return []
+
+            subject_ids = {p["subject_id"] for p in payloads}
+
+            subject_stmt = select(Subject.id).where(
+                Subject.id.in_(subject_ids)
+            )
+
+            subject_result = await session.execute(subject_stmt)
+
+            existing_subjects = set(
+                subject_result.scalars().all()
+            )
+
+            if subject_ids - existing_subjects:
+                raise ValueError("invalid subject_ids")
+
+            records = [
+                Exam(
+                    subject_id=p["subject_id"],
+                    title=str(p["title"]).strip(),
+                    exam_type=str(p.get("exam_type", "static")).strip(),
+                    difficulty_profile=float(
+                        p.get("difficulty_profile", 1.0)
+                    ),
+                    time_limit=int(p.get("time_limit", 0)),
+                    scope_config=p.get("scope_config"),
+                )
+                for p in payloads
+            ]
+
+            session.add_all(records)
+
+            await session.commit()
+
+            for r in records:
+                await session.refresh(r)
+
+            return records
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[ExamService] bulk_create error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Exists ---- #
+    async def exists(
+        self,
+        session: AsyncSession,
+        exam_id: UUID,
+    ) -> bool:
+
+        try:
+            stmt = select(Exam.id).where(Exam.id == exam_id)
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none() is not None
+
+        except Exception as e:
+            logger.error(
+                f"[ExamService] exists error: {e}",
+                exc_info=True,
+            )
             raise
 
 
@@ -42,27 +162,92 @@ class ExamService:
     async def get_by_id(
         self,
         session: AsyncSession,
-        exam_id: int,
+        exam_id: UUID,
     ) -> Exam | None:
 
         try:
-            return await session.get(Exam, exam_id)
+            stmt = select(Exam).where(Exam.id == exam_id)
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(f"[ExamService] get_by_id error: {e}", exc_info=True)
+            logger.error(
+                f"[ExamService] get_by_id error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Get By Subject ---- #
-    async def get_by_subject(
+    # ---- Get Full ---- #
+    async def get_full(
         self,
         session: AsyncSession,
-        subject_id: int,
+        exam_id: UUID,
+    ) -> Exam | None:
+
+        try:
+            stmt = (
+                select(Exam)
+                .options(
+                    selectinload(Exam.subject),
+                    selectinload(Exam.questions),
+                )
+                .where(Exam.id == exam_id)
+            )
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none()
+
+        except Exception as e:
+            logger.error(
+                f"[ExamService] get_full error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Get Many ---- #
+    async def get_many_by_ids(
+        self,
+        session: AsyncSession,
+        exam_ids: list[UUID],
     ) -> list[Exam]:
 
         try:
-            stmt = select(Exam).where(
-                Exam.subject_id == subject_id
+            if not exam_ids:
+                return []
+
+            stmt = select(Exam).where(Exam.id.in_(exam_ids))
+
+            result = await session.execute(stmt)
+
+            return list(result.scalars().all())
+
+        except Exception as e:
+            logger.error(
+                f"[ExamService] get_many_by_ids error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- List ---- #
+    async def list_exams(
+        self,
+        session: AsyncSession,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Exam]:
+
+        try:
+            stmt = (
+                select(Exam)
+                .order_by(Exam.title.asc())
+                .limit(limit)
+                .offset(offset)
             )
 
             result = await session.execute(stmt)
@@ -70,62 +255,36 @@ class ExamService:
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[ExamService] get_by_subject error: {e}", exc_info=True)
+            logger.error(
+                f"[ExamService] list_exams error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Update Exam ---- #
-    async def update(
+    # ---- List By Subject ---- #
+    async def list_by_subject(
         self,
         session: AsyncSession,
-        exam_id: int,
-        updates: dict,
-    ) -> Exam:
+        subject_id: UUID,
+    ) -> list[Exam]:
 
         try:
-            record = await session.get(Exam, exam_id)
+            stmt = (
+                select(Exam)
+                .where(Exam.subject_id == subject_id)
+                .order_by(Exam.created_at.desc()) # type: ignore
+            )
 
-            if not record:
-                raise ValueError("exam not found")
+            result = await session.execute(stmt)
 
-            # ---- protected fields ---- #
-            protected = {"id", "subject_id"}
-
-            for key, value in updates.items():
-                if key in protected:
-                    continue
-                setattr(record, key, value)
-
-            await session.commit()
-            await session.refresh(record)
-
-            return record
+            return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[ExamService] update error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Delete Exam ---- #
-    async def delete(
-        self,
-        session: AsyncSession,
-        exam_id: int,
-    ) -> bool:
-
-        try:
-            record = await session.get(Exam, exam_id)
-
-            if not record:
-                return False
-
-            await session.delete(record)
-            await session.commit()
-
-            return True
-
-        except Exception as e:
-            logger.error(f"[ExamService] delete error: {e}", exc_info=True)
+            logger.error(
+                f"[ExamService] list_by_subject error: {e}",
+                exc_info=True,
+            )
             raise
 
 
@@ -134,75 +293,113 @@ class ExamService:
         self,
         session: AsyncSession,
         query: str,
-        subject_id: int | None = None,
+        limit: int = 20,
     ) -> list[Exam]:
 
         try:
-            query = query.strip()
+            q = query.strip()
 
-            if not query:
-                return []
-
-            stmt = select(Exam).where(
-                Exam.title.ilike(f"%{query}%")
+            stmt = (
+                select(Exam)
+                .where(
+                    Exam.title.ilike(f"%{q}%")
+                    | Exam.exam_type.ilike(f"%{q}%")
+                )
+                .order_by(Exam.created_at.desc()) # type: ignore
+                .limit(limit)
             )
-
-            if subject_id:
-                stmt = stmt.where(Exam.subject_id == subject_id)
 
             result = await session.execute(stmt)
 
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[ExamService] search error: {e}", exc_info=True)
+            logger.error(
+                f"[ExamService] search error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Stats ---- #
-    async def stats(
+    # ---- Count ---- #
+    async def count(
         self,
         session: AsyncSession,
-        subject_id: int,
-    ) -> dict:
+    ) -> int:
 
         try:
-            stmt = select(func.count()).where(
-                Exam.subject_id == subject_id
-            )
+            stmt = select(func.count(Exam.id))
 
             result = await session.execute(stmt)
 
-            return {
-                "total": result.scalar()
-            }
+            return int(result.scalar() or 0)
 
         except Exception as e:
-            logger.error(f"[ExamService] stats error: {e}", exc_info=True)
+            logger.error(
+                f"[ExamService] count error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Parse Scope Config ---- #
-    async def parse_scope(
+    # ---- Delete ---- #
+    async def delete(
         self,
         session: AsyncSession,
-        exam_id: int,
-    ) -> dict:
+        exam_id: UUID,
+    ) -> bool:
 
         try:
-            exam = await session.get(Exam, exam_id)
+            record = await self.get_full(
+                session=session,
+                exam_id=exam_id,
+            )
 
-            if not exam:
-                raise ValueError("exam not found")
+            if not record:
+                return False
 
-            if not exam.scope_config:
-                return {}
+            if record.questions:
+                raise ValueError("cannot delete exam with questions")
 
-            try:
-                return json.loads(exam.scope_config)
-            except Exception:
-                raise ValueError("invalid scope_config format")
+            await session.delete(record)
+
+            await session.commit()
+
+            return True
 
         except Exception as e:
-            logger.error(f"[ExamService] parse_scope error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[ExamService] delete error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Hard Delete ---- #
+    async def hard_delete(
+        self,
+        session: AsyncSession,
+        exam_id: UUID,
+    ) -> bool:
+
+        try:
+            stmt = delete(Exam).where(Exam.id == exam_id)
+
+            result = await session.execute(stmt)
+
+            await session.commit()
+
+            affected = result.rowcount # type: ignore
+
+            return bool(affected and affected > 0)
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[ExamService] hard_delete error: {e}",
+                exc_info=True,
+            )
             raise

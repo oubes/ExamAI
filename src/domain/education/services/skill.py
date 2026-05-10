@@ -1,56 +1,177 @@
 # ---- Imports ---- #
 import logging
+from uuid import UUID
 
+from sqlalchemy import select, func, delete
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 
 from src.domain.education.models.skill import Skill
-from src.domain.education.models.topic import Topic
+from src.domain.education.models.subject import Subject
 from src.domain.education.models.chapter import Chapter
+from src.domain.education.models.topic import Topic
 
 
-# ---- logging ---- #
+# ---- Logging ---- #
 logger = logging.getLogger(__name__)
 
 
 # ---- Skill Service ---- #
 class SkillService:
 
-    # ---- Create Skill ---- #
+    # ---- Create ---- #
     async def create(
         self,
         session: AsyncSession,
-        data: dict,
+        payload: dict,
     ) -> Skill:
 
         try:
-            logger.debug(f"[SkillService] create: {data}")
+            subject_id = payload["subject_id"]
+            chapter_id = payload["chapter_id"]
+            topic_id = payload["topic_id"]
 
-            # ---- validate full hierarchy consistency ---- #
-            stmt = select(Topic).where(
-                and_(
-                    Topic.id == data["topic_id"],
-                    Topic.chapter_id == data["chapter_id"],
-                    Topic.subject_id == data["subject_id"],
-                )
+            subject_stmt = select(Subject.id).where(Subject.id == subject_id)
+            chapter_stmt = select(Chapter.id).where(Chapter.id == chapter_id)
+            topic_stmt = select(Topic.id).where(Topic.id == topic_id)
+
+            subject_result = await session.execute(subject_stmt)
+            chapter_result = await session.execute(chapter_stmt)
+            topic_result = await session.execute(topic_stmt)
+
+            if not subject_result.scalar_one_or_none():
+                raise ValueError("subject not found")
+
+            if not chapter_result.scalar_one_or_none():
+                raise ValueError("chapter not found")
+
+            if not topic_result.scalar_one_or_none():
+                raise ValueError("topic not found")
+
+            record = Skill(
+                subject_id=subject_id,
+                chapter_id=chapter_id,
+                topic_id=topic_id,
+                name=str(payload["name"]).strip(),
+                description=payload.get("description"),
+                importance_weight=float(
+                    payload.get("importance_weight", 1.0)
+                ),
             )
 
-            result = await session.execute(stmt)
-            topic = result.scalar_one_or_none()
-
-            if not topic:
-                raise ValueError("invalid subject/chapter/topic relationship")
-
-            record = Skill(**data)
-
             session.add(record)
+
             await session.commit()
             await session.refresh(record)
 
             return record
 
+        except IntegrityError as e:
+            await session.rollback()
+
+            logger.error(
+                f"[SkillService] create integrity error: {e}",
+                exc_info=True,
+            )
+            raise
+
         except Exception as e:
-            logger.error(f"[SkillService] create error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[SkillService] create error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Bulk Create ---- #
+    async def bulk_create(
+        self,
+        session: AsyncSession,
+        payloads: list[dict],
+    ) -> list[Skill]:
+
+        try:
+            if not payloads:
+                return []
+
+            subject_ids = {p["subject_id"] for p in payloads}
+            chapter_ids = {p["chapter_id"] for p in payloads}
+            topic_ids = {p["topic_id"] for p in payloads}
+
+            subject_stmt = select(Subject.id).where(Subject.id.in_(subject_ids))
+            chapter_stmt = select(Chapter.id).where(Chapter.id.in_(chapter_ids))
+            topic_stmt = select(Topic.id).where(Topic.id.in_(topic_ids))
+
+            subject_result = await session.execute(subject_stmt)
+            chapter_result = await session.execute(chapter_stmt)
+            topic_result = await session.execute(topic_stmt)
+
+            existing_subjects = set(subject_result.scalars().all())
+            existing_chapters = set(chapter_result.scalars().all())
+            existing_topics = set(topic_result.scalars().all())
+
+            if subject_ids - existing_subjects:
+                raise ValueError("invalid subject_ids")
+
+            if chapter_ids - existing_chapters:
+                raise ValueError("invalid chapter_ids")
+
+            if topic_ids - existing_topics:
+                raise ValueError("invalid topic_ids")
+
+            records: list[Skill] = [
+                Skill(
+                    subject_id=p["subject_id"],
+                    chapter_id=p["chapter_id"],
+                    topic_id=p["topic_id"],
+                    name=str(p["name"]).strip(),
+                    description=p.get("description"),
+                    importance_weight=float(p.get("importance_weight", 1.0)),
+                )
+                for p in payloads
+            ]
+
+            session.add_all(records)
+
+            await session.commit()
+
+            for r in records:
+                await session.refresh(r)
+
+            return records
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[SkillService] bulk_create error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Exists ---- #
+    async def exists(
+        self,
+        session: AsyncSession,
+        skill_id: UUID,
+    ) -> bool:
+
+        try:
+            stmt = select(Skill.id).where(Skill.id == skill_id)
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none() is not None
+
+        except Exception as e:
+            logger.error(
+                f"[SkillService] exists error: {e}",
+                exc_info=True,
+            )
             raise
 
 
@@ -58,150 +179,131 @@ class SkillService:
     async def get_by_id(
         self,
         session: AsyncSession,
-        skill_id: int,
+        skill_id: UUID,
     ) -> Skill | None:
 
         try:
-            return await session.get(Skill, skill_id)
-
-        except Exception as e:
-            logger.error(f"[SkillService] get_by_id error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Get By Topic ---- #
-    async def get_by_topic(
-        self,
-        session: AsyncSession,
-        topic_id: int,
-    ) -> list[Skill]:
-
-        try:
-            stmt = select(Skill).where(
-                Skill.topic_id == topic_id
-            ).order_by(
-                Skill.importance_weight.desc()
-            )
+            stmt = select(Skill).where(Skill.id == skill_id)
 
             result = await session.execute(stmt)
 
-            return list(result.scalars().all())
+            return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(f"[SkillService] get_by_topic error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Get By Chapter ---- #
-    async def get_by_chapter(
-        self,
-        session: AsyncSession,
-        chapter_id: int,
-    ) -> list[Skill]:
-
-        try:
-            stmt = select(Skill).where(
-                Skill.chapter_id == chapter_id
+            logger.error(
+                f"[SkillService] get_by_id error: {e}",
+                exc_info=True,
             )
-
-            result = await session.execute(stmt)
-
-            return list(result.scalars().all())
-
-        except Exception as e:
-            logger.error(f"[SkillService] get_by_chapter error: {e}", exc_info=True)
             raise
 
 
-    # ---- Get By Subject ---- #
-    async def get_by_subject(
+    # ---- Get Full ---- #
+    async def get_full(
         self,
         session: AsyncSession,
-        subject_id: int,
-    ) -> list[Skill]:
+        skill_id: UUID,
+    ) -> Skill | None:
 
         try:
-            stmt = select(Skill).where(
-                Skill.subject_id == subject_id
-            )
-
-            result = await session.execute(stmt)
-
-            return list(result.scalars().all())
-
-        except Exception as e:
-            logger.error(f"[SkillService] get_by_subject error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Update Skill ---- #
-    async def update(
-        self,
-        session: AsyncSession,
-        skill_id: int,
-        updates: dict,
-    ) -> Skill:
-
-        try:
-            record = await session.get(Skill, skill_id)
-
-            if not record:
-                raise ValueError("skill not found")
-
-            # ---- protected fields ---- #
-            protected = {"id", "subject_id", "chapter_id", "topic_id"}
-
-            # ---- revalidate hierarchy if changed ---- #
-            if any(k in updates for k in ["topic_id", "chapter_id", "subject_id"]):
-                stmt = select(Topic).where(
-                    and_(
-                        Topic.id == updates.get("topic_id", record.topic_id),
-                        Topic.chapter_id == updates.get("chapter_id", record.chapter_id),
-                        Topic.subject_id == updates.get("subject_id", record.subject_id),
-                    )
+            stmt = (
+                select(Skill)
+                .options(
+                    selectinload(Skill.subject),
+                    selectinload(Skill.chapter),
+                    selectinload(Skill.topic),
+                    selectinload(Skill.skill_questions),
                 )
+                .where(Skill.id == skill_id)
+            )
 
-                result = await session.execute(stmt)
-                valid = result.scalar_one_or_none()
+            result = await session.execute(stmt)
 
-                if not valid:
-                    raise ValueError("invalid hierarchy relationship")
-
-            for key, value in updates.items():
-                if key in protected:
-                    continue
-                setattr(record, key, value)
-
-            await session.commit()
-            await session.refresh(record)
-
-            return record
+            return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(f"[SkillService] update error: {e}", exc_info=True)
+            logger.error(
+                f"[SkillService] get_full error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Delete Skill ---- #
-    async def delete(
+    # ---- Get Many ---- #
+    async def get_many_by_ids(
         self,
         session: AsyncSession,
-        skill_id: int,
-    ) -> bool:
+        skill_ids: list[UUID],
+    ) -> list[Skill]:
 
         try:
-            record = await session.get(Skill, skill_id)
+            if not skill_ids:
+                return []
 
-            if not record:
-                return False
+            stmt = select(Skill).where(Skill.id.in_(skill_ids))
 
-            await session.delete(record)
-            await session.commit()
+            result = await session.execute(stmt)
 
-            return True
+            return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[SkillService] delete error: {e}", exc_info=True)
+            logger.error(
+                f"[SkillService] get_many_by_ids error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- List ---- #
+    async def list_skills(
+        self,
+        session: AsyncSession,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Skill]:
+
+        try:
+            stmt = (
+                select(Skill)
+                .order_by(Skill.name.asc())
+                .limit(limit)
+                .offset(offset)
+            )
+
+            result = await session.execute(stmt)
+
+            return list(result.scalars().all())
+
+        except Exception as e:
+            logger.error(
+                f"[SkillService] list_skills error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- List By Topic ---- #
+    async def list_by_topic(
+        self,
+        session: AsyncSession,
+        topic_id: UUID,
+    ) -> list[Skill]:
+
+        try:
+            stmt = (
+                select(Skill)
+                .where(Skill.topic_id == topic_id)
+                .order_by(Skill.importance_weight.desc())
+            )
+
+            result = await session.execute(stmt)
+
+            return list(result.scalars().all())
+
+        except Exception as e:
+            logger.error(
+                f"[SkillService] list_by_topic error: {e}",
+                exc_info=True,
+            )
             raise
 
 
@@ -210,49 +312,113 @@ class SkillService:
         self,
         session: AsyncSession,
         query: str,
-        topic_id: int | None = None,
+        limit: int = 20,
     ) -> list[Skill]:
 
         try:
-            query = query.strip()
+            q = query.strip()
 
-            if not query:
-                return []
-
-            stmt = select(Skill).where(
-                Skill.name.ilike(f"%{query}%")
+            stmt = (
+                select(Skill)
+                .where(
+                    Skill.name.ilike(f"%{q}%")
+                    | Skill.description.ilike(f"%{q}%")
+                )
+                .order_by(Skill.importance_weight.desc())
+                .limit(limit)
             )
-
-            if topic_id:
-                stmt = stmt.where(Skill.topic_id == topic_id)
 
             result = await session.execute(stmt)
 
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[SkillService] search error: {e}", exc_info=True)
+            logger.error(
+                f"[SkillService] search error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Stats ---- #
-    async def stats(
+    # ---- Count ---- #
+    async def count(
         self,
         session: AsyncSession,
-        topic_id: int,
-    ) -> dict:
+    ) -> int:
 
         try:
-            stmt = select(func.count()).where(
-                Skill.topic_id == topic_id
-            )
+            stmt = select(func.count(Skill.id))
 
             result = await session.execute(stmt)
 
-            return {
-                "total": result.scalar()
-            }
+            return int(result.scalar() or 0)
 
         except Exception as e:
-            logger.error(f"[SkillService] stats error: {e}", exc_info=True)
+            logger.error(
+                f"[SkillService] count error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Delete ---- #
+    async def delete(
+        self,
+        session: AsyncSession,
+        skill_id: UUID,
+    ) -> bool:
+
+        try:
+            record = await self.get_full(
+                session=session,
+                skill_id=skill_id,
+            )
+
+            if not record:
+                return False
+
+            if record.skill_questions:
+                raise ValueError("cannot delete skill with questions")
+
+            await session.delete(record)
+
+            await session.commit()
+
+            return True
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[SkillService] delete error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Hard Delete ---- #
+    async def hard_delete(
+        self,
+        session: AsyncSession,
+        skill_id: UUID,
+    ) -> bool:
+
+        try:
+            stmt = delete(Skill).where(Skill.id == skill_id)
+
+            result = await session.execute(stmt)
+
+            await session.commit()
+
+            affected = result.rowcount # type: ignore
+
+            return bool(affected and affected > 0)
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[SkillService] hard_delete error: {e}",
+                exc_info=True,
+            )
             raise

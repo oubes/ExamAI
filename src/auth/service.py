@@ -36,27 +36,30 @@ class IdentityService:
     # ------------ register ------------ #
     async def register(self, session: AsyncSession, payload: dict) -> User:
 
-        existing = await self.user_repo.get_by_filters(
+        existing = await self.user_repo.get_by_email(
             session,
-            email=payload["email"],
+            payload["email"],
         )
 
         if existing:
             raise ValueError("Email already exists")
 
-        user = User(
-            full_name=payload["full_name"],
-            email=payload["email"],
-            user_name=payload["user_name"],
-            password_hash=hash_password(payload["password"]),
+        user = await self.user_repo.create(
+            session,
+            {
+                "full_name": payload["full_name"],
+                "email": payload["email"],
+                "user_name": payload["user_name"],
+                "password_hash": hash_password(payload["password"]),
+            },
         )
 
-        return await self.user_repo.create(session, user)
+        return user
 
     # ------------ verify email ------------ #
     async def verify_email(self, session: AsyncSession, user_id: str, email: str) -> None:
 
-        user = await self.user_repo.get_by_id(session, user_id)
+        user = await self.user_repo.get_by_id(session, UUID(user_id))
 
         if not user:
             raise ValueError("User not found")
@@ -67,18 +70,18 @@ class IdentityService:
         if user.is_verified:
             return
 
-        await self.user_repo.update_by_id(
+        await self.user_repo.update(
             session,
-            user_id,
+            UUID(user_id),
             {"is_verified": True},
         )
 
     # ------------ create password reset ------------ #
     async def create_password_reset(self, session: AsyncSession, email: str) -> tuple[str, str]:
 
-        user = await self.user_repo.get_by_filters(
+        user = await self.user_repo.get_by_email(
             session,
-            email=email,
+            email,
         )
 
         if not user:
@@ -107,14 +110,17 @@ class IdentityService:
         if not user_id or not email:
             raise ValueError("Invalid token")
 
-        user = await self.user_repo.get_by_id(session, user_id)
+        user = await self.user_repo.get_by_id(
+            session,
+            UUID(user_id),
+        )
 
         if not user or user.email != email:
             raise ValueError("User not found")
 
-        await self.user_repo.update_by_id(
+        await self.user_repo.update(
             session,
-            user_id,
+            UUID(user_id),
             {"password_hash": hash_password(new_password)},
         )
 
@@ -123,9 +129,9 @@ class IdentityService:
     # ------------ login ------------ #
     async def login(self, session: AsyncSession, payload: dict) -> dict:
 
-        user = await self.user_repo.get_by_filters(
+        user = await self.user_repo.get_by_email(
             session,
-            email=payload["email"],
+            payload["email"],
         )
 
         if not user:
@@ -176,7 +182,7 @@ class IdentityService:
     # ------------ logout ------------ #
     async def logout(self, session: AsyncSession, session_id: UUID) -> None:
 
-        await self.session_repo.update_by_id(
+        await self.session_repo.update(
             session,
             session_id,
             {"is_active": False},

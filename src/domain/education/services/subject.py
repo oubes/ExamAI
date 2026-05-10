@@ -1,20 +1,26 @@
 # ---- Imports ---- #
 import logging
+from uuid import UUID
 
+from sqlalchemy import func, select, update, delete
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 
 from src.domain.education.models.subject import Subject
+from src.domain.education.models.chapter import Chapter
+from src.domain.education.models.enrollment import Enrollment
+from src.domain.education.models.exam import Exam
 
 
-# ---- logging ---- #
+# ---- Logging ---- #
 logger = logging.getLogger(__name__)
 
 
 # ---- Subject Service ---- #
 class SubjectService:
 
-    # ---- Create Subject ---- #
+    # ---- Create ---- #
     async def create(
         self,
         session: AsyncSession,
@@ -22,25 +28,136 @@ class SubjectService:
     ) -> Subject:
 
         try:
-            logger.debug(f"[SubjectService] create: {data}")
+            code = str(data["code"]).strip().upper()
 
-            # ---- ensure unique code ---- #
-            stmt = select(Subject).where(Subject.code == data.get("code"))
-            result = await session.execute(stmt)
+            exists_stmt = select(Subject).where(
+                func.lower(Subject.code) == code.lower()
+            )
 
-            if result.scalar_one_or_none():
+            exists_result = await session.execute(exists_stmt)
+
+            if exists_result.scalar_one_or_none():
                 raise ValueError("subject code already exists")
 
-            record = Subject(**data)
+            record = Subject(
+                title=str(data["title"]).strip(),
+                code=code,
+            )
 
             session.add(record)
+
             await session.commit()
             await session.refresh(record)
 
             return record
 
+        except IntegrityError as e:
+            await session.rollback()
+
+            logger.error(
+                f"[SubjectService] create integrity error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
         except Exception as e:
-            logger.error(f"[SubjectService] create error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[SubjectService] create error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
+
+    # ---- Bulk Create ---- #
+    async def bulk_create(
+        self,
+        session: AsyncSession,
+        payloads: list[dict],
+    ) -> list[Subject]:
+
+        try:
+            normalized_codes = [
+                str(item["code"]).strip().upper()
+                for item in payloads
+            ]
+
+            if len(normalized_codes) != len(set(normalized_codes)):
+                raise ValueError("duplicate subject codes in payload")
+
+            stmt = select(Subject.code)
+
+            result = await session.execute(stmt)
+
+            existing_codes = {
+                row.lower()
+                for row in result.scalars().all()
+            }
+
+            duplicated = [
+                code
+                for code in normalized_codes
+                if code.lower() in existing_codes
+            ]
+
+            if duplicated:
+                raise ValueError(
+                    f"subject codes already exist: {duplicated}"
+                )
+
+            records = [
+                Subject(
+                    title=str(item["title"]).strip(),
+                    code=str(item["code"]).strip().upper(),
+                )
+                for item in payloads
+            ]
+
+            session.add_all(records)
+
+            await session.commit()
+
+            for record in records:
+                await session.refresh(record)
+
+            return records
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[SubjectService] bulk_create error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
+
+    # ---- Exists ---- #
+    async def exists(
+        self,
+        session: AsyncSession,
+        subject_id: UUID,
+    ) -> bool:
+
+        try:
+            stmt = select(Subject.id).where(
+                Subject.id == subject_id
+            )
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none() is not None
+
+        except Exception as e:
+            logger.error(
+                f"[SubjectService] exists error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
@@ -48,14 +165,56 @@ class SubjectService:
     async def get_by_id(
         self,
         session: AsyncSession,
-        subject_id: int,
+        subject_id: UUID,
     ) -> Subject | None:
 
         try:
-            return await session.get(Subject, subject_id)
+            stmt = (
+                select(Subject)
+                .where(Subject.id == subject_id)
+            )
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(f"[SubjectService] get_by_id error: {e}", exc_info=True)
+            logger.error(
+                f"[SubjectService] get_by_id error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
+
+    # ---- Get Full ---- #
+    async def get_full(
+        self,
+        session: AsyncSession,
+        subject_id: UUID,
+    ) -> Subject | None:
+
+        try:
+            stmt = (
+                select(Subject)
+                .options(
+                    selectinload(Subject.chapters),
+                    selectinload(Subject.enrollments),
+                    selectinload(Subject.exams),
+                )
+                .where(Subject.id == subject_id)
+            )
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none()
+
+        except Exception as e:
+            logger.error(
+                f"[SubjectService] get_full error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
@@ -67,18 +226,53 @@ class SubjectService:
     ) -> Subject | None:
 
         try:
-            stmt = select(Subject).where(Subject.code == code)
+            stmt = select(Subject).where(
+                func.lower(Subject.code) == code.strip().lower()
+            )
+
             result = await session.execute(stmt)
 
             return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(f"[SubjectService] get_by_code error: {e}", exc_info=True)
+            logger.error(
+                f"[SubjectService] get_by_code error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
-    # ---- List Subjects ---- #
-    async def list(
+    # ---- Get Many By IDs ---- #
+    async def get_many_by_ids(
+        self,
+        session: AsyncSession,
+        subject_ids: list[UUID],
+    ) -> list[Subject]:
+
+        try:
+            if not subject_ids:
+                return []
+
+            stmt = select(Subject).where(
+                Subject.id.in_(subject_ids)
+            )
+
+            result = await session.execute(stmt)
+
+            return list(result.scalars().all())
+
+        except Exception as e:
+            logger.error(
+                f"[SubjectService] get_many_by_ids error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
+
+    # ---- List ---- #
+    async def list_subjects(
         self,
         session: AsyncSession,
         limit: int = 50,
@@ -86,13 +280,23 @@ class SubjectService:
     ) -> list[Subject]:
 
         try:
-            stmt = select(Subject).offset(offset).limit(limit)
+            stmt = (
+                select(Subject)
+                .order_by(Subject.title.asc())
+                .offset(offset)
+                .limit(limit)
+            )
+
             result = await session.execute(stmt)
 
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[SubjectService] list error: {e}", exc_info=True)
+            logger.error(
+                f"[SubjectService] list_subjects error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
@@ -102,55 +306,97 @@ class SubjectService:
         session: AsyncSession,
         query: str,
         limit: int = 20,
-    ) -> list[Subject]: # type: ignore
+    ) -> list[Subject]:
 
         try:
-            stmt = select(Subject).where(
-                Subject.title.ilike(f"%{query}%")
-            ).limit(limit)
+            normalized_query = query.strip()
+
+            stmt = (
+                select(Subject)
+                .where(
+                    Subject.title.ilike(f"%{normalized_query}%")
+                    | Subject.code.ilike(f"%{normalized_query}%")
+                )
+                .order_by(Subject.title.asc())
+                .limit(limit)
+            )
 
             result = await session.execute(stmt)
 
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[SubjectService] search error: {e}", exc_info=True)
+            logger.error(
+                f"[SubjectService] search error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
-    # ---- Update Subject ---- #
+    # ---- Count ---- #
+    async def count(
+        self,
+        session: AsyncSession,
+    ) -> int:
+
+        try:
+            stmt = select(func.count(Subject.id))
+
+            result = await session.execute(stmt)
+
+            return int(result.scalar() or 0)
+
+        except Exception as e:
+            logger.error(
+                f"[SubjectService] count error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
+
+    # ---- Update ---- #
     async def update(
         self,
         session: AsyncSession,
-        subject_id: int,
+        subject_id: UUID,
         updates: dict,
     ) -> Subject:
 
         try:
-            record = await session.get(Subject, subject_id)
+            record = await self.get_by_id(
+                session=session,
+                subject_id=subject_id,
+            )
 
             if not record:
                 raise ValueError("subject not found")
 
-            # ---- protected fields ---- #
-            protected = {"id"}
+            protected_fields = {"id"}
 
-            # ---- enforce unique code update ---- #
             if "code" in updates:
+                normalized_code = str(
+                    updates["code"]
+                ).strip().upper()
+
                 stmt = select(Subject).where(
-                    Subject.code == updates["code"]
+                    func.lower(Subject.code) == normalized_code.lower(),
+                    Subject.id != subject_id,
                 )
+
                 result = await session.execute(stmt)
 
-                existing = result.scalar_one_or_none()
-
-                if existing and existing.id != subject_id:
+                if result.scalar_one_or_none():
                     raise ValueError("subject code already exists")
 
-            for k, v in updates.items():
-                if k in protected:
+                updates["code"] = normalized_code
+
+            for key, value in updates.items():
+                if key in protected_fields:
                     continue
-                setattr(record, k, v)
+
+                setattr(record, key, value)
 
             await session.commit()
             await session.refresh(record)
@@ -158,51 +404,124 @@ class SubjectService:
             return record
 
         except Exception as e:
-            logger.error(f"[SubjectService] update error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[SubjectService] update error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
-    # ---- Delete Subject ---- #
-    async def delete(
+    # ---- Patch Title ---- #
+    async def patch_title(
         self,
         session: AsyncSession,
-        subject_id: int,
+        subject_id: UUID,
+        title: str,
     ) -> bool:
 
         try:
-            record = await session.get(Subject, subject_id)
+            stmt = (
+                update(Subject)
+                .where(Subject.id == subject_id)
+                .values(
+                    title=title.strip(),
+                )
+            )
 
-            if not record:
+            result = await session.execute(stmt)
+
+            await session.commit()
+
+            return getattr(result, "rowcount", 0) > 0
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[SubjectService] patch_title error: {e}",
+                exc_info=True,
+            )
+
+            raise
+
+
+    # ---- Delete ---- #
+    async def delete(
+        self,
+        session: AsyncSession,
+        subject_id: UUID,
+    ) -> bool:
+
+        try:
+            subject = await self.get_full(
+                session=session,
+                subject_id=subject_id,
+            )
+
+            if not subject:
                 return False
 
-            await session.delete(record)
+            if subject.chapters:
+                raise ValueError(
+                    "cannot delete subject with chapters"
+                )
+
+            if subject.exams:
+                raise ValueError(
+                    "cannot delete subject with exams"
+                )
+
+            if subject.enrollments:
+                raise ValueError(
+                    "cannot delete subject with enrollments"
+                )
+
+            await session.delete(subject)
+
             await session.commit()
 
             return True
 
         except Exception as e:
-            logger.error(f"[SubjectService] delete error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[SubjectService] delete error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
-    # ---- Get Subject With Relations ---- #
-    async def get_full(
+    # ---- Hard Delete ---- #
+    async def hard_delete(
         self,
         session: AsyncSession,
-        subject_id: int,
-    ) -> Subject | None:
+        subject_id: UUID,
+    ) -> bool:
 
         try:
-            stmt = select(Subject).where(
+            stmt = delete(Subject).where(
                 Subject.id == subject_id
             )
 
             result = await session.execute(stmt)
 
-            return result.scalar_one_or_none()
+            await session.commit()
+
+            return bool(getattr(result, "rowcount", 0))
 
         except Exception as e:
-            logger.error(f"[SubjectService] get_full error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[SubjectService] hard_delete error: {e}",
+                exc_info=True,
+            )
+
             raise
 
 
@@ -210,43 +529,42 @@ class SubjectService:
     async def stats(
         self,
         session: AsyncSession,
-        subject_id: int,
+        subject_id: UUID,
     ) -> dict:
 
         try:
-            # ---- chapters count ---- #
-            chapters = await session.execute(
-                select(func.count()).select_from(
-                    Subject.chapters.property.mapper.class_
-                ).where(
-                    Subject.chapters.property.mapper.class_.subject_id == subject_id
-                )
+            chapter_stmt = select(
+                func.count(Chapter.id)
+            ).where(
+                Chapter.subject_id == subject_id
             )
 
-            # ---- exams count ---- #
-            exams = await session.execute(
-                select(func.count()).select_from(
-                    Subject.exams.property.mapper.class_
-                ).where(
-                    Subject.exams.property.mapper.class_.subject_id == subject_id
-                )
+            enrollment_stmt = select(
+                func.count(Enrollment.id) # type: ignore
+            ).where(
+                Enrollment.subject_id == subject_id
             )
 
-            # ---- enrollments count ---- #
-            enrollments = await session.execute(
-                select(func.count()).select_from(
-                    Subject.enrollments.property.mapper.class_
-                ).where(
-                    Subject.enrollments.property.mapper.class_.subject_id == subject_id
-                )
+            exam_stmt = select(
+                func.count(Exam.id)
+            ).where(
+                Exam.subject_id == subject_id
             )
+
+            chapters_result = await session.execute(chapter_stmt)
+            enrollments_result = await session.execute(enrollment_stmt)
+            exams_result = await session.execute(exam_stmt)
 
             return {
-                "chapters": chapters.scalar(),
-                "exams": exams.scalar(),
-                "enrollments": enrollments.scalar(),
+                "chapters": int(chapters_result.scalar() or 0),
+                "enrollments": int(enrollments_result.scalar() or 0),
+                "exams": int(exams_result.scalar() or 0),
             }
 
         except Exception as e:
-            logger.error(f"[SubjectService] stats error: {e}", exc_info=True)
+            logger.error(
+                f"[SubjectService] stats error: {e}",
+                exc_info=True,
+            )
+
             raise

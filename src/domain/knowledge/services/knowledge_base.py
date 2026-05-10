@@ -1,39 +1,202 @@
 # ---- Imports ---- #
 import logging
+from uuid import UUID
 
+from sqlalchemy import select, func, delete
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_, func
+from sqlalchemy.orm import selectinload
 
 from src.domain.knowledge.models.knowledge_base import KnowledgeBase
+from src.domain.education.models.subject import Subject
+from src.domain.education.models.chapter import Chapter
 
 
-# ---- logging ---- #
+# ---- Logging ---- #
 logger = logging.getLogger(__name__)
 
 
 # ---- Knowledge Base Service ---- #
 class KnowledgeBaseService:
 
-    # ---- Create Chunk ---- #
+    # ---- Create ---- #
     async def create(
         self,
         session: AsyncSession,
-        data: dict,
+        payload: dict,
     ) -> KnowledgeBase:
 
         try:
-            logger.debug(f"[KnowledgeBase] create: subject_id={data.get('subject_id')}")
+            subject_id = payload["subject_id"]
+            chapter_id = payload.get("chapter_id")
 
-            record = KnowledgeBase(**data)
+            subject_stmt = select(Subject.id).where(
+                Subject.id == subject_id
+            )
+
+            subject_result = await session.execute(subject_stmt)
+
+            if not subject_result.scalar_one_or_none():
+                raise ValueError("subject not found")
+
+            if chapter_id:
+                chapter_stmt = select(Chapter.id).where(
+                    Chapter.id == chapter_id
+                )
+
+                chapter_result = await session.execute(chapter_stmt)
+
+                if not chapter_result.scalar_one_or_none():
+                    raise ValueError("chapter not found")
+
+            record = KnowledgeBase(
+                subject_id=subject_id,
+                chapter_id=chapter_id,
+                document_id=int(payload["document_id"]),
+                chunk_index=int(payload.get("chunk_index", 0)),
+                content=str(payload["content"]),
+                summary=payload.get("summary"),
+                keywords=payload.get("keywords"),
+                source_type=str(payload.get("source_type", "text")),
+                quality_score=float(
+                    payload.get("quality_score", 0.0)
+                ),
+                importance_score=float(
+                    payload.get("importance_score", 0.0)
+                ),
+                embedding=payload["embedding"],
+            )
 
             session.add(record)
+
             await session.commit()
             await session.refresh(record)
 
             return record
 
+        except IntegrityError as e:
+            await session.rollback()
+
+            logger.error(
+                f"[KnowledgeBaseService] create integrity error: {e}",
+                exc_info=True,
+            )
+            raise
+
         except Exception as e:
-            logger.error(f"[KnowledgeBase] create error: {e}", exc_info=True)
+            await session.rollback()
+
+            logger.error(
+                f"[KnowledgeBaseService] create error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Bulk Create ---- #
+    async def bulk_create(
+        self,
+        session: AsyncSession,
+        payloads: list[dict],
+    ) -> list[KnowledgeBase]:
+
+        try:
+            if not payloads:
+                return []
+
+            subject_ids = {p["subject_id"] for p in payloads}
+            chapter_ids = {
+                p["chapter_id"] for p in payloads if p.get("chapter_id")
+            }
+
+            subject_stmt = select(Subject.id).where(
+                Subject.id.in_(subject_ids)
+            )
+
+            subject_result = await session.execute(subject_stmt)
+
+            existing_subjects = set(subject_result.scalars().all())
+
+            if subject_ids - existing_subjects:
+                raise ValueError("invalid subject_ids")
+
+            existing_chapters = set()
+
+            if chapter_ids:
+                chapter_stmt = select(Chapter.id).where(
+                    Chapter.id.in_(chapter_ids)
+                )
+
+                chapter_result = await session.execute(chapter_stmt)
+
+                existing_chapters = set(
+                    chapter_result.scalars().all()
+                )
+
+                if chapter_ids - existing_chapters:
+                    raise ValueError("invalid chapter_ids")
+
+            records: list[KnowledgeBase] = [
+                KnowledgeBase(
+                    subject_id=p["subject_id"],
+                    chapter_id=p.get("chapter_id"),
+                    document_id=int(p["document_id"]),
+                    chunk_index=int(p.get("chunk_index", 0)),
+                    content=str(p["content"]),
+                    summary=p.get("summary"),
+                    keywords=p.get("keywords"),
+                    source_type=str(p.get("source_type", "text")),
+                    quality_score=float(
+                        p.get("quality_score", 0.0)
+                    ),
+                    importance_score=float(
+                        p.get("importance_score", 0.0)
+                    ),
+                    embedding=p["embedding"],
+                )
+                for p in payloads
+            ]
+
+            session.add_all(records)
+
+            await session.commit()
+
+            for r in records:
+                await session.refresh(r)
+
+            return records
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[KnowledgeBaseService] bulk_create error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Exists ---- #
+    async def exists(
+        self,
+        session: AsyncSession,
+        record_id: UUID,
+    ) -> bool:
+
+        try:
+            stmt = select(KnowledgeBase.id).where(
+                KnowledgeBase.id == record_id
+            )
+
+            result = await session.execute(stmt)
+
+            return result.scalar_one_or_none() is not None
+
+        except Exception as e:
+            logger.error(
+                f"[KnowledgeBaseService] exists error: {e}",
+                exc_info=True,
+            )
             raise
 
 
@@ -41,273 +204,110 @@ class KnowledgeBaseService:
     async def get_by_id(
         self,
         session: AsyncSession,
-        kb_id: int,
+        record_id: UUID,
     ) -> KnowledgeBase | None:
 
         try:
-            return await session.get(KnowledgeBase, kb_id)
-
-        except Exception as e:
-            logger.error(f"[KnowledgeBase] get_by_id error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Get By Document ---- #
-    async def get_by_document(
-        self,
-        session: AsyncSession,
-        document_id: int,
-    ) -> list[KnowledgeBase]:
-
-        try:
             stmt = select(KnowledgeBase).where(
-                KnowledgeBase.document_id == document_id
+                KnowledgeBase.id == record_id
             )
 
             result = await session.execute(stmt)
 
-            return list(result.scalars().all())
+            return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(f"[KnowledgeBase] get_by_document error: {e}", exc_info=True)
+            logger.error(
+                f"[KnowledgeBaseService] get_by_id error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Get By Subject ---- #
-    async def get_by_subject(
+    # ---- List By Subject ---- #
+    async def list_by_subject(
         self,
         session: AsyncSession,
-        subject_id: int,
+        subject_id: UUID,
         limit: int = 50,
         offset: int = 0,
     ) -> list[KnowledgeBase]:
 
         try:
-            stmt = select(KnowledgeBase).where(
-                KnowledgeBase.subject_id == subject_id
-            ).order_by(
-                KnowledgeBase.quality_score.desc(),
-                KnowledgeBase.importance_score.desc()
-            ).offset(offset).limit(limit)
+            stmt = (
+                select(KnowledgeBase)
+                .where(KnowledgeBase.subject_id == subject_id)
+                .order_by(KnowledgeBase.chunk_index.asc())
+                .limit(limit)
+                .offset(offset)
+            )
 
             result = await session.execute(stmt)
 
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[KnowledgeBase] get_by_subject error: {e}", exc_info=True)
+            logger.error(
+                f"[KnowledgeBaseService] list_by_subject error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Update Chunk ---- #
-    async def update(
+    # ---- Search Text ---- #
+    async def search_text(
         self,
         session: AsyncSession,
-        kb_id: int,
-        updates: dict,
-    ) -> KnowledgeBase:
+        query: str,
+        limit: int = 20,
+    ) -> list[KnowledgeBase]:
 
         try:
-            record = await session.get(KnowledgeBase, kb_id)
+            stmt = (
+                select(KnowledgeBase)
+                .where(KnowledgeBase.content.ilike(f"%{query}%"))
+                .limit(limit)
+            )
 
-            if not record:
-                raise ValueError("knowledge base record not found")
+            result = await session.execute(stmt)
 
-            protected = {"id", "document_id"}
-
-            for k, v in updates.items():
-                if k in protected:
-                    continue
-                setattr(record, k, v)
-
-            await session.commit()
-            await session.refresh(record)
-
-            return record
+            return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(f"[KnowledgeBase] update error: {e}", exc_info=True)
+            logger.error(
+                f"[KnowledgeBaseService] search_text error: {e}",
+                exc_info=True,
+            )
             raise
 
 
-    # ---- Delete Chunk ---- #
+    # ---- Delete ---- #
     async def delete(
         self,
         session: AsyncSession,
-        kb_id: int,
+        record_id: UUID,
     ) -> bool:
 
         try:
-            record = await session.get(KnowledgeBase, kb_id)
+            record = await self.get_by_id(
+                session=session,
+                record_id=record_id,
+            )
 
             if not record:
                 return False
 
             await session.delete(record)
+
             await session.commit()
 
             return True
 
         except Exception as e:
-            logger.error(f"[KnowledgeBase] delete error: {e}", exc_info=True)
-            raise
+            await session.rollback()
 
-
-    # ---- Delete By Document ---- #
-    async def delete_by_document(
-        self,
-        session: AsyncSession,
-        document_id: int,
-    ) -> int:
-
-        try:
-            stmt = select(KnowledgeBase).where(
-                KnowledgeBase.document_id == document_id
+            logger.error(
+                f"[KnowledgeBaseService] delete error: {e}",
+                exc_info=True,
             )
-
-            result = await session.execute(stmt)
-            records = result.scalars().all()
-
-            count = len(records)
-
-            for r in records:
-                await session.delete(r)
-
-            await session.commit()
-
-            return count
-
-        except Exception as e:
-            logger.error(f"[KnowledgeBase] delete_by_document error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Full Text Search ---- #
-    async def search_text(
-        self,
-        session: AsyncSession,
-        query: str,
-        subject_id: int | None = None,
-        limit: int = 20,
-    ) -> list[KnowledgeBase]:
-
-        try:
-            stmt = select(KnowledgeBase).where(
-                KnowledgeBase.search_vector.match(query)
-            )
-
-            if subject_id:
-                stmt = stmt.where(KnowledgeBase.subject_id == subject_id)
-
-            stmt = stmt.limit(limit)
-
-            result = await session.execute(stmt)
-
-            return list(result.scalars().all())
-
-        except Exception as e:
-            logger.error(f"[KnowledgeBase] search_text error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Semantic Search (Vector) ---- #
-    async def search_vector(
-        self,
-        session: AsyncSession,
-        embedding: list[float],
-        subject_id: int | None = None,
-        limit: int = 10,
-    ) -> list[KnowledgeBase]:
-
-        try:
-            stmt = select(KnowledgeBase)
-
-            if subject_id:
-                stmt = stmt.where(KnowledgeBase.subject_id == subject_id)
-
-            # cosine distance
-            stmt = stmt.order_by(
-                KnowledgeBase.embedding.cosine_distance(embedding)
-            ).limit(limit)
-
-            result = await session.execute(stmt)
-
-            return list(result.scalars().all())
-
-        except Exception as e:
-            logger.error(f"[KnowledgeBase] search_vector error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Hybrid Search (Text + Vector Ranking) ---- #
-    async def hybrid_search(
-        self,
-        session: AsyncSession,
-        query: str,
-        embedding: list[float],
-        subject_id: int | None = None,
-        limit: int = 10,
-    ) -> list[KnowledgeBase]:
-
-        try:
-            stmt = select(KnowledgeBase)
-
-            if subject_id:
-                stmt = stmt.where(KnowledgeBase.subject_id == subject_id)
-
-            stmt = stmt.where(
-                or_(
-                    KnowledgeBase.search_vector.match(query),
-                    KnowledgeBase.embedding.cosine_distance(embedding) < 0.3
-                )
-            )
-
-            stmt = stmt.order_by(
-                KnowledgeBase.importance_score.desc(),
-                KnowledgeBase.quality_score.desc(),
-            ).limit(limit)
-
-            result = await session.execute(stmt)
-
-            return list(result.scalars().all())
-
-        except Exception as e:
-            logger.error(f"[KnowledgeBase] hybrid_search error: {e}", exc_info=True)
-            raise
-
-
-    # ---- Stats ---- #
-    async def stats(
-        self,
-        session: AsyncSession,
-        subject_id: int,
-    ) -> dict:
-
-        try:
-            total = await session.execute(
-                select(func.count()).where(
-                    KnowledgeBase.subject_id == subject_id
-                )
-            )
-
-            avg_quality = await session.execute(
-                select(func.avg(KnowledgeBase.quality_score)).where(
-                    KnowledgeBase.subject_id == subject_id
-                )
-            )
-
-            avg_importance = await session.execute(
-                select(func.avg(KnowledgeBase.importance_score)).where(
-                    KnowledgeBase.subject_id == subject_id
-                )
-            )
-
-            return {
-                "total": total.scalar(),
-                "avg_quality": float(avg_quality.scalar() or 0),
-                "avg_importance": float(avg_importance.scalar() or 0),
-            }
-
-        except Exception as e:
-            logger.error(f"[KnowledgeBase] stats error: {e}", exc_info=True)
             raise
