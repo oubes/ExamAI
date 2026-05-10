@@ -171,14 +171,14 @@ export default function AuthPage() {
                     <Label className="text-zinc-500 text-xs ml-1">Full Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600 z-10" />
-                      <Input name="full_name" required value={formData.full_name} onChange={handleChange} className={smallInputClasses} />
+                      <Input name="full_name" required value={formData.full_name} onChange={handleChange} placeholder="John Doe" className={`${smallInputClasses} placeholder:opacity-25`} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-zinc-500 text-xs ml-1">Username</Label>
                     <div className="relative">
                       <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-600 z-10" />
-                      <Input name="user_name" required value={formData.user_name} onChange={handleChange} className={smallInputClasses} />
+                      <Input name="user_name" required value={formData.user_name} onChange={handleChange} placeholder="johndoe" className={`${smallInputClasses} placeholder:opacity-25`} />
                     </div>
                   </div>
                 </div>
@@ -188,7 +188,7 @@ export default function AuthPage() {
                 <Label className="text-zinc-500 text-xs ml-1">Email</Label>
                 <div className="relative group">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-600 z-10" />
-                  <Input name="email" required type="email" value={formData.email} onChange={handleChange} placeholder="name@company.com" className={inputClasses} />
+                  <Input name="email" required type="email" value={formData.email} onChange={handleChange} placeholder="name@company.com" className={`${inputClasses} placeholder:opacity-25`} />
                 </div>
               </div>
 
@@ -215,7 +215,7 @@ export default function AuthPage() {
                       value={formData.password} 
                       onChange={handleChange} 
                       placeholder="••••••••" 
-                      className={inputClasses} 
+                      className={`${inputClasses} placeholder:opacity-25`} 
                     />
                     {/* ---- Toggle Visibility Button ---- */}
                     <button
