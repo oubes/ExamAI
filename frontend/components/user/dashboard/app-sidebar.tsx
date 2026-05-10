@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
@@ -29,7 +29,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { authService } from "@/services/auth.service";
 import { MeResponse } from "@/services/dashboard.service";
 
-// ---- Navigation Config ----
 const studentNav = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { title: "My Subjects", icon: BookOpen, href: "/subjects" },
@@ -37,7 +36,6 @@ const studentNav = [
   { title: "Feedback", icon: MessageSquareText, href: "/student/feedback" },
 ];
 
-// ---- Sidebar Header Component ----
 function SidebarHeaderTrigger() {
   const { toggleSidebar } = useSidebar();
   return (
@@ -58,9 +56,9 @@ function SidebarHeaderTrigger() {
   );
 }
 
-// ---- Main Sidebar Component ----
 export function AppSidebar({ user }: { user: MeResponse | null }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     try {
@@ -82,30 +80,53 @@ export function AppSidebar({ user }: { user: MeResponse | null }) {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-4">
             <SidebarMenu>
-              {studentNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild className="mx-2 h-11 rounded-lg text-zinc-400 hover:bg-white/5 hover:text-blue-400 transition-all group/item cursor-pointer">
-                    <Link href={item.href}>
-                      <item.icon className="h-4 w-4 transition-transform duration-200 group-hover/item:scale-125" />
-                      <span className="font-medium">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {studentNav.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive}
+                      className={`mx-2 h-11 rounded-lg transition-all group/item cursor-pointer 
+                        ${isActive 
+                          ? "bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20" 
+                          : "text-zinc-400 hover:bg-white/5 hover:text-blue-400"
+                        }`}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className={`h-4 w-4 transition-transform duration-200 
+                          ${isActive ? "scale-110 text-blue-400" : "group-hover/item:scale-125"}`} 
+                        />
+                        <span className="font-medium">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2 transition-all duration-300">
-        <Link href="/student/profile" className="flex items-center gap-3 rounded-xl bg-zinc-900/80 p-3 ring-1 ring-white/10 shadow-lg transition-all duration-200 hover:bg-zinc-800 hover:ring-blue-500/40 group/user active:scale-[0.98] group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center cursor-pointer">
+        <Link 
+          href="/student/profile" 
+          className={`flex items-center gap-3 rounded-xl p-3 ring-1 shadow-lg transition-all duration-200 group/user active:scale-[0.98] 
+            group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center cursor-pointer
+            ${pathname === "/student/profile" 
+              ? "bg-blue-500/10 ring-blue-500/40 text-blue-400" 
+              : "bg-zinc-900/80 ring-white/10 hover:bg-zinc-800 hover:ring-blue-500/40"
+            }`}
+        >
           <Avatar className="h-7 w-7 border border-blue-500/20 shrink-0 transition-transform group-hover/user:scale-110">
             <AvatarFallback className="bg-zinc-800 text-[10px] font-bold text-blue-400">
               {user?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'ST'}
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col truncate group-data-[collapsible=icon]:hidden">
-            <span className="text-xs font-semibold text-zinc-100 group-hover/user:text-blue-400 transition-colors">{user?.full_name}</span>
+            <span className={`text-xs font-semibold transition-colors ${pathname === "/student/profile" ? "text-blue-400" : "text-zinc-100 group-hover/user:text-blue-400"}`}>
+              {user?.full_name}
+            </span>
             <span className="text-[9px] text-zinc-500 truncate">{user?.email}</span>
           </div>
         </Link>

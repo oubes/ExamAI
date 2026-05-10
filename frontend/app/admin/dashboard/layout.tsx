@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
+import { AppSidebar } from "@/components/admin/dashboard/app-sidebar";
 import { meService, MeResponse } from "@/services/dashboard.service";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
