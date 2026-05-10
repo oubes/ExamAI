@@ -10,13 +10,13 @@ router = APIRouter()
 
 
 # ---- Routes ---- #
-@router.get("/")
+@router.get("/check")
 async def health_check():
     return {"status": "OK"}
 
 
 # ---- Protected Example ---- #
-@router.get("/secure-health")
+@router.get("/secure-check")
 async def secure_health(user=Depends(get_current_user), _=Depends(admin_required)):
     return {
         "status": "OK",
