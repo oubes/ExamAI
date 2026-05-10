@@ -7,7 +7,7 @@ from src.auth.email_token import decode_email_verification_token
 from src.auth.service import IdentityService
 from src.core.di.settings import get_settings
 
-from .deps import get_session
+from src.core.di.db import get_session
 
 # ---- Settings ---- #
 settings = get_settings()

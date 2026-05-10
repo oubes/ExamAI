@@ -8,7 +8,7 @@ from src.auth.service import IdentityService
 from src.infra.queue.tasks import send_reset_password_email, send_password_changed_email
 from src.core.di.settings import get_settings
 
-from .deps import get_session
+from src.core.di.db import get_session
 
 # ---- Settings ---- #
 settings = get_settings()

@@ -6,7 +6,7 @@ from src.auth.jwt import decode_token
 from src.auth.security import security
 from src.auth.service import IdentityService
 
-from .deps import get_session
+from src.core.di.db import get_session
 
 router = APIRouter()
 identity_service = IdentityService()

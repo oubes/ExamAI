@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.models.identity_models import LoginRequest, TokenResponse
 from src.auth.service import IdentityService
-from .deps import get_session
+from src.core.di.db import get_session
 
 # ---------- Router ---------- #
 router = APIRouter()

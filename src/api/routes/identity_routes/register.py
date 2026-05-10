@@ -11,7 +11,7 @@ from src.core.di.settings import get_settings
 from src.infra.queue.tasks import send_welcome_email, send_verify_email
 from src.auth.email_token import create_email_verification_token
 
-from .deps import get_session
+from src.core.di.db import get_session
 
 # ---- Settings ---- #
 settings = get_settings()
