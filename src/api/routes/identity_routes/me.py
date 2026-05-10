@@ -20,6 +20,7 @@ async def me(user: User = Depends(get_current_user)):
         role=user.role,
         email=user.email,
         is_active=user.is_active,
+        is_verified=user.is_verified,
         created_at=cast(datetime, user.created_at),
         updated_at=cast(datetime, user.updated_at),
     )

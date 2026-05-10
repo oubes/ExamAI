@@ -8,6 +8,7 @@ export interface MeResponse {
   email: string;
   role: string;
   is_active: boolean;
+  is_verified: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -48,6 +48,7 @@ class MeResponse(BaseModel):
     email: EmailStr
     role: str
     is_active: bool
+    is_verified: bool
     created_at: datetime
     updated_at: datetime
     
