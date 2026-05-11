@@ -10,7 +10,6 @@ import { meService, MeResponse } from "@/services/dashboard.service";
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<MeResponse | null>(null);
-  const [loading, setLoading] = useState(true);
 
   // ---- Auth Guard ----
   useEffect(() => {
@@ -19,24 +18,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const userData = await meService.getMe();
         if (!userData) throw new Error();
         setUser(userData);
-        setLoading(false);
       } catch {
         router.replace("/AuthPage");
       }
     };
     checkAuth();
   }, [router]);
-
-  if (loading) {
-    return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#030303]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          <span className="text-[10px] font-mono text-zinc-500 tracking-[0.3em] uppercase">Authenticating_Access...</span>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <TooltipProvider delayDuration={0}>

@@ -36,6 +36,7 @@ async def add_subject(
 ) -> AddSubjectResponse:
 
     try:
+        print("Adding subject with payload:", payload)
         subject = await education_service.add_subject(
             session=session,
             payload=payload.model_dump(),

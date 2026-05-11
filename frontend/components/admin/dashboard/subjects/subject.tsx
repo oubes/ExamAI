@@ -1,3 +1,5 @@
+"use client";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +37,7 @@ export function Subject({
     expanded,
     onToggleExpand,
 }: SubjectProps) {
+    // ---- Formatting ----
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return "N/A";
         return new Date(dateStr).toLocaleDateString("en-US", {
@@ -48,21 +51,42 @@ export function Subject({
 
     return (
         <motion.div
-            key={subject.id}
             layout
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className={`group overflow-hidden rounded-xl border transition-all duration-300 w-full shadow-sm ${
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+            className={`group overflow-hidden rounded-xl border transition-all duration-200 w-full shadow-sm cursor-default ${
                 subject.is_deleted
-                    ? "border-red-900/20 bg-red-950/10 hover:bg-red-900/30 hover:border-red-900/50" 
-                    : "border-white/10 bg-zinc-900/70 hover:bg-zinc-900/90"
+                    ? "border-red-900/20 bg-red-950/10" 
+                    : "border-white/10 bg-zinc-900/60 hover:bg-zinc-900/90 hover:border-white/20"
             }`}
+            style={subject.is_deleted ? { 
+                backgroundColor: "rgba(168, 16, 32, 0.1)",
+                borderColor: "rgba(127, 29, 29, 0.2)"
+            } : {
+                backgroundColor: "",
+                borderColor: ""
+            }}
+            onMouseEnter={(e) => {
+                if (subject.is_deleted) {
+                    e.currentTarget.style.backgroundColor = "rgba(127, 29, 29, 0.25)";
+                    e.currentTarget.style.borderColor = "rgba(239, 68, 68, 0.4)";
+                }
+            }}
+            onMouseLeave={(e) => {
+                if (subject.is_deleted) {
+                    e.currentTarget.style.backgroundColor = "rgba(168, 16, 32, 0.1)";
+                    e.currentTarget.style.borderColor = "rgba(127, 29, 29, 0.2)";
+                } else {
+                    e.currentTarget.style.backgroundColor = "";
+                    e.currentTarget.style.borderColor = "";
+                }
+            }}
         >
             <div className="flex items-center justify-between px-5 h-16">
                 <div className="flex items-center gap-4 flex-1 min-w-0 h-full">
                     <div
-                        className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 ease-out group-hover:scale-105 ${
+                        className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200 ease-out group-hover:scale-105 ${
                             subject.is_deleted
                                 ? "bg-red-500/10 text-red-500"
                                 : "bg-blue-500/10 text-blue-500"
@@ -82,7 +106,7 @@ export function Subject({
                             </h3>
                             <Badge
                                 variant="outline"
-                                className={`text-[9px] font-mono shrink-0 h-5 px-1.5 transition-colors ${
+                                className={`text-[9px] font-mono shrink-0 h-5 px-1.5 transition-colors duration-200 ${
                                     subject.is_deleted
                                         ? "border-red-900 text-red-400 group-hover:border-red-500"
                                         : "border-zinc-700 text-zinc-500"
@@ -150,6 +174,7 @@ export function Subject({
                             animate={{
                                 rotate: expanded ? 180 : 0,
                             }}
+                            transition={{ duration: 0.2 }}
                             className="text-zinc-500 group-hover:text-white"
                         >
                             <ChevronDown className="h-4 w-4" />
@@ -161,12 +186,11 @@ export function Subject({
             <AnimatePresence>
                 {expanded && (
                     <motion.div
-                        key={`desc-${subject.id}`}
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{
-                            duration: 0.3,
+                            duration: 0.2,
                             ease: "easeInOut",
                         }}
                         className="px-5 overflow-hidden"

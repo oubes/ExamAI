@@ -45,7 +45,7 @@ class SubjectService:
                 title=title,
                 code=code,
                 description=data.get("description"),
-                is_active=True,
+                is_active=data.get("is_active", True),
                 is_deleted=False,
             )
 
