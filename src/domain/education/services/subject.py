@@ -222,7 +222,7 @@ class SubjectService:
         session: AsyncSession,
         limit: int = 50,
         offset: int = 0,
-        include_inactive: bool = False,
+        include_inactive: bool = True,
     ) -> list[Subject]:
 
         try:
@@ -242,7 +242,37 @@ class SubjectService:
         except Exception as e:
             logger.error(f"[SubjectService] list_subjects error: {e}", exc_info=True)
             raise
+        
+    # ---- List Deleted Subjects ---- #
+    async def list_deleted_subjects(
+        self,
+        session: AsyncSession,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[Subject]:
 
+        try:
+            stmt = (
+                select(Subject)
+                .where(
+                    Subject.is_deleted == True,  # noqa
+                )
+                .order_by(Subject.updated_at.desc())
+                .offset(offset)
+                .limit(limit)
+            )
+
+            result = await session.execute(stmt)
+
+            return list(result.scalars().all())
+
+        except Exception as e:
+            logger.error(
+                f"[SubjectService] list_deleted_subjects error: {e}",
+                exc_info=True,
+            )
+
+            raise
 
     # ---- Search ---- #
     async def search(

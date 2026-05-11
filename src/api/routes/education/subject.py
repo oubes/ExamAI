@@ -109,6 +109,34 @@ async def list_subjects(
         )
 
 
+# ---- List Deleted Subjects ---- #
+@router.get(
+    path="/deleted/list",
+    response_model=ListSubjectsResponse,
+)
+async def list_deleted_subjects(
+    session: AsyncSession = Depends(dependency=get_session),
+    _ = Depends(dependency=admin_required)
+) -> ListSubjectsResponse:
+
+    try:
+        subjects = await education_service.list_deleted_subjects(
+            session=session,
+        )
+
+        return ListSubjectsResponse(
+            items=[
+                GetSubjectResponse(**subject)
+                for subject in subjects
+            ]
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(object=e),
+        )
+
 # ---- Update Subject ---- #
 @router.put(path="/{subject_id}", response_model=UpdateSubjectResponse)
 async def update_subject(
@@ -190,6 +218,68 @@ async def hard_delete_subject(
         return HardDeleteSubjectResponse(
             success=result,
         )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(object=e),
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(object=e),
+        )
+        
+# ---- Restore Subject ---- #
+@router.post(
+    path="/{subject_id}/restore",
+    response_model=GetSubjectResponse,
+)
+async def restore_subject(
+    subject_id: UUID,
+    session: AsyncSession = Depends(dependency=get_session),
+    _ = Depends(dependency=admin_required)
+) -> GetSubjectResponse:
+
+    try:
+        subject = await education_service.restore_subject(
+            session=session,
+            subject_id=subject_id,
+        )
+
+        return GetSubjectResponse(**subject)
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(object=e),
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(object=e),
+        )
+        
+# ---- Toggle Active ---- #
+@router.patch(
+    path="/{subject_id}/toggle-active",
+    response_model=GetSubjectResponse,
+)
+async def toggle_subject_active(
+    subject_id: UUID,
+    session: AsyncSession = Depends(dependency=get_session),
+    _ = Depends(dependency=admin_required)
+) -> GetSubjectResponse:
+
+    try:
+        subject = await education_service.toggle_subject_active(
+            session=session,
+            subject_id=subject_id,
+        )
+
+        return GetSubjectResponse(**subject)
 
     except ValueError as e:
         raise HTTPException(

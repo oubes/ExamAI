@@ -66,7 +66,35 @@ class UpdateSubjectResponse(BaseModel):
 # ---- Delete Response ---- #
 class DeleteSubjectResponse(BaseModel):
     success: bool
-    
+
+
 # ---- Hard Delete Response ---- #
 class HardDeleteSubjectResponse(BaseModel):
     success: bool
+
+
+# ---- Restore Request ---- #
+class RestoreSubjectRequest(BaseModel):
+    reason: str | None = None
+
+
+# ---- Restore Response ---- #
+class RestoreSubjectResponse(BaseModel):
+    id: UUID
+    title: str
+    code: str
+    description: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+# ---- Get Deleted Response ---- #
+class GetDeletedSubjectResponse(BaseModel):
+    id: UUID
+    title: str
+    code: str
+    description: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime

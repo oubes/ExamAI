@@ -174,7 +174,103 @@ class EducationService:
 
             raise
 
+    # ---- List Deleted Subjects ---- #
+    # ---- List Deleted Subjects ---- #
+    async def list_deleted_subjects(
+        self,
+        session: AsyncSession,
+        limit: int = 100,
+        offset: int = 0,
+    ):
 
+        try:
+            records = await subject_service.list_deleted_subjects(
+                session=session,
+                limit=limit,
+                offset=offset,
+            )
+
+            return [
+                self._format_subject(record)
+                for record in records
+            ]
+
+        except Exception as e:
+            logger.error(
+                f"[EducationService] list_deleted_subjects error: {e}",
+                exc_info=True,
+            )
+
+            raise
+        
+    # ---- Restore Subject ---- #
+    async def restore_subject(
+        self,
+        session: AsyncSession,
+        subject_id,
+    ):
+
+        try:
+            record = await subject_service.get_by_id(
+                session=session,
+                subject_id=subject_id,
+                include_deleted=True,
+            )
+
+            if not record:
+                raise ValueError("subject not found")
+
+            if not record.is_deleted:
+                raise ValueError("subject is not deleted")
+
+            record.is_deleted = False
+            record.is_active = True
+
+            await session.commit()
+            await session.refresh(record)
+
+            return self._format_subject(record)
+
+        except Exception as e:
+            logger.error(
+                f"[EducationService] restore_subject error: {e}",
+                exc_info=True,
+            )
+            raise
+
+
+    # ---- Toggle Subject Active ---- #
+    async def toggle_subject_active(
+        self,
+        session: AsyncSession,
+        subject_id,
+    ):
+
+        try:
+            record = await subject_service.get_by_id(
+                session=session,
+                subject_id=subject_id,
+            )
+
+            if not record:
+                raise ValueError("subject not found")
+
+            if record.is_deleted:
+                raise ValueError("subject is deleted")
+
+            record.is_active = not record.is_active
+
+            await session.commit()
+            await session.refresh(record)
+
+            return self._format_subject(record)
+
+        except Exception as e:
+            logger.error(
+                f"[EducationService] toggle_subject_active error: {e}",
+                exc_info=True,
+            )
+            raise
     # ---- Formatter ---- #
     def _format_subject(
         self,
@@ -190,3 +286,4 @@ class EducationService:
             "created_at": record.created_at,
             "updated_at": record.updated_at,
         }
+        

@@ -31,10 +31,10 @@ import { MeResponse } from "@/services/dashboard.service";
 
 // ---- Navigation Config ----
 const studentNav = [
-  { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard", adminHref: "/admin/dashboard" },
-  { title: "Subjects", icon: BookOpen, href: "/subjects" },
-  { title: "Exams", icon: ClipboardCheck, href: "/student/exams" },
-  { title: "Feedback", icon: MessageSquareText, href: "/student/feedback" },
+  { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard", adminHref: "/admin/dashboard" },
+  { title: "Subjects", icon: BookOpen, href: "/admin/dashboard/subjects" },
+  { title: "Exams", icon: ClipboardCheck, href: "/admin/dashboard/exams" },
+  { title: "Feedback", icon: MessageSquareText, href: "/admin/dashboard/feedback" },
 ];
 
 // ---- Sidebar Header Component ----
