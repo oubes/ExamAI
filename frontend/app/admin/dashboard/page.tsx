@@ -81,7 +81,7 @@ export default function AdminDashboardPage() {
           </div>
 
           <h1 className="text-4xl font-black tracking-tighter text-white">
-            Admin Terminal, {user?.full_name?.split(" ")[0]}
+            Admin, {user?.full_name?.split(" ")[0]}
           </h1>
 
           <p className="mt-2 text-sm text-zinc-500 max-w-md">
