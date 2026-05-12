@@ -31,6 +31,7 @@ class SkillService:
             subject_id = payload["subject_id"]
             chapter_id = payload["chapter_id"]
             topic_id = payload["topic_id"]
+            name = str(payload["name"]).strip()
 
             subject_stmt = select(Subject.id).where(Subject.id == subject_id)
             chapter_stmt = select(Chapter.id).where(Chapter.id == chapter_id)
@@ -41,27 +42,37 @@ class SkillService:
             topic_result = await session.execute(topic_stmt)
 
             if not subject_result.scalar_one_or_none():
-                raise ValueError("subject not found")
+                return None
 
             if not chapter_result.scalar_one_or_none():
-                raise ValueError("chapter not found")
+                return None
 
             if not topic_result.scalar_one_or_none():
-                raise ValueError("topic not found")
+                return None
+
+            dedup_stmt = select(Skill.id).where(
+                Skill.subject_id == subject_id,
+                Skill.chapter_id == chapter_id,
+                Skill.topic_id == topic_id,
+                func.lower(Skill.name) == name.lower(),
+            )
+
+            dedup_result = await session.execute(dedup_stmt)
+            existing_id = dedup_result.scalar_one_or_none()
+
+            if existing_id:
+                return await self.get_by_id(session, existing_id)
 
             record = Skill(
                 subject_id=subject_id,
                 chapter_id=chapter_id,
                 topic_id=topic_id,
-                name=str(payload["name"]).strip(),
+                name=name,
                 description=payload.get("description"),
-                importance_weight=float(
-                    payload.get("importance_weight", 1.0)
-                ),
+                importance_weight=float(payload.get("importance_weight", 1.0)),
             )
 
             session.add(record)
-
             await session.commit()
             await session.refresh(record)
 
@@ -69,20 +80,12 @@ class SkillService:
 
         except IntegrityError as e:
             await session.rollback()
-
-            logger.error(
-                f"[SkillService] create integrity error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] create integrity error: {e}", exc_info=True)
             raise
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[SkillService] create error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] create error: {e}", exc_info=True)
             raise
 
 
@@ -114,28 +117,54 @@ class SkillService:
             existing_topics = set(topic_result.scalars().all())
 
             if subject_ids - existing_subjects:
-                raise ValueError("invalid subject_ids")
+                return []
 
             if chapter_ids - existing_chapters:
-                raise ValueError("invalid chapter_ids")
+                return []
 
             if topic_ids - existing_topics:
-                raise ValueError("invalid topic_ids")
+                return []
 
-            records: list[Skill] = [
-                Skill(
-                    subject_id=p["subject_id"],
-                    chapter_id=p["chapter_id"],
-                    topic_id=p["topic_id"],
-                    name=str(p["name"]).strip(),
-                    description=p.get("description"),
-                    importance_weight=float(p.get("importance_weight", 1.0)),
+            existing_stmt = select(
+                Skill.subject_id,
+                Skill.chapter_id,
+                Skill.topic_id,
+                Skill.name,
+            ).where(Skill.topic_id.in_(topic_ids))
+
+            existing_result = await session.execute(existing_stmt)
+
+            existing_set = {
+                (s_id, c_id, t_id, name.lower())
+                for s_id, c_id, t_id, name in existing_result.all()
+            }
+
+            records: list[Skill] = []
+
+            for p in payloads:
+
+                key = (
+                    p["subject_id"],
+                    p["chapter_id"],
+                    p["topic_id"],
+                    str(p["name"]).strip().lower(),
                 )
-                for p in payloads
-            ]
+
+                if key in existing_set:
+                    continue
+
+                records.append(
+                    Skill(
+                        subject_id=p["subject_id"],
+                        chapter_id=p["chapter_id"],
+                        topic_id=p["topic_id"],
+                        name=str(p["name"]).strip(),
+                        description=p.get("description"),
+                        importance_weight=float(p.get("importance_weight", 1.0)),
+                    )
+                )
 
             session.add_all(records)
-
             await session.commit()
 
             for r in records:
@@ -145,11 +174,7 @@ class SkillService:
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[SkillService] bulk_create error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] bulk_create error: {e}", exc_info=True)
             raise
 
 
@@ -162,16 +187,11 @@ class SkillService:
 
         try:
             stmt = select(Skill.id).where(Skill.id == skill_id)
-
             result = await session.execute(stmt)
-
             return result.scalar_one_or_none() is not None
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] exists error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] exists error: {e}", exc_info=True)
             raise
 
 
@@ -184,16 +204,11 @@ class SkillService:
 
         try:
             stmt = select(Skill).where(Skill.id == skill_id)
-
             result = await session.execute(stmt)
-
             return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] get_by_id error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] get_by_id error: {e}", exc_info=True)
             raise
 
 
@@ -217,14 +232,10 @@ class SkillService:
             )
 
             result = await session.execute(stmt)
-
             return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] get_full error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] get_full error: {e}", exc_info=True)
             raise
 
 
@@ -240,16 +251,11 @@ class SkillService:
                 return []
 
             stmt = select(Skill).where(Skill.id.in_(skill_ids))
-
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] get_many_by_ids error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] get_many_by_ids error: {e}", exc_info=True)
             raise
 
 
@@ -270,14 +276,10 @@ class SkillService:
             )
 
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] list_skills error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] list_skills error: {e}", exc_info=True)
             raise
 
 
@@ -296,14 +298,10 @@ class SkillService:
             )
 
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] list_by_topic error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] list_by_topic error: {e}", exc_info=True)
             raise
 
 
@@ -329,14 +327,10 @@ class SkillService:
             )
 
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] search error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] search error: {e}", exc_info=True)
             raise
 
 
@@ -348,16 +342,11 @@ class SkillService:
 
         try:
             stmt = select(func.count(Skill.id))
-
             result = await session.execute(stmt)
-
             return int(result.scalar() or 0)
 
         except Exception as e:
-            logger.error(
-                f"[SkillService] count error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] count error: {e}", exc_info=True)
             raise
 
 
@@ -369,30 +358,22 @@ class SkillService:
     ) -> bool:
 
         try:
-            record = await self.get_full(
-                session=session,
-                skill_id=skill_id,
-            )
+            record = await self.get_full(session, skill_id)
 
             if not record:
                 return False
 
             if record.skill_questions:
-                raise ValueError("cannot delete skill with questions")
+                return False
 
             await session.delete(record)
-
             await session.commit()
 
             return True
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[SkillService] delete error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] delete error: {e}", exc_info=True)
             raise
 
 
@@ -405,20 +386,13 @@ class SkillService:
 
         try:
             stmt = delete(Skill).where(Skill.id == skill_id)
-
             result = await session.execute(stmt)
-
             await session.commit()
 
-            affected = result.rowcount # type: ignore
-
+            affected = result.rowcount  # type: ignore
             return bool(affected and affected > 0)
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[SkillService] hard_delete error: {e}",
-                exc_info=True,
-            )
+            logger.error(f"[SkillService] hard_delete error: {e}", exc_info=True)
             raise

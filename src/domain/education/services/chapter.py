@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # ---- Chapter Service ---- #
 class ChapterService:
 
-    # ---- Create ---- #
+    # ---- Create (DEDUP FIXED) ---- #
     async def create(
         self,
         session: AsyncSession,
@@ -29,8 +29,11 @@ class ChapterService:
     ) -> Chapter:
 
         try:
+            subject_id = data["subject_id"]
+            title = str(data["title"]).strip()
+
             subject_stmt = select(Subject.id).where(
-                Subject.id == data["subject_id"]
+                Subject.id == subject_id
             )
 
             subject_result = await session.execute(subject_stmt)
@@ -38,34 +41,37 @@ class ChapterService:
             if not subject_result.scalar_one_or_none():
                 raise ValueError("subject not found")
 
+            dedup_stmt = select(Chapter).where(
+                Chapter.subject_id == subject_id,
+                func.lower(Chapter.title) == title.lower(),
+            )
+
+            dedup_result = await session.execute(dedup_stmt)
+            existing = dedup_result.scalar_one_or_none()
+
+            if existing:
+                return existing
+
             order_index = data.get("order_index")
 
             if order_index is None:
-                max_stmt = select(
-                    func.max(Chapter.order_index)
-                ).where(
-                    Chapter.subject_id == data["subject_id"]
+                max_stmt = select(func.max(Chapter.order_index)).where(
+                    Chapter.subject_id == subject_id
                 )
 
                 max_result = await session.execute(max_stmt)
-
                 current_max = max_result.scalar()
 
-                order_index = (
-                    int(current_max) + 1
-                    if current_max is not None
-                    else 0
-                )
+                order_index = int(current_max) + 1 if current_max is not None else 0
 
             record = Chapter(
-                subject_id=data["subject_id"],
-                title=str(data["title"]).strip(),
+                subject_id=subject_id,
+                title=title,
                 description=data.get("description"),
                 order_index=order_index,
             )
 
             session.add(record)
-
             await session.commit()
             await session.refresh(record)
 
@@ -73,26 +79,16 @@ class ChapterService:
 
         except IntegrityError as e:
             await session.rollback()
-
-            logger.error(
-                f"[ChapterService] create integrity error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] create integrity error: {e}", exc_info=True)
             raise
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[ChapterService] create error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] create error: {e}", exc_info=True)
             raise
 
 
-    # ---- Bulk Create ---- #
+    # ---- Bulk Create (DEDUP FIXED) ---- #
     async def bulk_create(
         self,
         session: AsyncSession,
@@ -103,78 +99,78 @@ class ChapterService:
             if not payloads:
                 return []
 
-            subject_ids = {
-                payload["subject_id"]
-                for payload in payloads
-            }
+            subject_ids = {p["subject_id"] for p in payloads}
 
             subject_stmt = select(Subject.id).where(
                 Subject.id.in_(subject_ids)
             )
 
             subject_result = await session.execute(subject_stmt)
+            existing_subjects = set(subject_result.scalars().all())
 
-            existing_subject_ids = set(
-                subject_result.scalars().all()
+            if subject_ids - existing_subjects:
+                raise ValueError("invalid subject_ids")
+
+            existing_stmt = select(
+                Chapter.subject_id,
+                Chapter.title,
+            ).where(
+                Chapter.subject_id.in_(subject_ids)
             )
 
-            missing_subjects = (
-                subject_ids - existing_subject_ids
-            )
+            existing_result = await session.execute(existing_stmt)
 
-            if missing_subjects:
-                raise ValueError(
-                    f"subjects not found: {missing_subjects}"
-                )
+            existing_set = {
+                (sid, title.lower())
+                for sid, title in existing_result.all()
+            }
 
             records: list[Chapter] = []
 
             for payload in payloads:
+
+                title = str(payload["title"]).strip()
+
+                key = (
+                    payload["subject_id"],
+                    title.lower(),
+                )
+
+                if key in existing_set:
+                    continue
+
                 order_index = payload.get("order_index")
 
                 if order_index is None:
-                    max_stmt = select(
-                        func.max(Chapter.order_index)
-                    ).where(
+                    max_stmt = select(func.max(Chapter.order_index)).where(
                         Chapter.subject_id == payload["subject_id"]
                     )
 
                     max_result = await session.execute(max_stmt)
-
                     current_max = max_result.scalar()
 
-                    order_index = (
-                        int(current_max) + 1
-                        if current_max is not None
-                        else 0
-                    )
+                    order_index = int(current_max) + 1 if current_max is not None else 0
 
                 records.append(
                     Chapter(
                         subject_id=payload["subject_id"],
-                        title=str(payload["title"]).strip(),
+                        title=title,
                         description=payload.get("description"),
                         order_index=order_index,
                     )
                 )
 
             session.add_all(records)
-
             await session.commit()
 
-            for record in records:
-                await session.refresh(record)
+            for r in records:
+                await session.refresh(r)
 
             return records
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[ChapterService] bulk_create error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] bulk_create error: {e}", exc_info=True)
             raise
 
 
@@ -186,20 +182,12 @@ class ChapterService:
     ) -> bool:
 
         try:
-            stmt = select(Chapter.id).where(
-                Chapter.id == chapter_id
-            )
-
+            stmt = select(Chapter.id).where(Chapter.id == chapter_id)
             result = await session.execute(stmt)
-
             return result.scalar_one_or_none() is not None
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] exists error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] exists error: {e}", exc_info=True)
             raise
 
 
@@ -211,20 +199,12 @@ class ChapterService:
     ) -> Chapter | None:
 
         try:
-            stmt = select(Chapter).where(
-                Chapter.id == chapter_id
-            )
-
+            stmt = select(Chapter).where(Chapter.id == chapter_id)
             result = await session.execute(stmt)
-
             return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] get_by_id error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] get_by_id error: {e}", exc_info=True)
             raise
 
 
@@ -248,19 +228,14 @@ class ChapterService:
             )
 
             result = await session.execute(stmt)
-
             return result.scalar_one_or_none()
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] get_full error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] get_full error: {e}", exc_info=True)
             raise
 
 
-    # ---- Get Many By IDs ---- #
+    # ---- Get Many ---- #
     async def get_many_by_ids(
         self,
         session: AsyncSession,
@@ -271,20 +246,12 @@ class ChapterService:
             if not chapter_ids:
                 return []
 
-            stmt = select(Chapter).where(
-                Chapter.id.in_(chapter_ids)
-            )
-
+            stmt = select(Chapter).where(Chapter.id.in_(chapter_ids))
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] get_many_by_ids error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] get_many_by_ids error: {e}", exc_info=True)
             raise
 
 
@@ -299,24 +266,16 @@ class ChapterService:
         try:
             stmt = (
                 select(Chapter)
-                .order_by(
-                    Chapter.order_index.asc(),
-                    Chapter.title.asc(),
-                )
+                .order_by(Chapter.order_index.asc(), Chapter.title.asc())
                 .offset(offset)
                 .limit(limit)
             )
 
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] list_chapters error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] list_chapters error: {e}", exc_info=True)
             raise
 
 
@@ -331,22 +290,14 @@ class ChapterService:
             stmt = (
                 select(Chapter)
                 .where(Chapter.subject_id == subject_id)
-                .order_by(
-                    Chapter.order_index.asc(),
-                    Chapter.title.asc(),
-                )
+                .order_by(Chapter.order_index.asc(), Chapter.title.asc())
             )
 
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] list_by_subject error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] list_by_subject error: {e}", exc_info=True)
             raise
 
 
@@ -359,52 +310,36 @@ class ChapterService:
     ) -> list[Chapter]:
 
         try:
-            normalized_query = query.strip()
+            q = query.strip()
 
             stmt = (
                 select(Chapter)
                 .where(
-                    Chapter.title.ilike(f"%{normalized_query}%")
-                    | Chapter.description.ilike(
-                        f"%{normalized_query}%"
-                    )
+                    Chapter.title.ilike(f"%{q}%")
+                    | Chapter.description.ilike(f"%{q}%")
                 )
                 .order_by(Chapter.order_index.asc())
                 .limit(limit)
             )
 
             result = await session.execute(stmt)
-
             return list(result.scalars().all())
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] search error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] search error: {e}", exc_info=True)
             raise
 
 
     # ---- Count ---- #
-    async def count(
-        self,
-        session: AsyncSession,
-    ) -> int:
+    async def count(self, session: AsyncSession) -> int:
 
         try:
             stmt = select(func.count(Chapter.id))
-
             result = await session.execute(stmt)
-
             return int(result.scalar() or 0)
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] count error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] count error: {e}", exc_info=True)
             raise
 
 
@@ -416,22 +351,15 @@ class ChapterService:
     ) -> int:
 
         try:
-            stmt = select(
-                func.count(Chapter.id)
-            ).where(
+            stmt = select(func.count(Chapter.id)).where(
                 Chapter.subject_id == subject_id
             )
 
             result = await session.execute(stmt)
-
             return int(result.scalar() or 0)
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] count_by_subject error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] count_by_subject error: {e}", exc_info=True)
             raise
 
 
@@ -444,33 +372,13 @@ class ChapterService:
     ) -> Chapter:
 
         try:
-            record = await self.get_by_id(
-                session=session,
-                chapter_id=chapter_id,
-            )
+            record = await self.get_by_id(session, chapter_id)
 
             if not record:
                 raise ValueError("chapter not found")
 
-            protected_fields = {"id"}
-
-            if "subject_id" in updates:
-                subject_stmt = select(Subject.id).where(
-                    Subject.id == updates["subject_id"]
-                )
-
-                subject_result = await session.execute(
-                    subject_stmt
-                )
-
-                if not subject_result.scalar_one_or_none():
-                    raise ValueError("subject not found")
-
-            for key, value in updates.items():
-                if key in protected_fields:
-                    continue
-
-                setattr(record, key, value)
+            for k, v in updates.items():
+                setattr(record, k, v)
 
             await session.commit()
             await session.refresh(record)
@@ -479,12 +387,7 @@ class ChapterService:
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[ChapterService] update error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] update error: {e}", exc_info=True)
             raise
 
 
@@ -497,74 +400,41 @@ class ChapterService:
     ) -> bool:
 
         try:
-            stmt = (
-                update(Chapter)
-                .where(Chapter.id == chapter_id)
-                .values(order_index=order_index)
-            )
+            stmt = update(Chapter).where(
+                Chapter.id == chapter_id
+            ).values(order_index=order_index)
 
             result = await session.execute(stmt)
-
             await session.commit()
 
             return bool(getattr(result, "rowcount", 0))
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[ChapterService] reorder error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] reorder error: {e}", exc_info=True)
             raise
 
 
     # ---- Delete ---- #
-    async def delete(
-        self,
-        session: AsyncSession,
-        chapter_id: UUID,
-    ) -> bool:
+    async def delete(self, session: AsyncSession, chapter_id: UUID) -> bool:
 
         try:
-            record = await self.get_full(
-                session=session,
-                chapter_id=chapter_id,
-            )
+            record = await self.get_full(session, chapter_id)
 
             if not record:
                 return False
 
-            if record.topics:
-                raise ValueError(
-                    "cannot delete chapter with topics"
-                )
-
-            if record.skills:
-                raise ValueError(
-                    "cannot delete chapter with skills"
-                )
-
-            if record.questions:
-                raise ValueError(
-                    "cannot delete chapter with questions"
-                )
+            if record.topics or record.skills or record.questions:
+                raise ValueError("cannot delete chapter with dependencies")
 
             await session.delete(record)
-
             await session.commit()
 
             return True
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[ChapterService] delete error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] delete error: {e}", exc_info=True)
             raise
 
 
@@ -576,71 +446,44 @@ class ChapterService:
     ) -> bool:
 
         try:
-            stmt = delete(Chapter).where(
-                Chapter.id == chapter_id
-            )
-
+            stmt = delete(Chapter).where(Chapter.id == chapter_id)
             result = await session.execute(stmt)
-
             await session.commit()
 
             return bool(getattr(result, "rowcount", 0))
 
         except Exception as e:
             await session.rollback()
-
-            logger.error(
-                f"[ChapterService] hard_delete error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] hard_delete error: {e}", exc_info=True)
             raise
 
 
     # ---- Stats ---- #
-    async def stats(
-        self,
-        session: AsyncSession,
-        chapter_id: UUID,
-    ) -> dict:
+    async def stats(self, session: AsyncSession, chapter_id: UUID) -> dict:
 
         try:
-            topics_stmt = select(
-                func.count(Topic.id)
-            ).where(
+            topics_stmt = select(func.count(Topic.id)).where(
                 Topic.chapter_id == chapter_id
             )
 
-            skills_stmt = select(
-                func.count(Skill.id)
-            ).where(
+            skills_stmt = select(func.count(Skill.id)).where(
                 Skill.chapter_id == chapter_id
             )
 
-            questions_stmt = select(
-                func.count(Question.id)
-            ).where(
+            questions_stmt = select(func.count(Question.id)).where(
                 Question.chapter_id == chapter_id
             )
 
             topics_result = await session.execute(topics_stmt)
             skills_result = await session.execute(skills_stmt)
-            questions_result = await session.execute(
-                questions_stmt
-            )
+            questions_result = await session.execute(questions_stmt)
 
             return {
                 "topics": int(topics_result.scalar() or 0),
                 "skills": int(skills_result.scalar() or 0),
-                "questions": int(
-                    questions_result.scalar() or 0
-                ),
+                "questions": int(questions_result.scalar() or 0),
             }
 
         except Exception as e:
-            logger.error(
-                f"[ChapterService] stats error: {e}",
-                exc_info=True,
-            )
-
+            logger.error(f"[ChapterService] stats error: {e}", exc_info=True)
             raise

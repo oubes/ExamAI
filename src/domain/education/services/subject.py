@@ -11,7 +11,6 @@ from sqlalchemy.orm import selectinload
 from src.domain.education.models.subject import Subject
 from src.domain.education.models.chapter import Chapter
 from src.domain.education.models.enrollment import Enrollment
-from src.domain.education.models.exam import Exam
 
 
 # ---- Logging ---- #
@@ -416,10 +415,6 @@ class SubjectService:
 
             enrollment_stmt = select(func.count(Enrollment.id)).where(
                 Enrollment.subject_id == subject_id
-            )
-
-            exam_stmt = select(func.count(Exam.id)).where(
-                Exam.subject_id == subject_id
             )
 
             chapters = await session.execute(chapter_stmt)

@@ -1,6 +1,7 @@
 # ----- IMPORTS ----- #
 import re
 import json
+from typing import Any
 
 
 # ----- JSON PARSER ----- #
@@ -23,3 +24,14 @@ def chunk_text(text: str, chunk_size: int = 500):
     words = text.split()
     for i in range(0, len(words), chunk_size):
         yield " ".join(words[i:i + chunk_size])
+        
+# ----- HELPERS ----- #
+def normalize_mcq(q: dict[str, Any]) -> dict[str, Any]:
+    choices = q.get("choices")
+
+    if isinstance(choices, list):
+        q["choices"] = {
+            chr(65 + i): v for i, v in enumerate(choices)
+        }
+
+    return q

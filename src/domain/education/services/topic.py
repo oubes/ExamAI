@@ -49,6 +49,18 @@ class TopicService:
             if not chapter_result.scalar_one_or_none():
                 raise ValueError("chapter not found")
 
+            existing_stmt = select(Topic).where(
+                Topic.subject_id == subject_id,
+                Topic.chapter_id == chapter_id,
+                Topic.title == str(payload["title"]).strip(),
+            )
+
+            existing_result = await session.execute(existing_stmt)
+            existing = existing_result.scalar_one_or_none()
+
+            if existing:
+                return existing
+
             record = Topic(
                 subject_id=subject_id,
                 chapter_id=chapter_id,
@@ -124,9 +136,32 @@ class TopicService:
             if missing_chapters:
                 raise ValueError(f"chapters not found: {missing_chapters}")
 
+            existing_stmt = select(Topic).where(
+                Topic.chapter_id.in_(chapter_ids)
+            )
+
+            existing_result = await session.execute(existing_stmt)
+            existing_topics = existing_result.scalars().all()
+
+            existing_map = {
+                (t.subject_id, t.chapter_id, t.title): t
+                for t in existing_topics
+            }
+
             records: list[Topic] = []
 
             for p in payloads:
+
+                key = (
+                    p["subject_id"],
+                    p["chapter_id"],
+                    str(p["title"]).strip(),
+                )
+
+                if key in existing_map:
+                    records.append(existing_map[key])
+                    continue
+
                 records.append(
                     Topic(
                         subject_id=p["subject_id"],
@@ -139,14 +174,16 @@ class TopicService:
                     )
                 )
 
-            session.add_all(records)
+            session.add_all([r for r in records if not getattr(r, "id", None)])
 
             await session.commit()
 
             for r in records:
-                await session.refresh(r)
+                if not getattr(r, "id", None):
+                    await session.refresh(r)
 
             return records
+
 
         except Exception as e:
             await session.rollback()
@@ -397,26 +434,6 @@ class TopicService:
 
             if not record:
                 raise ValueError("topic not found")
-
-            if "subject_id" in updates:
-                subject_stmt = select(Subject.id).where(
-                    Subject.id == updates["subject_id"]
-                )
-
-                subject_result = await session.execute(subject_stmt)
-
-                if not subject_result.scalar_one_or_none():
-                    raise ValueError("subject not found")
-
-            if "chapter_id" in updates:
-                chapter_stmt = select(Chapter.id).where(
-                    Chapter.id == updates["chapter_id"]
-                )
-
-                chapter_result = await session.execute(chapter_stmt)
-
-                if not chapter_result.scalar_one_or_none():
-                    raise ValueError("chapter not found")
 
             for k, v in updates.items():
                 if k == "id":

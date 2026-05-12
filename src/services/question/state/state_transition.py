@@ -1,5 +1,5 @@
 # ----- IMPORTS ----- #
-from src.services.question.core.state import state
+from src.services.question.state.state import state
 from src.services.question.core.settings import settings
 
 

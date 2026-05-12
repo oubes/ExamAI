@@ -11,7 +11,6 @@ from src.domain.questions.models.question import Question
 from src.domain.education.models.subject import Subject
 from src.domain.education.models.chapter import Chapter
 from src.domain.education.models.topic import Topic
-from src.domain.education.models.exam import Exam
 
 
 # ---- Logging ---- #
@@ -32,7 +31,6 @@ class QuestionService:
             subject_id = payload["subject_id"]
             chapter_id = payload["chapter_id"]
             topic_id = payload["topic_id"]
-            exam_id = payload["exam_id"]
 
             subject_stmt = select(Subject.id).where(
                 Subject.id == subject_id
@@ -43,14 +41,10 @@ class QuestionService:
             topic_stmt = select(Topic.id).where(
                 Topic.id == topic_id
             )
-            exam_stmt = select(Exam.id).where(
-                Exam.id == exam_id
-            )
 
             subject_result = await session.execute(subject_stmt)
             chapter_result = await session.execute(chapter_stmt)
             topic_result = await session.execute(topic_stmt)
-            exam_result = await session.execute(exam_stmt)
 
             if not subject_result.scalar_one_or_none():
                 raise ValueError("subject not found")
@@ -61,21 +55,17 @@ class QuestionService:
             if not topic_result.scalar_one_or_none():
                 raise ValueError("topic not found")
 
-            if not exam_result.scalar_one_or_none():
-                raise ValueError("exam not found")
-
             record = Question(
                 subject_id=subject_id,
                 chapter_id=chapter_id,
                 topic_id=topic_id,
-                exam_id=exam_id,
                 content=str(payload["content"]),
                 explanation=payload.get("explanation"),
                 type=str(payload["type"]),
                 difficulty=int(payload.get("difficulty", 1)),
                 importance=int(payload.get("importance", 1)),
                 tags=payload.get("tags"),
-                embedding=payload["embedding"],
+                # embedding=payload["embedding"],
             )
 
             session.add(record)
@@ -118,17 +108,14 @@ class QuestionService:
             subject_ids = {p["subject_id"] for p in payloads}
             chapter_ids = {p["chapter_id"] for p in payloads}
             topic_ids = {p["topic_id"] for p in payloads}
-            exam_ids = {p["exam_id"] for p in payloads}
 
             subject_stmt = select(Subject.id).where(Subject.id.in_(subject_ids))
             chapter_stmt = select(Chapter.id).where(Chapter.id.in_(chapter_ids))
             topic_stmt = select(Topic.id).where(Topic.id.in_(topic_ids))
-            exam_stmt = select(Exam.id).where(Exam.id.in_(exam_ids))
 
             subject_result = await session.execute(subject_stmt)
             chapter_result = await session.execute(chapter_stmt)
             topic_result = await session.execute(topic_stmt)
-            exam_result = await session.execute(exam_stmt)
 
             if subject_ids - set(subject_result.scalars().all()):
                 raise ValueError("invalid subject_ids")
@@ -139,22 +126,18 @@ class QuestionService:
             if topic_ids - set(topic_result.scalars().all()):
                 raise ValueError("invalid topic_ids")
 
-            if exam_ids - set(exam_result.scalars().all()):
-                raise ValueError("invalid exam_ids")
-
             records: list[Question] = [
                 Question(
                     subject_id=p["subject_id"],
                     chapter_id=p["chapter_id"],
                     topic_id=p["topic_id"],
-                    exam_id=p["exam_id"],
                     content=str(p["content"]),
                     explanation=p.get("explanation"),
                     type=str(p["type"]),
                     difficulty=int(p.get("difficulty", 1)),
                     importance=int(p.get("importance", 1)),
                     tags=p.get("tags"),
-                    embedding=p["embedding"],
+                    # embedding=p["embedding"],
                 )
                 for p in payloads
             ]
@@ -239,7 +222,6 @@ class QuestionService:
         subject_id: UUID | None = None,
         chapter_id: UUID | None = None,
         topic_id: UUID | None = None,
-        exam_id: UUID | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[Question]:
@@ -255,9 +237,6 @@ class QuestionService:
 
             if topic_id:
                 stmt = stmt.where(Question.topic_id == topic_id)
-
-            if exam_id:
-                stmt = stmt.where(Question.exam_id == exam_id)
 
             stmt = stmt.limit(limit).offset(offset)
 

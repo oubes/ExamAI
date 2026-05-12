@@ -29,8 +29,7 @@ class Exam(Base):
     )
 
     # ---- Relationships ---- #
-    subject = relationship("Subject", back_populates="exams", lazy="selectin")
-    questions = relationship("Question", back_populates="exam", lazy="selectin")
+
 
     # ---- Repr ---- #
     def __repr__(self) -> str:

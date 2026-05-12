@@ -1,6 +1,6 @@
 # ----- IMPORTS ----- #
 from src.services.question.prompts.chapter_prompt import CHAPTER_SYSTEM_PROMPT
-from src.services.question.core.utils import extract_json
+from src.services.question.utils.utils import extract_json
 from src.services.question.core.settings import settings
 
 
