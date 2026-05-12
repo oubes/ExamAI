@@ -25,7 +25,7 @@ class SkillService:
         self,
         session: AsyncSession,
         payload: dict,
-    ) -> Skill:
+    ) -> Skill | None:
 
         try:
             subject_id = payload["subject_id"]

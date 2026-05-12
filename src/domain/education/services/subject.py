@@ -178,7 +178,6 @@ class SubjectService:
                 .options(
                     selectinload(Subject.chapters),
                     selectinload(Subject.enrollments),
-                    selectinload(Subject.exams),
                 )
                 .where(
                     Subject.id == subject_id,
@@ -419,12 +418,10 @@ class SubjectService:
 
             chapters = await session.execute(chapter_stmt)
             enrollments = await session.execute(enrollment_stmt)
-            exams = await session.execute(exam_stmt)
 
             return {
                 "chapters": int(chapters.scalar() or 0),
                 "enrollments": int(enrollments.scalar() or 0),
-                "exams": int(exams.scalar() or 0),
             }
 
         except Exception as e:
