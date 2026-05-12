@@ -18,8 +18,11 @@ from src.domain.education.services.chapter import ChapterService
 from src.domain.education.services.topic import TopicService
 from src.domain.education.services.skill import SkillService
 
+from src.domain.storage.services.upload_file import UploadService
+
 from src.domain.questions.services.chunk import ChunkService
 from src.domain.questions.services.pipeline_job import PipelineJobService
+from pathlib import Path
 
 
 # ----- SETTINGS ----- #
@@ -45,6 +48,7 @@ async def run_pipeline(
     skill_service = SkillService()
     chunk_service = ChunkService()
     job_service = PipelineJobService()
+    upload_service = UploadService()
 
     # ----- LLM ----- #
     llm = await get_llm_service()
@@ -79,9 +83,19 @@ async def run_pipeline(
     job_id = job.id
     state["job_id"] = job_id
 
-    # ----- LOAD DOC ----- #
-    loader = PyMuPDFLoader(settings.get_file_path())
+    # ----- LOAD DOC ----- #    
+    
+    file_record = await upload_service.get_by_id(
+        session=session,
+        file_id=book_id,
+    )
+
+    file_path = Path(file_record.path)
+    print(f"[PIPELINE] Loading file from {file_path}")
+
+    loader = PyMuPDFLoader(str(file_path))
     docs = loader.load()
+    
 
     text = "\n".join(d.page_content for d in docs)
     chunks = list(chunk_text(text, settings.CHUNK_SIZE))

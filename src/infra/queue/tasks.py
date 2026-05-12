@@ -1,9 +1,11 @@
 # ---- Imports ---- #
 from asgiref.sync import async_to_sync
-
+import celery
+import asyncio
 from src.infra.queue.celery_app import celery_app
 from src.infra.email.service import EmailService
-
+from src.services.question.pipeline.segmentation_pipeline import run_pipeline as run_segmentation_pipeline
+from src.core.di.db import session_local
 
 # ---- Services ---- #
 email_service = EmailService()
@@ -50,3 +52,16 @@ def send_password_changed_email(to: str, context: dict):
         template_name="password_changed.yml",
         context=context,
     )
+    
+# --------------- Segmentation tasks --------------- #
+@celery_app.task
+def segment_file(subject_id: str, book_id: str):
+    async def run():
+        async with session_local() as session:
+            return await run_segmentation_pipeline(
+                session=session,
+                subject_id=subject_id,
+                book_id=book_id,
+            )
+
+    return asyncio.run(run())
