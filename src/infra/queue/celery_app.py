@@ -1,4 +1,5 @@
 # ---- Imports ---- #
+from src import domain
 from celery import Celery
 from src.core.di.settings import get_settings
 

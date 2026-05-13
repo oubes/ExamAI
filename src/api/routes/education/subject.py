@@ -1,7 +1,7 @@
 # ---- Imports ---- #
 from uuid import UUID
 
-from src.services.education.service import EducationService
+from src.services.education.subject_service import SubjectService
 
 from fastapi import APIRouter, Depends, HTTPException
 from src.core.di.db import get_session
@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.roles import admin_required
 
-from src.api.models.education_models import (
+from src.api.models.education_models.subject_models import (
     AddSubjectRequest,
     AddSubjectResponse,
     GetSubjectResponse,
@@ -24,7 +24,7 @@ from src.api.models.education_models import (
 router = APIRouter()
 
 # ---- Service ---- #
-education_service = EducationService()
+subject_service = SubjectService()
 
 
 # ---- Add Subject ---- #
@@ -37,7 +37,7 @@ async def add_subject(
 
     try:
         print("Adding subject with payload:", payload)
-        subject = await education_service.add_subject(
+        subject = await subject_service.add_subject(
             session=session,
             payload=payload.model_dump(),
         )
@@ -66,7 +66,7 @@ async def get_subject(
 ) -> GetSubjectResponse:
 
     try:
-        subject = await education_service.get_subject(
+        subject = await subject_service.get_subject(
             session=session,
             subject_id=subject_id,
         )
@@ -94,7 +94,7 @@ async def list_subjects(
 ) -> ListSubjectsResponse:
 
     try:
-        subjects = await education_service.list_subjects(session=session)
+        subjects = await subject_service.list_subjects(session=session)
 
         return ListSubjectsResponse(
             items=[
@@ -121,7 +121,7 @@ async def list_deleted_subjects(
 ) -> ListSubjectsResponse:
 
     try:
-        subjects = await education_service.list_deleted_subjects(
+        subjects = await subject_service.list_deleted_subjects(
             session=session,
         )
 
@@ -148,7 +148,7 @@ async def update_subject(
 ) -> UpdateSubjectResponse:
 
     try:
-        subject = await education_service.update_subject(
+        subject = await subject_service.update_subject(
             session=session,
             subject_id=subject_id,
             updates=payload.model_dump(exclude_none=True),
@@ -178,7 +178,7 @@ async def delete_subject(
 ) -> DeleteSubjectResponse:
 
     try:
-        result = await education_service.delete_subject(
+        result = await subject_service.delete_subject(
             session=session,
             subject_id=subject_id,
         )
@@ -211,7 +211,7 @@ async def hard_delete_subject(
 ) -> HardDeleteSubjectResponse:
 
     try:
-        result = await education_service.hard_delete_subject(
+        result = await subject_service.hard_delete_subject(
             session=session,
             subject_id=subject_id,
         )
@@ -244,7 +244,7 @@ async def restore_subject(
 ) -> GetSubjectResponse:
 
     try:
-        subject = await education_service.restore_subject(
+        subject = await subject_service.restore_subject(
             session=session,
             subject_id=subject_id,
         )
@@ -275,7 +275,7 @@ async def toggle_subject_active(
 ) -> GetSubjectResponse:
 
     try:
-        subject = await education_service.toggle_subject_active(
+        subject = await subject_service.toggle_subject_active(
             session=session,
             subject_id=subject_id,
         )

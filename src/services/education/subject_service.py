@@ -2,7 +2,7 @@
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.domain.education.services.subject import SubjectService
+from src.domain.education.services.subject import SubjectService as _SubjectService
 
 
 # ---- Logging ---- #
@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 # ---- Services ---- #
-subject_service = SubjectService()
+subject_service = _SubjectService()
 
 
 # ---- Education Service ---- #
-class EducationService:
+class SubjectService:
 
     # ---- Add Subject ---- #
     async def add_subject(
