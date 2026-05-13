@@ -140,7 +140,6 @@ export default function UnifiedStoragePage() {
     }
   };
 
-  // ---- Section: Filtering ----
   const filteredFiles = useMemo(() => {
     return files.filter(f => f.original_name?.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [files, searchQuery]);
@@ -184,7 +183,7 @@ export default function UnifiedStoragePage() {
             { label: "Subjects", value: stats.totalSubjects, icon: BookMarked, color: "text-emerald-500" },
             { label: "Segments", value: stats.totalChunks, icon: Layers, color: "text-amber-500" },
           ].map((s, i) => (
-            <div key={i} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl flex items-center gap-4">
+            <div key={i} className="bg-zinc-900/60 border border-zinc-800/50 p-5 rounded-2xl flex items-center gap-4 hover:bg-zinc-900/90 transition-colors">
               <div className={`p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl ${s.color}`}>
                 <s.icon className="w-5 h-5" />
               </div>
@@ -206,11 +205,11 @@ export default function UnifiedStoragePage() {
           ) : (
             filteredFiles.map((file) => (
               <Collapsible key={file.id} open={expandedFiles[file.id]} onOpenChange={() => toggleFileExpansion(file.id)}>
-                <div className={`rounded-2xl border transition-all ${expandedFiles[file.id] ? 'bg-zinc-900/80 border-zinc-700' : 'bg-zinc-900/40 border-zinc-800/50 hover:border-zinc-700'}`}>
+                <div className={`rounded-2xl border transition-all ${expandedFiles[file.id] ? 'bg-zinc-900/90 border-zinc-700 shadow-xl' : 'bg-zinc-900/60 border-zinc-800/50 hover:bg-zinc-900/90 hover:border-zinc-700'}`}>
                   
                   <div className="flex items-center p-4 gap-4">
                     <CollapsibleTrigger asChild>
-                      <button className="p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-all">
+                      <button className="p-2 bg-zinc-950 border border-zinc-800 rounded-lg text-zinc-500 hover:text-white transition-all cursor-pointer active:scale-95">
                         {expandedFiles[file.id] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                       </button>
                     </CollapsibleTrigger>
@@ -226,7 +225,7 @@ export default function UnifiedStoragePage() {
 
                     <Button 
                       onClick={() => { setTargetFile(file); setIsPipelineModalOpen(true); }}
-                      className="bg-blue-600 hover:bg-blue-500 text-white h-9 px-6 rounded-lg font-bold text-[10px] tracking-wider transition-all"
+                      className="bg-blue-600 hover:bg-blue-500 text-white h-9 px-6 rounded-lg font-bold text-[10px] tracking-wider transition-all cursor-pointer shadow-lg shadow-blue-900/20"
                     >
                       <Play className="w-3 h-3 mr-2 fill-current" /> RUN
                     </Button>
@@ -240,16 +239,16 @@ export default function UnifiedStoragePage() {
                         </div>
                       ) : (
                         chunksMap[file.id].map((chunk) => (
-                          <div key={chunk.id} className="flex items-center justify-between gap-4 p-3 bg-zinc-950/30 border border-zinc-900/50 rounded-xl hover:border-zinc-700 transition-all">
+                          <div key={chunk.id} className="flex items-center justify-between gap-4 p-3 bg-zinc-950/30 border border-zinc-900/50 rounded-xl hover:bg-zinc-900/60 hover:border-zinc-700 transition-all group/chunk">
                             <div className="flex items-center gap-4 flex-1 min-w-0">
                               <span className="text-[10px] font-bold text-blue-500 bg-blue-500/5 px-2 py-1 rounded border border-blue-500/10">#{chunk.chunk_index}</span>
-                              <p className="text-xs text-zinc-400 truncate italic">"{chunk.content}"</p>
+                              <p className="text-xs text-zinc-400 truncate italic group-hover/chunk:text-zinc-200">"{chunk.content}"</p>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-zinc-800 rounded-lg" onClick={() => { setSelectedChunk(chunk); setEditContent(chunk.content); setIsEditModalOpen(true); }}>
+                              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-zinc-800 rounded-lg cursor-pointer" onClick={() => { setSelectedChunk(chunk); setEditContent(chunk.content); setIsEditModalOpen(true); }}>
                                 <Edit3 className="w-3.5 h-3.5 text-zinc-500" />
                               </Button>
-                              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-red-950/30 rounded-lg" onClick={() => { setChunkToDelete(chunk); setIsDeleteConfirmOpen(true); }}>
+                              <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-red-950/30 rounded-lg cursor-pointer" onClick={() => { setChunkToDelete(chunk); setIsDeleteConfirmOpen(true); }}>
                                 <Trash2 className="w-3.5 h-3.5 text-zinc-600" />
                               </Button>
                             </div>
@@ -267,21 +266,21 @@ export default function UnifiedStoragePage() {
 
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="bg-[#0c0c0e] border-zinc-800 text-zinc-100 max-w-2xl p-0 rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
+        <DialogContent className="bg-[#0c0c0e] border-zinc-800 text-zinc-100 max-w-2xl p-0 rounded-xl overflow-hidden border shadow-2xl">
+          <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/60">
             <h2 className="text-sm font-bold">Edit Segment</h2>
-            <X className="w-4 h-4 cursor-pointer text-zinc-500" onClick={() => setIsEditModalOpen(false)} />
+            <X className="w-4 h-4 cursor-pointer text-zinc-500 hover:text-white" onClick={() => setIsEditModalOpen(false)} />
           </div>
-          <div className="p-6">
+          <div className="p-6 bg-zinc-950/20">
             <Textarea 
               value={editContent} 
               onChange={(e) => setEditContent(e.target.value)}
-              className="min-h-[300px] bg-zinc-950 border-zinc-800 rounded-lg resize-none text-sm"
+              className="min-h-[300px] bg-zinc-950 border-zinc-800 rounded-lg resize-none text-sm focus-visible:ring-1 focus-visible:ring-blue-500/30"
             />
           </div>
-          <div className="px-6 py-4 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/20">
-            <Button variant="ghost" onClick={() => setIsEditModalOpen(false)} className="text-xs font-bold">Discard</Button>
-            <Button onClick={handleUpdateChunk} disabled={isProcessing} className="bg-blue-600 h-9 px-6 rounded-lg text-xs font-bold">
+          <div className="px-6 py-4 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/60">
+            <Button variant="ghost" onClick={() => setIsEditModalOpen(false)} className="text-xs font-bold cursor-pointer hover:bg-zinc-800">Discard</Button>
+            <Button onClick={handleUpdateChunk} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-500 h-9 px-6 rounded-lg text-xs font-bold cursor-pointer transition-all">
               {isProcessing && <Loader2 className="w-3 h-3 animate-spin mr-2" />} Save Changes
             </Button>
           </div>
@@ -290,13 +289,13 @@ export default function UnifiedStoragePage() {
 
       {/* Delete Modal */}
       <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <DialogContent className="bg-[#0c0c0e] border-zinc-800 max-w-sm p-6 rounded-xl text-center">
+        <DialogContent className="bg-[#0c0c0e] border-zinc-800 max-w-sm p-6 rounded-xl text-center border shadow-2xl">
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
           <h3 className="font-bold text-white mb-2">Delete Node #{chunkToDelete?.chunk_index}?</h3>
           <p className="text-xs text-zinc-500 mb-6">This action cannot be undone.</p>
           <div className="flex gap-3">
-            <Button variant="ghost" className="flex-1 rounded-lg" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
-            <Button className="flex-1 bg-red-600 hover:bg-red-500 rounded-lg text-white" onClick={confirmDelete} disabled={isProcessing}>
+            <Button variant="ghost" className="flex-1 rounded-lg cursor-pointer hover:bg-zinc-800" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button className="flex-1 bg-red-600 hover:bg-red-500 rounded-lg text-white cursor-pointer shadow-lg shadow-red-900/20" onClick={confirmDelete} disabled={isProcessing}>
               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Delete"}
             </Button>
           </div>
@@ -305,21 +304,21 @@ export default function UnifiedStoragePage() {
 
       {/* Pipeline Modal */}
       <Dialog open={isPipelineModalOpen} onOpenChange={setIsPipelineModalOpen}>
-        <DialogContent className="bg-[#0c0c0e] border-zinc-800 max-w-xs p-6 rounded-xl">
+        <DialogContent className="bg-[#0c0c0e] border-zinc-800 max-w-xs p-6 rounded-xl border shadow-2xl">
           <h2 className="text-sm font-bold mb-4">Launch Pipeline</h2>
           <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId}>
-            <SelectTrigger className="bg-zinc-950 border-zinc-800 rounded-lg h-10 text-xs">
+            <SelectTrigger className="bg-zinc-950 border-zinc-800 rounded-lg h-10 text-xs cursor-pointer">
               <SelectValue placeholder="Select Subject" />
             </SelectTrigger>
             <SelectContent className="bg-zinc-950 border-zinc-800">
               {subjects.map((sub) => (
-                <SelectItem key={sub.id} value={sub.id} className="text-xs">{sub.title}</SelectItem>
+                <SelectItem key={sub.id} value={sub.id} className="text-xs cursor-pointer">{sub.title}</SelectItem>
               ))}
             </SelectContent>
           </Select>
           <div className="flex gap-2 mt-6">
-            <Button variant="ghost" className="flex-1 rounded-lg text-xs" onClick={() => setIsPipelineModalOpen(false)}>Abort</Button>
-            <Button onClick={executePipeline} disabled={isProcessing || !selectedSubjectId} className="flex-1 bg-blue-600 rounded-lg text-xs font-bold">
+            <Button variant="ghost" className="flex-1 rounded-lg text-xs cursor-pointer hover:bg-zinc-800" onClick={() => setIsPipelineModalOpen(false)}>Abort</Button>
+            <Button onClick={executePipeline} disabled={isProcessing || !selectedSubjectId} className="flex-1 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-bold cursor-pointer transition-all shadow-lg shadow-blue-900/20">
               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Start"}
             </Button>
           </div>
