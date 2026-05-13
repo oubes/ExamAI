@@ -33,6 +33,7 @@ import { MeResponse } from "@/services/dashboard.service";
 const studentNav = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard", adminHref: "/admin/dashboard" },
   { title: "Subjects", icon: BookOpen, href: "/admin/dashboard/subjects" },
+  { title: "Storage", icon: BookOpen, href: "/admin/dashboard/storage" },
   { title: "Exams", icon: ClipboardCheck, href: "/admin/dashboard/exams" },
   { title: "Feedback", icon: MessageSquareText, href: "/admin/dashboard/feedback" },
 ];
