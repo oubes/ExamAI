@@ -5,9 +5,29 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-# ---- Upload Response ---- #
-class UploadResponse(BaseModel):
+# ---- Upload Path Params ---- #
+class UploadCategoryPath(BaseModel):
+    category: str
 
+
+class UploadFilePath(BaseModel):
+    file_id: uuid.UUID
+
+
+# ---- Query Params ---- #
+class UploadListQuery(BaseModel):
+    category: str | None = None
+    limit: int = 50
+    offset: int = 0
+
+
+# ---- Upload Request (Multipart wrapper) ---- #
+class UploadFileRequest(BaseModel):
+    file: bytes  # NOTE: conceptual model (FastAPI still uses UploadFile)
+
+
+# ---- Responses ---- #
+class UploadResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -31,12 +51,10 @@ class UploadResponse(BaseModel):
     created_at: datetime
 
 
-# ---- Delete Upload Response ---- #
 class DeleteUploadResponse(BaseModel):
     deleted: bool
 
 
-# ---- Upload Stats Response ---- #
 class UploadStatsResponse(BaseModel):
     total: int
     processed: int

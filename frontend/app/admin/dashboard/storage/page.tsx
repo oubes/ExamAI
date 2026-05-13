@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { 
     Loader2, 
     Search, 
@@ -12,7 +12,9 @@ import {
     HardDrive,
     LayoutGrid,
     List,
-    AlertCircle
+    AlertCircle,
+    Folder,
+    X
 } from "lucide-react";
 
 // ---- Services & Types ----
@@ -46,6 +48,11 @@ export default function StoragePage() {
     const [isUploading, setIsUploading] = useState(false);
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     
+    // ---- Overlay State ----
+    const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+    const [uploadCategory, setUploadCategory] = useState("");
+    const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // ---- Lifecycle ----
@@ -66,22 +73,48 @@ export default function StoragePage() {
 
     // ---- Handlers ----
     const handleUploadClick = () => {
-        fileInputRef.current?.click();
+        setIsOverlayOpen(true);
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (!selectedFile) return;
+    const handleDiscard = useCallback(() => {
+        // ---- Reset State ----
+        setIsOverlayOpen(false);
+        setSelectedFiles(null);
+        setUploadCategory("");
+
+        // ---- Clear Input DOM ----
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    }, []);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setSelectedFiles(e.target.files);
+        }
+    };
+
+    const executeUpload = async () => {
+        if (!selectedFiles || selectedFiles.length === 0) return;
 
         setIsUploading(true);
         try {
-            const uploadedFile = await storageService.uploadFile(selectedFile, "general");
-            setFiles(prev => [uploadedFile, ...prev]);
+            const uploadedFiles = await storageService.uploadFiles(
+                Array.from(selectedFiles),
+                uploadCategory || "general"
+            );
+
+            setFiles(prev => [...uploadedFiles, ...prev]);
+            setIsOverlayOpen(false);
+            setSelectedFiles(null);
+            setUploadCategory("");
         } catch (error) {
             console.error("Upload failed:", error);
         } finally {
             setIsUploading(false);
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         }
     };
 
@@ -94,9 +127,24 @@ export default function StoragePage() {
         }
     };
 
-    const filteredFiles = files.filter(f => 
-        f.original_name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // ---- Grouping Logic ----
+    const groupedFiles = useMemo(() => {
+        const filtered = files.filter(f => 
+            f.original_name?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+
+        const groups: Record<string, StorageFile[]> = {};
+        
+        filtered.forEach(file => {
+            const cat = file.category || "Uncategorized";
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(file);
+        });
+
+        return groups;
+    }, [files, searchQuery]);
+
+    const totalFound = Object.values(groupedFiles).flat().length;
 
     return (
         <div className="flex flex-col min-h-screen bg-[#09090b] text-zinc-100 p-6 lg:p-10">
@@ -108,6 +156,7 @@ export default function StoragePage() {
                         <span className="text-xs font-mono uppercase tracking-tighter text-zinc-500">Asset Management</span>
                     </div>
                     <h1 className="text-3xl font-bold tracking-tight">Storage</h1>
+                    <br></br>
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto">
@@ -121,12 +170,6 @@ export default function StoragePage() {
                         />
                     </div>
 
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange} 
-                        className="hidden" 
-                    />
                     <Button 
                         onClick={handleUploadClick}
                         disabled={isUploading}
@@ -154,7 +197,7 @@ export default function StoragePage() {
                     </button>
                 </div>
                 <span className="text-xs text-zinc-500 font-mono">
-                    {isLoading ? "Synchronizing..." : `${filteredFiles.length} assets found`}
+                    {isLoading ? "Synchronizing..." : `${totalFound} assets found`}
                 </span>
             </div>
 
@@ -164,30 +207,113 @@ export default function StoragePage() {
                         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                         <p className="text-zinc-500 text-sm font-mono uppercase tracking-widest">Loading Repository</p>
                     </div>
-                ) : filteredFiles.length === 0 ? (
+                ) : totalFound === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-zinc-800 rounded-2xl">
                         <FileIcon className="w-10 h-10 text-zinc-700 mb-4" />
                         <p className="text-zinc-500 text-sm italic">No digital assets located.</p>
                     </div>
                 ) : (
-                    <div className={viewMode === "grid" 
-                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4" 
-                        : "flex flex-col gap-2"
-                    }>
-                        {filteredFiles.map((file) => (
-                            <FileCard 
-                                key={file.id} 
-                                file={file} 
-                                mode={viewMode} 
-                                onDelete={() => deleteFile(file.id)} 
-                            />
+                    <div className="space-y-12">
+                        {Object.entries(groupedFiles).map(([category, categoryFiles]) => (
+                            <section key={category} className="space-y-4">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Folder className="w-4 h-4 text-blue-400" />
+                                    <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-400">
+                                        {category} <span className="ml-2 text-zinc-600 font-normal">({categoryFiles.length})</span>
+                                    </h2>
+                                    <div className="h-px bg-zinc-800 flex-1 ml-4" />
+                                </div>
+
+                                <div className={viewMode === "grid" 
+                                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4" 
+                                    : "flex flex-col gap-2"
+                                }>
+                                    {categoryFiles.map((file) => (
+                                        <FileCard 
+                                            key={file.id} 
+                                            file={file} 
+                                            mode={viewMode} 
+                                            onDelete={() => deleteFile(file.id)} 
+                                        />
+                                    ))}
+                                </div>
+                                <div className="h-2" />
+                            </section>
                         ))}
                     </div>
                 )}
             </main>
+
+                        {/* ---- Upload Overlay ---- */}
+            {isOverlayOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray/10 backdrop-blur-sm p-4">
+                    <div className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+                        <button 
+                            onClick={handleDiscard}
+                            className="absolute top-4 right-4 text-zinc-500 hover:text-white cursor-pointer transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                            <CloudUpload className="w-5 h-5 text-blue-500" />
+                            Upload Assets
+                        </h2>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-mono text-zinc-500 uppercase mb-2 block">Category</label>
+                                <Input 
+                                    placeholder="e.g. Invoices, Models, Documentation"
+                                    className="bg-zinc-900 border-zinc-800 text-zinc-200"
+                                    value={uploadCategory}
+                                    onChange={(e) => setUploadCategory(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-mono text-zinc-500 uppercase mb-2 block">Files</label>
+                                <div 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="border-2 border-dashed border-zinc-800 rounded-xl p-4 flex items-center justify-center gap-3 hover:border-blue-500/50 transition-colors cursor-pointer"
+                                >
+                                    <FileIcon className="w-5 h-5 text-zinc-700" />
+                                    <p className="text-sm text-zinc-400">
+                                        {selectedFiles ? `${selectedFiles.length} files selected` : "Click to browse files"}
+                                    </p>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        onChange={handleFileChange} 
+                                        className="hidden" 
+                                        multiple 
+                                    />
+                                </div>
+                            </div>
+
+                            <Button 
+                                onClick={executeUpload}
+                                disabled={isUploading || !selectedFiles}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-md font-semibold cursor-pointer transition-all"
+                            >
+                                {isUploading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    "Start Upload"
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+// ---- Sub-components ----
 
 function FileCard({ file, mode, onDelete }: { file: StorageFile, mode: "grid" | "list", onDelete: () => void }) {
     const fileSize = formatBytes(file.size);
@@ -195,40 +321,75 @@ function FileCard({ file, mode, onDelete }: { file: StorageFile, mode: "grid" | 
 
     if (mode === "list") {
         return (
-            <div className="flex items-center justify-between p-3 bg-zinc-900/30 border border-zinc-800/50 rounded-xl hover:bg-zinc-900 transition-colors group">
-                <div className="flex items-center gap-4">
-                    <div className="relative">
-                        <FileIcon className="w-5 h-5 text-blue-400" />
-                        {!file.is_processed && <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse" />}
+            <div className="flex items-center justify-between p-3 bg-zinc-900/60 border border-zinc-900/50 rounded-xl hover:bg-zinc-900 transition-all group relative overflow-hidden">
+
+                {/* hover overlay (20% dim effect) */}
+                <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-20 transition-opacity pointer-events-none" />
+
+                <div className="relative flex items-center justify-between w-full">
+                    <div className="flex items-center gap-4">
+                        <div className="relative">
+                            <FileIcon className="w-5 h-5 text-blue-400" />
+                            {!file.is_processed && (
+                                <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                            )}
+                        </div>
+
+                        <span className="text-sm font-medium truncate max-w-[200px] md:max-w-md text-zinc-300">
+                            {file.original_name}
+                        </span>
                     </div>
-                    <span className="text-sm font-medium truncate max-w-[200px] md:max-w-md text-zinc-300">{file.original_name}</span>
-                </div>
-                <div className="flex items-center gap-6">
-                    <span className="text-xs text-zinc-500 font-mono hidden md:block">{fileSize}</span>
-                    <span className="text-xs text-zinc-500 hidden md:block">{uploadDate}</span>
-                    <FileActions onDelete={onDelete} fileUrl={file.path} status={file.processing_status} />
+
+                    <div className="flex items-center gap-6">
+                        <span className="text-xs text-zinc-500 font-mono hidden md:block">
+                            {fileSize}
+                        </span>
+                        <span className="text-xs text-zinc-500 hidden md:block">
+                            {uploadDate}
+                        </span>
+                        <FileActions
+                            onDelete={onDelete}
+                            fileUrl={file.path}
+                            status={file.processing_status}
+                        />
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-4 hover:border-zinc-700 transition-all group relative">
-            <div className="flex justify-between items-start mb-6">
+        <div className="flex flex-col bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-4 hover:border-zinc-700 transition-all group relative overflow-hidden">
+
+            {/* hover overlay (20% dim effect) */}
+            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+            <div className="relative flex justify-between items-start mb-6">
                 <div className="p-3 bg-zinc-800/50 rounded-lg group-hover:bg-blue-500/10 transition-colors">
                     <FileIcon className={`w-6 h-6 ${file.is_processed ? 'text-zinc-400 group-hover:text-blue-500' : 'text-amber-500'}`} />
                 </div>
-                <FileActions onDelete={onDelete} fileUrl={file.path} status={file.processing_status} />
+
+                <FileActions
+                    onDelete={onDelete}
+                    fileUrl={file.path}
+                    status={file.processing_status}
+                />
             </div>
-            
-            <div className="mt-auto">
+
+            <div className="relative mt-auto">
                 <h3 className="text-sm font-semibold text-zinc-200 truncate pr-2" title={file.original_name}>
                     {file.original_name}
                 </h3>
+
                 <div className="flex justify-between items-center mt-1">
-                    <p className="text-[10px] text-zinc-500 font-mono uppercase">{fileSize}</p>
+                    <p className="text-[10px] text-zinc-500 font-mono uppercase">
+                        {fileSize}
+                    </p>
+
                     {!file.is_processed && (
-                        <span className="text-[9px] text-amber-500 font-mono animate-pulse uppercase">Processing</span>
+                        <span className="text-[9px] text-amber-500 font-mono animate-pulse uppercase">
+                            Processing
+                        </span>
                     )}
                 </div>
             </div>

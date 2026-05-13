@@ -49,6 +49,7 @@ const extractErrorMessage = (data: any, fallback: string): string => {
 
 // ---- Storage Service ----
 export const storageService = {
+
   // ---- List User Uploads ----
   listFiles: async (
     params: {
@@ -77,14 +78,13 @@ export const storageService = {
     }
   },
 
-  // ---- Upload File ----
+  // ---- Upload Single File ----
   uploadFile: async (
     file: File,
     category: string
   ): Promise<StorageFile> => {
     try {
       const formData = new FormData();
-
       formData.append("file", file);
 
       const res = await api.post(
@@ -93,6 +93,37 @@ export const storageService = {
       );
 
       return res.data;
+    } catch (error: any) {
+      throw new Error(
+        extractErrorMessage(
+          error.response?.data,
+          "Upload failed"
+        )
+      );
+    }
+  },
+
+  // ---- Upload Multiple Files ----
+  uploadFiles: async (
+    files: File[],
+    category: string
+  ): Promise<StorageFile[]> => {
+    try {
+      const results: StorageFile[] = [];
+
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await api.post(
+          `/upload/${category}`,
+          formData
+        );
+
+        results.push(res.data);
+      }
+
+      return results;
     } catch (error: any) {
       throw new Error(
         extractErrorMessage(

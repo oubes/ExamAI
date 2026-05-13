@@ -21,9 +21,10 @@ from src.infra.db.session import session_local
 from src.services.upload.service import UploadService
 
 from src.api.models.upload_models import (
-    DeleteUploadResponse,
     UploadResponse,
+    DeleteUploadResponse,
     UploadStatsResponse,
+    UploadListQuery,
 )
 
 
@@ -52,7 +53,7 @@ async def upload_file(
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
     file: UploadFile = File(...),
-    _=Depends(admin_required),
+    # _=Depends(admin_required),
 ):
 
     return await upload_service.handle_upload(
@@ -100,9 +101,7 @@ async def get_upload(
     response_model=list[UploadResponse],
 )
 async def get_user_uploads(
-    category: str | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    query: UploadListQuery = Depends(),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
@@ -110,9 +109,9 @@ async def get_user_uploads(
     return await upload_service.get_user_uploads(
         session=session,
         user_id=user.id,
-        category=category,
-        limit=limit,
-        offset=offset,
+        category=query.category,
+        limit=query.limit,
+        offset=query.offset,
     )
 
 
