@@ -28,14 +28,14 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { authService } from "@/services/auth.service";
 import { MeResponse } from "@/services/dashboard.service";
-import { HardDrive } from "lucide-react";
+import { HardDrive, Cpu } from "lucide-react";
 
 // ---- Navigation Config ----
 const studentNav = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard", adminHref: "/admin/dashboard" },
   { title: "Subjects", icon: BookOpen, href: "/admin/dashboard/subjects" },
   { title: "Storage", icon: HardDrive, href: "/admin/dashboard/storage" },
-  { title: "Chunking", icon: HardDrive, href: "/admin/dashboard/chunking" },
+  { title: "Chunking", icon: Cpu, href: "/admin/dashboard/chunking" },
   { title: "Knowledge", icon: HardDrive, href: "/admin/dashboard/knowledge" },
   { title: "Exams", icon: ClipboardCheck, href: "/admin/dashboard/exams" },
   { title: "Feedback", icon: MessageSquareText, href: "/admin/dashboard/feedback" },
