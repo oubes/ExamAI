@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Loader2, Search, ChevronDown, ChevronRight, 
-  Edit3, BookMarked, Cpu, X, AlertCircle, Plus, CloudUpload, Database
+  Edit3, BookMarked, Cpu, X, AlertCircle, Plus, CloudUpload, Database, Maximize2,
+  Trash2, HelpCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
-// ---- UI Components ----
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -15,13 +15,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// ---- Services ----
 import { storageService, StorageFile } from "@/services/storage.service";
 import { questionService, ChunkResponse } from "@/services/chunk.service";
 import { educationService, SubjectResponse } from "@/services/subjects.service";
 
 export default function UnifiedStoragePage() {
-  // ---- Section: State Management ----
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
   const [allChunks, setAllChunks] = useState<ChunkResponse[]>([]);
@@ -29,18 +27,19 @@ export default function UnifiedStoragePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
   
-  // Pipeline State
   const [isPipelineModalOpen, setIsPipelineModalOpen] = useState(false);
   const [selectedFileId, setSelectedFileId] = useState<string>("");
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Edit State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedChunk, setSelectedChunk] = useState<ChunkResponse | null>(null);
   const [editContent, setEditContent] = useState("");
 
-  // ---- Section: Data Fetching ----
+  // ---- Delete Confirmation State ----
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<string | null>(null);
+
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
@@ -61,7 +60,6 @@ export default function UnifiedStoragePage() {
 
   useEffect(() => { fetchInitialData(); }, []);
 
-  // ---- Section: Logic & Filtering ----
   const processedFiles = useMemo(() => {
     const fileIdsWithChunks = new Set(allChunks.map(c => c.book_id));
     return files.filter(f => fileIdsWithChunks.has(f.id))
@@ -74,7 +72,6 @@ export default function UnifiedStoragePage() {
     return subjects.find(s => s.id === subjectId)?.title || "Unknown Subject";
   };
 
-  // ---- Section: Actions ----
   const executePipeline = async () => {
     if (!selectedFileId || !selectedSubjectId) return;
     try {
@@ -106,18 +103,40 @@ export default function UnifiedStoragePage() {
     }
   };
 
+  // ---- Delete Group Logic ----
+  const handleDeleteFileGroup = async () => {
+    if (!fileToDelete) return;
+    try {
+        setIsProcessing(true);
+        // await questionService.deleteChunksByFile(fileToDelete); // افترض وجود الـ endpoint
+        toast.warning("All segments for this asset have been removed.");
+        setAllChunks(prev => prev.filter(c => c.book_id !== fileToDelete));
+        setIsDeleteDialogOpen(false);
+        setFileToDelete(null);
+    } catch (error) {
+        toast.error("Deletion failed");
+    } finally {
+        setIsProcessing(false);
+    }
+  };
+
+  const openDeleteDialog = (e: React.MouseEvent, fileId: string) => {
+    e.stopPropagation();
+    setFileToDelete(fileId);
+    setIsDeleteDialogOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#020203] text-zinc-100 p-6 lg:p-12 selection:bg-blue-500/30">
       <div className="max-w-6xl mx-auto">
-        {/* ---- Section: Header ---- */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-blue-500" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Knowledge Base</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Chunking</span>
             </div>
             <h1 className="text-4xl font-extrabold tracking-tight text-white lg:text-5xl">
-              Segments<span className="text-blue-600">.</span>
+              Segments
             </h1>
           </div>
 
@@ -140,7 +159,6 @@ export default function UnifiedStoragePage() {
           </div>
         </header>
 
-        {/* ---- Section: Main List ---- */}
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -179,9 +197,19 @@ export default function UnifiedStoragePage() {
                         <h3 className="text-sm font-bold text-zinc-200 truncate mt-1">{file.original_name}</h3>
                       </div>
 
-                      <div className="text-right hidden sm:block px-4">
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase">Chunks</p>
-                        <p className="text-xs font-mono text-zinc-300">{fileChunks.length}</p>
+                      <div className="text-right hidden sm:flex items-center gap-6 px-4">
+                        <div className="flex flex-col">
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase">Chunks</p>
+                          <p className="text-xs font-mono text-zinc-300">{fileChunks.length}</p>
+                        </div>
+                        
+                        <Button 
+                          variant="ghost" 
+                          onClick={(e) => openDeleteDialog(e, file.id)}
+                          className="h-10 w-10 p-0 bg-red-950/80 hover:bg-red-900 border border-red-900/50 rounded-xl cursor-pointer transition-all flex items-center justify-center shadow-lg"
+                        >
+                          <Trash2 className="w-4 h-4 text-zinc-200" />
+                        </Button>
                       </div>
                     </div>
 
@@ -190,16 +218,16 @@ export default function UnifiedStoragePage() {
                         {fileChunks.map((chunk) => (
                           <div 
                             key={chunk.id} 
-                            className="flex items-center justify-between gap-4 p-3 bg-zinc-900/60 border border-zinc-800/50 rounded-xl hover:bg-zinc-900/90 hover:border-zinc-500 transition-all group/chunk cursor-pointer"
+                            className="flex items-center justify-between gap-4 p-3 bg-zinc-900/40 border border-zinc-800/50 rounded-xl hover:bg-zinc-800/80 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 group/chunk cursor-pointer"
                           >
                             <div className="flex items-center gap-4 flex-1 min-w-0">
                               <span className="text-[10px] font-bold text-zinc-500">#{chunk.chunk_index}</span>
-                              <p className="text-xs text-zinc-400 truncate group-hover/chunk:text-zinc-200">{chunk.content}</p>
+                              <p className="text-xs text-zinc-400 truncate group-hover/chunk:text-zinc-100">{chunk.content}</p>
                             </div>
                             <div className="flex items-center">
                               <Button 
                                 variant="ghost" 
-                                className="h-9 w-9 p-0 bg-zinc-800 border border-zinc-700 hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors shadow-sm" 
+                                className="h-9 w-9 p-0 bg-zinc-800/50 border border-zinc-700 hover:bg-blue-600 hover:border-blue-500 rounded-lg cursor-pointer transition-all shadow-sm" 
                                 onClick={(e) => { e.stopPropagation(); setSelectedChunk(chunk); setEditContent(chunk.content); setIsEditModalOpen(true); }}
                               >
                                 <Edit3 className="w-4 h-4 text-zinc-100" />
@@ -217,135 +245,165 @@ export default function UnifiedStoragePage() {
         </div>
       </div>
 
-{/* ---- Section: Pipeline Overlay ---- */}
-<Dialog open={isPipelineModalOpen} onOpenChange={setIsPipelineModalOpen}>
-  <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-200 min-w-[800px] p-10 rounded-2xl border shadow-2xl">
-    <DialogHeader className="mb-6">
-      <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-white">
-        <CloudUpload className="w-6 h-6 text-blue-500" />
-        New Pipeline
-      </DialogTitle>
-    </DialogHeader>
+      {/* New Pipeline Modal */}
+      <Dialog open={isPipelineModalOpen} onOpenChange={setIsPipelineModalOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-200 min-w-[800px] p-10 rounded-2xl border shadow-2xl">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-white">
+              <CloudUpload className="w-6 h-6 text-blue-500" />
+              New Pipeline
+            </DialogTitle>
+          </DialogHeader>
 
-    <div className="space-y-10">
-      {/* 1. Knowledge Domain Section */}
-      <div className="space-y-2 pb-3">
-        <label className="text-[11px] font-mono text-zinc-500 uppercase block tracking-widest">
-          1. Subject
-        </label>
+          <div className="space-y-10">
+            <div className="space-y-2 pb-3">
+              <label className="text-[11px] font-mono text-zinc-500 uppercase block tracking-widest">1. Subject</label>
+              <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId}>
+                <SelectTrigger className="w-full grid grid-cols-[1fr_20px] items-center bg-zinc-900 border-zinc-800 text-white h-14 rounded-xl cursor-pointer focus:ring-2 focus:ring-blue-500/40 transition-all px-4 text-base shadow-inner [&>svg]:hidden">
+                  <span className="truncate text-left block">
+                    <SelectValue placeholder="Select context subject..." />
+                  </span>
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4} className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl">
+                  {subjects.map((sub) => (
+                    <SelectItem key={sub.id} value={sub.id} className="text-white focus:bg-blue-600 focus:text-white cursor-pointer py-4 text-base border-b border-zinc-800/50 last:border-0">
+                      {sub.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId}>
-          <SelectTrigger className="w-full grid grid-cols-[1fr_20px] items-center bg-zinc-900 border-zinc-800 text-white h-14 rounded-xl cursor-pointer focus:ring-2 focus:ring-blue-500/40 transition-all px-4 text-base shadow-inner [&>svg]:hidden">
-            <span className="truncate text-left block">
-              <SelectValue placeholder="Select context subject..." />
-            </span>
-          </SelectTrigger>
+            <div className="space-y-2 pb-3">
+              <label className="text-[11px] font-mono text-zinc-500 uppercase block tracking-widest">2. Target File</label>
+              <Select onValueChange={setSelectedFileId} value={selectedFileId}>
+                <SelectTrigger className="w-full grid grid-cols-[1fr_20px] items-center bg-zinc-900 border-zinc-800 text-white h-14 rounded-xl cursor-pointer focus:ring-2 focus:ring-blue-500/40 transition-all px-4 text-base shadow-inner overflow-hidden [&>svg]:hidden">
+                  <span className="truncate text-left block">
+                    <SelectValue placeholder="Select source book..." />
+                  </span>
+                </SelectTrigger>
+                <SelectContent position="popper" sideOffset={4} className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl">
+                  {files.map((file) => (
+                    <SelectItem key={file.id} value={file.id} className="text-white focus:bg-blue-600 focus:text-white cursor-pointer py-4 text-base border-b border-zinc-800/50 last:border-0">
+                      {file.original_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <SelectContent
-            position="popper"
-            sideOffset={4}
-            className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl"
-          >
-            {subjects.map((sub) => (
-              <SelectItem
-                key={sub.id}
-                value={sub.id}
-                className="text-white focus:bg-blue-600 focus:text-white cursor-pointer py-4 text-base border-b border-zinc-800/50 last:border-0"
+            <div className="p-5 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex gap-4">
+              <Database className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-[13px] text-zinc-400 leading-relaxed">Starting the pipeline will initiate semantic segmentation and vector indexing.</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4 pt-6">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsPipelineModalOpen(false)} 
+                className="flex-1 h-12 bg-zinc-900/50 hover:bg-red-600/20 hover:text-red-500 rounded-xl transition-all font-bold border border-zinc-800 cursor-pointer"
               >
-                {sub.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+                CANCEL
+              </Button>
 
-      {/* 2. Target Asset Section */}
-      <div className="space-y-2 pb-3">
-        <label className="text-[11px] font-mono text-zinc-500 uppercase block tracking-widest">
-          2. Target File
-        </label>
+              <Button onClick={executePipeline} disabled={isProcessing || !selectedSubjectId || !selectedFileId} className="flex-2 h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all cursor-pointer">
+                {isProcessing ? <><Loader2 className="w-6 h-6 animate-spin mr-3" /> PROCESSING...</> : "EXECUTE PIPELINE"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-        <Select onValueChange={setSelectedFileId} value={selectedFileId}>
-          <SelectTrigger className="w-full grid grid-cols-[1fr_20px] items-center bg-zinc-900 border-zinc-800 text-white h-14 rounded-xl cursor-pointer focus:ring-2 focus:ring-blue-500/40 transition-all px-4 text-base shadow-inner overflow-hidden [&>svg]:hidden">
-            <span className="truncate text-left block">
-              <SelectValue placeholder="Select source book..." />
-            </span>
-          </SelectTrigger>
-
-          <SelectContent
-            position="popper"
-            sideOffset={4}
-            className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl"
-          >
-            {files.map((file) => (
-              <SelectItem
-                key={file.id}
-                value={file.id}
-                className="text-white focus:bg-blue-600 focus:text-white cursor-pointer py-4 text-base border-b border-zinc-800/50 last:border-0"
-              >
-                {file.original_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* System Information Feedback */}
-      <div className="p-5 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex gap-4">
-        <Database className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-        <p className="text-[13px] text-zinc-400 leading-relaxed">
-          Starting the pipeline will initiate semantic segmentation and vector indexing for the selected asset.
-        </p>
-      </div>
-
-      {/* Operational Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 pt-6">
-        <Button
-          variant="ghost"
-          onClick={() => setIsPipelineModalOpen(false)}
-          className="flex-1 text-zinc-400 hover:text-red-400 data-[state=open]:bg-transparent hover:bg-red-500/10 h-16 text-sm font-black uppercase tracking-tighter rounded-xl cursor-pointer transition-all border border-transparent hover:border-red-500/20"
-        >
-          CANCEL
-        </Button>
-
-        <Button
-          onClick={executePipeline}
-          disabled={isProcessing || !selectedSubjectId || !selectedFileId}
-          className="flex-[2.5] bg-blue-600 hover:bg-blue-500 text-white h-16 text-base font-black uppercase tracking-tight cursor-pointer transition-all rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:shadow-none"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="w-6 h-6 animate-spin mr-3" />
-              PROCESSING...
-            </>
-          ) : (
-            "EXECUTE PIPELINE"
-          )}
-        </Button>
-      </div>
-    </div>
-  </DialogContent>
-</Dialog>
-
-      {/* ---- Section: Edit Modal ---- */}
+      {/* Edit Content Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-2xl p-0 rounded-xl overflow-hidden border shadow-2xl">
-          <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
-            <h2 className="text-sm font-bold">Edit Node Content</h2>
-            <X className="w-4 h-4 cursor-pointer text-zinc-500 hover:text-white" onClick={() => setIsEditModalOpen(false)} />
-          </div>
-          <div className="p-6 bg-zinc-950">
-            <Textarea 
-              value={editContent} 
-              onChange={(e) => setEditContent(e.target.value)}
-              className="min-h-[250px] bg-zinc-900/40 border-zinc-800 rounded-xl resize-none text-sm focus:ring-1 focus:ring-blue-500/30 p-4"
-            />
-          </div>
-          <div className="px-6 py-4 border-t border-zinc-800 flex justify-end gap-3 bg-zinc-900/60">
-            <Button variant="ghost" onClick={() => setIsEditModalOpen(false)} className="text-xs font-bold hover:bg-zinc-800 cursor-pointer">Discard</Button>
-            <Button onClick={handleUpdateChunk} disabled={isProcessing} className="bg-blue-600 hover:bg-blue-500 h-9 px-6 rounded-lg text-xs font-bold text-white cursor-pointer">
-              {isProcessing && <Loader2 className="w-3 h-3 animate-spin mr-2" />} Save Changes
+        <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-5xl h-[80vh] bg-zinc-950 border border-zinc-800 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] p-0 flex flex-col rounded-2xl overflow-hidden focus-visible:outline-none">
+          
+          <DialogHeader className="p-6 border-b border-zinc-800/50 bg-zinc-900/30 shrink-0 flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Maximize2 className="w-4 h-4 text-blue-500" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold text-white">Chunk Index: {selectedChunk?.chunk_index}</DialogTitle>
+                <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-tighter">Chunk ID: {selectedChunk?.id?.slice(0, 8)}</p>
+              </div>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsEditModalOpen(false)} className="rounded-full hover:bg-zinc-800 text-zinc-400 cursor-pointer transition-colors">
+              <X className="w-4 h-4" />
             </Button>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-hidden relative flex flex-col p-6 bg-[#020203]">
+              <div className="relative flex-1 flex flex-col border border-zinc-800 bg-zinc-900/20 rounded-xl overflow-hidden focus-within:border-blue-500/50 transition-colors">
+                <Textarea 
+                  value={editContent} 
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="flex-1 w-full bg-transparent border-none resize-none p-6 pr-4 text-sm leading-relaxed text-zinc-300 focus-visible:ring-0 placeholder:text-zinc-700 overflow-y-auto 
+                  [&::-webkit-scrollbar]:w-1.5
+                  [&::-webkit-scrollbar-track]:bg-transparent
+                  [&::-webkit-scrollbar-thumb]:bg-zinc-800
+                  [&::-webkit-scrollbar-thumb]:rounded-full
+                  hover:[&::-webkit-scrollbar-thumb]:bg-zinc-700
+                  transition-all"
+                  placeholder="Analyze and edit node content..."
+                />
+                <div className="absolute bottom-4 right-6 text-[9px] font-mono text-zinc-600 bg-zinc-950/50 px-2 py-1 rounded border border-zinc-800/50 backdrop-blur-sm pointer-events-none">
+                  CHAR_COUNT: {editContent.length}
+                </div>
+              </div>
+          </div>
+
+          <div className="p-6 border-t border-zinc-800/50 bg-zinc-900/30 flex items-center justify-between shrink-0">
+             <div className="flex gap-3 w-full sm:w-auto flex-1 sm:flex-none">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsEditModalOpen(false)} 
+                className="flex-1 bg-zinc-900 border border-white/5 text-zinc-400 hover:bg-red-900/40 hover:text-red-500 h-10 text-xs font-bold uppercase rounded-lg cursor-pointer transition-all duration-300"
+              >
+                Discard
+              </Button>
+
+              <Button 
+                onClick={handleUpdateChunk} 
+                disabled={isProcessing} 
+                className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white h-10 rounded-lg text-xs font-bold shadow-lg shadow-blue-900/20 cursor-pointer transition-all px-8"
+              >
+                {isProcessing ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : "COMMIT CHANGES"}
+              </Button>
+             </div>
+          </div>
+          
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Overlay */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-200 max-w-md p-8 rounded-2xl border shadow-2xl">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+                <HelpCircle className="w-8 h-8 text-red-500" />
+            </div>
+            <DialogTitle className="text-xl font-bold text-white mb-2">Confirm Deletion</DialogTitle>
+            <p className="text-zinc-400 text-sm leading-relaxed mb-8">
+                This action will permanently remove all processed segments associated with this asset. This cannot be undone.
+            </p>
+            
+            <div className="flex w-full gap-3">
+              <Button 
+                variant="ghost" 
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="flex-1 h-12 bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold rounded-xl cursor-pointer"
+              >
+                CANCEL
+              </Button>
+              <Button 
+                onClick={handleDeleteFileGroup}
+                disabled={isProcessing}
+                className="flex-1 h-12 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 cursor-pointer"
+              >
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "DELETE ALL"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
