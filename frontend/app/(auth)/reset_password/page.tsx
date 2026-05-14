@@ -139,7 +139,6 @@ export default function ResetPasswordPage() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <AuthStatusMessages error={error} success={success} />
 
-                # ---- Password Inputs Section ----
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-zinc-500 text-xs ml-1">
