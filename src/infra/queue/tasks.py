@@ -65,3 +65,17 @@ def segment_file(subject_id: str, book_id: str):
             )
 
     return asyncio.run(run())
+
+# --------------- Question Pipeline Task --------------- #
+@celery_app.task
+def run_question_pipeline(subject_id: str, book_id: str):
+
+    async def run():
+        async with session_local() as session:
+            return await run_segmentation_pipeline(
+                session=session,
+                subject_id=subject_id,
+                book_id=book_id,
+            )
+
+    return asyncio.run(run())

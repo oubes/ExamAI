@@ -9,6 +9,7 @@ from src.infra.queue.tasks import segment_file
 from src.auth.roles import admin_required
 
 from src.services.question.pipeline.segmentation_pipeline import run_pipeline as run_segmentation_pipeline
+from src.infra.queue.tasks import run_question_pipeline
 
 
 # ----- ROUTER ----- #
@@ -23,12 +24,12 @@ async def run_pipeline(
     # _=Depends(admin_required),
 ):
     try:
-
-        result = await run_segmentation_pipeline(
-            session=session,
-            subject_id=subject_id,
-            book_id=book_id,
+        
+        result = run_question_pipeline.delay(
+            subject_id=str(subject_id),
+            book_id=str(book_id),
         )
+
 
         return {
             "success": True,
