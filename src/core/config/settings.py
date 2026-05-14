@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     alibaba_base_url: str = Field(..., alias="ALIBABA_BASE_URL")
     alibaba_model_temp: float = 0.2
     
-    alibaba_llm_model_name: str = "qwen3.5-35b-a3b"
+    alibaba_llm_model_name: str = "qwen3-max"
     alibaba_llm_max_concurrent_requests: int = 5
     alibaba_llm_max_retries: int = 3
     alibaba_llm_base_delay: float = 1.0

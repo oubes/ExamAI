@@ -25,15 +25,15 @@ class Settings(BaseSettings):
     DIFFICULTY_PROFILE: dict = {
         "easy": {
             "temperature": 0.1,
-            "max_tokens": 600
+            "max_tokens": 2048
         },
         "medium": {
             "temperature": 0.2,
-            "max_tokens": 800
+            "max_tokens": 2048
         },
         "hard": {
             "temperature": 0.3,
-            "max_tokens": 1100
+            "max_tokens": 2048
         }
     }
     

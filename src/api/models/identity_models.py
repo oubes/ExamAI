@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 # -------------------- models -------------------- #
@@ -30,8 +30,8 @@ class RegisterResponse(BaseModel):
 
 # ---- Login Request ---- #
 class LoginRequest(BaseModel):
-    email: EmailStr
-    password: str
+    email: EmailStr = Field(default="omargamal.bs99@gmail.com")
+    password: str = Field(default="123456")
 
 
 # ---- Token Response ---- #

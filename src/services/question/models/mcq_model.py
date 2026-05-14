@@ -1,6 +1,6 @@
 # ----- IMPORTS ----- #
 from src.services.question.prompts.mcq_prompt import MCQ_SYSTEM_PROMPT
-from src.services.question.utils.utils import extract_json
+from src.services.question.utils.utils import extract_json, validate_mcq
 from src.services.question.core.difficulty import get_difficulty_config
 
 
@@ -34,5 +34,6 @@ DIFFICULTY:
         temperature=config["temperature"],
         max_tokens=config["max_tokens"]
     )
-
-    return extract_json(result)
+    
+    raw = extract_json(result)
+    return validate_mcq(raw)
