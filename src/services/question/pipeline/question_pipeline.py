@@ -81,7 +81,7 @@ async def run_question_pipeline(
                 difficulty,
             )
 
-            print(f"[MCQ] raw response keys = {mcq_resp.keys()}")
+            print(f"[MCQ] keys = {mcq_resp.keys()}")
 
             questions = mcq_resp.get("questions", [])
             print(f"[MCQ] questions count = {len(questions)}")
@@ -111,27 +111,19 @@ async def run_question_pipeline(
                     },
                 )
 
-                print(f"[MCQ] created question_id = {question.id}")
+                print(f"[MCQ] STORED QUESTION -> id={question.id}")
 
-                # ---------- OPTIONS (FIXED) ---------- #
+                # ---------- OPTIONS ---------- #
                 options = q.get("options")
 
-                # ---- COMPAT LAYER: support old schema ---- #
                 if options is None:
                     choices = q.get("choices", [])
 
                     if isinstance(choices, dict):
-                        options = [
-                            {"text": v, "is_correct": False}
-                            for v in choices.values()
-                        ]
+                        options = [{"text": v, "is_correct": False} for v in choices.values()]
                     else:
-                        options = [
-                            {"text": c, "is_correct": False}
-                            for c in choices
-                        ]
+                        options = [{"text": c, "is_correct": False} for c in choices]
 
-                # ---- SAFETY NORMALIZATION ---- #
                 normalized_options = []
 
                 for opt in options:
@@ -144,29 +136,21 @@ async def run_question_pipeline(
 
                     elif isinstance(opt, dict):
                         normalized_options.append({
-                            "text": (
-                                opt.get("text")
-                                or opt.get("option")
-                                or opt.get("value")
-                            ),
+                            "text": opt.get("text") or opt.get("option") or opt.get("value"),
                             "is_correct": opt.get("is_correct", False)
                         })
 
-                # ---- ENSURE ONE CORRECT ANSWER ---- #
                 if not any(o["is_correct"] for o in normalized_options) and normalized_options:
                     normalized_options[0]["is_correct"] = True
 
-                # ---- PERSIST OPTIONS ---- #
                 print(f"[MCQ] options count = {len(normalized_options)}")
 
                 for idx, opt in enumerate(normalized_options):
 
                     option_text = opt.get("text")
 
-                    print(f"[MCQ] option {idx} = {option_text}")
-
                     if option_text:
-                        await option_service.create(
+                        option = await option_service.create(
                             session=session,
                             payload={
                                 "question_id": question.id,
@@ -176,19 +160,26 @@ async def run_question_pipeline(
                             },
                         )
 
+                        print(
+                            f"[MCQ] STORED OPTION -> id={option.id} | question_id={question.id}"
+                        )
+
                 # ---------- SKILLS ---------- #
                 print(f"[MCQ] linking skills...")
 
                 for skill_id in skills:
-                    print(f"[MCQ] skill = {skill_id}")
 
-                    await question_skill_service.create(
+                    link = await question_skill_service.create(
                         session=session,
                         payload={
                             "question_id": question.id,
                             "skill_id": skill_id,
                             "weight": 1.0,
                         },
+                    )
+
+                    print(
+                        f"[MCQ] STORED SKILL LINK -> id={link.id} | question_id={question.id} | skill_id={skill_id}"
                     )
 
         # ================= WRITTEN ================= #
@@ -231,14 +222,13 @@ async def run_question_pipeline(
                     },
                 )
 
-                print(f"[WRITTEN] created question_id = {question.id}")
+                print(f"[WRITTEN] STORED QUESTION -> id={question.id}")
 
                 # ---------- MODEL ANSWER ---------- #
                 answer = q.get("answer")
-                print(f"[WRITTEN] answer = {answer}")
 
                 if answer:
-                    await model_answer_service.create(
+                    ans = await model_answer_service.create(
                         session=session,
                         payload={
                             "question_id": question.id,
@@ -246,19 +236,26 @@ async def run_question_pipeline(
                         },
                     )
 
+                    print(
+                        f"[WRITTEN] STORED MODEL ANSWER -> id={ans.id} | question_id={question.id}"
+                    )
+
                 # ---------- SKILLS ---------- #
                 print(f"[WRITTEN] linking skills...")
 
                 for skill_id in skills:
-                    print(f"[WRITTEN] skill = {skill_id}")
 
-                    await question_skill_service.create(
+                    link = await question_skill_service.create(
                         session=session,
                         payload={
                             "question_id": question.id,
                             "skill_id": skill_id,
                             "weight": 1.0,
                         },
+                    )
+
+                    print(
+                        f"[WRITTEN] STORED SKILL LINK -> id={link.id} | question_id={question.id} | skill_id={skill_id}"
                     )
 
         print(f"\n[CHUNK {i}] END")
