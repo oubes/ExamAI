@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { 
     Loader2, Search, HelpCircle, Trash2, LayoutGrid, List, 
-    MoreVertical, ChevronRight, Tag, BarChart3, BookOpen, 
+    MoreVertical, Tag, BarChart3, BookOpen, 
     AlertCircle, RefreshCw, FileText, CheckSquare, Layers,
-    Maximize2, Edit3, Plus, X, Check, Brain
+    Maximize2, Edit3, Plus, X, Check, Brain, SlidersHorizontal
 } from "lucide-react";
 
 // ---- Services & Types ----
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 
 export default function QuestionsPage() {
     // ---- State ----
@@ -45,6 +46,7 @@ export default function QuestionsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("list");
     const [activeTab, setActiveTab] = useState<string>("mcq");
+    const [difficultyRange, setDifficultyRange] = useState<[number, number]>([0, 5]);
 
     // ---- Orchestrated Data Fetching ----
     const fetchData = useCallback(async () => {
@@ -101,9 +103,11 @@ export default function QuestionsPage() {
         return bundles.filter(b => {
             const matchesSearch = b.question.content.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesType = b.question.type === activeTab;
-            return matchesSearch && matchesType;
+            const diff = b.question.difficulty || 0;
+            const matchesDifficulty = diff >= difficultyRange[0] && diff <= difficultyRange[1];
+            return matchesSearch && matchesType && matchesDifficulty;
         });
-    }, [bundles, searchQuery, activeTab]);
+    }, [bundles, searchQuery, activeTab, difficultyRange]);
 
     return (
         <div className="flex flex-col min-h-screen bg-[#09090b] text-zinc-100 p-6 lg:p-10">
@@ -127,42 +131,112 @@ export default function QuestionsPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 px-4 shadow-lg shadow-blue-500/10 cursor-pointer">
+                    <Button className="bg-blue-600 hover:bg-blue-500 text-white gap-2 px-4 shadow-lg shadow-blue-500/10 cursor-pointer transition-all">
                         <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Initialize Question</span>
                     </Button>
                 </div>
             </header>
-            <div className="h-4"></div>
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-8 border-b border-zinc-800/50 pb-6 gap-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-6 w-full xl:w-auto">
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+                        <TabsList className="bg-zinc-900 border border-zinc-800 p-1 gap-1">
+                            <TabsTrigger
+                                value="mcq"
+                                className="gap-2 cursor-pointer transition-colors data-[state=active]:bg-zinc-800 data-[state=active]:text-blue-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-md p-2">
+                                <div className="flex flex-col items-center leading-none">
+                                    <CheckSquare className="w-3.5 h-3.5 mb-3" />
+                                    <span>Multiple Choice</span>
+                                </div>
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="written"
+                                className="gap-2 cursor-pointer transition-colors data-[state=active]:bg-zinc-800 data-[state=active]:text-purple-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-md">
+                                <div className="flex flex-col items-center leading-none">
+                                    <FileText className="w-3.5 h-3.5 mb-3" />
+                                    <span>Written Response</span>
+                                </div>
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 border-b border-zinc-800/50 pb-6 gap-4">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-                    <TabsList className="bg-zinc-900 border border-zinc-800 p-1">
-                        <TabsTrigger
-                            value="mcq"
-                            className="gap-2 cursor-pointer transition-colors data-[state=active]:bg-zinc-800 data-[state=active]:text-blue-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-md"
-                        >
-                            <CheckSquare className="w-3.5 h-3.5" /> Multiple Choice
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="written"
-                            className="gap-2 cursor-pointer transition-colors data-[state=active]:bg-zinc-800 data-[state=active]:text-purple-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-md"
-                        >
-                            <FileText className="w-3.5 h-3.5" /> Written Response
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                    <div className="flex flex-col gap-3 md:w-32 bg-zinc-900/50 border border-zinc-800/50 rounded-xl p-3">
 
-                <div className="flex items-center gap-4 ml-auto sm:ml-0">
+                        {/* ---- Inputs ---- */}
+                        <div className="flex items-center gap-2">
+
+                            {/* Min */}
+                            <div className="flex flex-col gap-1 flex-1 items-center">
+                                <span className="text-[9px] font-mono text-zinc-500 uppercase">
+                                    Min
+                                </span>
+
+                                <input
+                                    type="text"
+                                    min={1}
+                                    max={difficultyRange[1]}
+                                    value={difficultyRange[0]}
+                                    onChange={(e) =>
+                                        setDifficultyRange([Number(e.target.value), difficultyRange[1]])
+                                    }
+                                    className="
+                                        w-full h-7 bg-zinc-950 border border-zinc-800 rounded-md
+                                        text-center text-xs font-mono text-blue-400
+                                        focus:outline-none focus:border-blue-500/50 transition-colors
+
+                                        appearance-none
+                                        [-moz-appearance:textfield]
+                                    "
+                                />
+                            </div>
+
+                            {/* Max */}
+                            <div className="flex flex-col gap-1 flex-1 items-center">
+                                <span className="text-[9px] font-mono text-zinc-500 uppercase">
+                                    Max
+                                </span>
+
+                                <input
+                                    type="text"
+                                    min={difficultyRange[0]}
+                                    max={10}
+                                    value={difficultyRange[1]}
+                                    onChange={(e) =>
+                                        setDifficultyRange([difficultyRange[0], Number(e.target.value)])
+                                    }
+                                    className="
+                                        w-full h-7 bg-zinc-950 border border-zinc-800 rounded-md
+                                        text-center text-xs font-mono text-blue-400
+                                        focus:outline-none focus:border-blue-500/50 transition-colors
+
+                                        appearance-none
+                                        [-moz-appearance:textfield]
+                                    "
+                                />
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4 ml-auto xl:ml-0">
                     <div className="flex bg-zinc-900 border border-zinc-800 rounded-lg p-1">
                         <button
                             onClick={() => setViewMode("grid")}
-                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "grid" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-blue-400 hover:bg-blue-500/10"}`}
+                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                                viewMode === "grid"
+                                    ? "bg-zinc-800 text-white shadow-sm"
+                                    : "text-zinc-500 hover:text-blue-400 hover:bg-blue-500/10"
+                            }`}
                         >
                             <LayoutGrid className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => setViewMode("list")}
-                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${viewMode === "list" ? "bg-zinc-800 text-white shadow-sm" : "text-zinc-500 hover:text-blue-400 hover:bg-blue-500/10"}`}
+                            className={`p-1.5 rounded-md transition-colors cursor-pointer ${
+                                viewMode === "list"
+                                    ? "bg-zinc-800 text-white shadow-sm"
+                                    : "text-zinc-500 hover:text-blue-400 hover:bg-blue-500/10"
+                            }`}
                         >
                             <List className="w-4 h-4" />
                         </button>
@@ -186,7 +260,7 @@ export default function QuestionsPage() {
                     </div>
                 ) : filteredBundles.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-zinc-800 rounded-2xl">
-                        <p className="text-zinc-600 text-sm font-mono uppercase tracking-widest">Null Reference: No results found</p>
+                        <p className="text-zinc-600 text-sm font-mono uppercase tracking-widest">Null Reference: No matching data</p>
                     </div>
                 ) : (
                     <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-4"}>
@@ -225,6 +299,12 @@ function QuestionCard({ bundle, mode, subjectName, chapterName, topicName, onDel
     const { question, options, model_answer } = bundle;
     const [isOverlayOpen, setIsOverlayOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    
+    const getDifficultyColor = (level: number) => {
+        if (level <= 1) return "text-emerald-500 border-emerald-500/20";
+        if (level === 2) return "!text-zinc-200 !border-zinc-200/30";
+        return "text-red-400 border-red-500/20";
+    };
 
     return (
         <>
@@ -239,9 +319,10 @@ function QuestionCard({ bundle, mode, subjectName, chapterName, topicName, onDel
                         </Badge>
                         <Badge
                             variant="outline"
-                            className="bg-zinc-800/50 border-zinc-700 text-[10px] uppercase font-mono text-amber-400 flex gap-1 items-center"
+                            className={`bg-zinc-800/50 text-[10px] font-mono flex gap-1 items-center transition-colors ${getDifficultyColor(question.difficulty || 0)}`}
                         >
-                            <Brain className="w-2.5 h-2.5" /> Diff: {question.difficulty || 0}
+                            <Brain className="w-2.5 h-2.5" /> 
+                            Difficulty: {question.difficulty || 0}
                         </Badge>
                     </div>
                     <QuestionActions 
@@ -292,7 +373,7 @@ function QuestionCard({ bundle, mode, subjectName, chapterName, topicName, onDel
                     {model_answer && (
                         <div 
                             onClick={() => setIsOverlayOpen(true)}
-                            className="group/answer mt-4 p-3 bg-zinc-950/50 border border-zinc-800/80 rounded-xl cursor-pointer hover:border-zinc-600 transition-all relative overflow-hidden"
+                            className="group/answer mt-4 p-3 bg-zinc-800/50 border border-zinc-800/50 hover:border-zinc-700 shadow-zinc-800/40 rounded-lg cursor-pointer transition-all relative overflow-hidden"
                         >
                             <div className="flex justify-between items-center mb-1">
                                 <p className="text-[9px] uppercase font-bold text-zinc-600 tracking-[0.2em]">Standard Answer</p>
@@ -308,27 +389,17 @@ function QuestionCard({ bundle, mode, subjectName, chapterName, topicName, onDel
                 <div className="relative mt-6 pt-4 border-t border-zinc-800/50 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <BarChart3 className="w-3 h-3 text-zinc-600" />
-                        <span className="text-[10px] text-zinc-600 font-mono tracking-tighter uppercase">
-                            Imp: {question.importance}
+                        <span className="text-[11px] text-zinc-600 font-mono tracking-tighter">
+                            Importance: {question.importance}
                         </span>
                     </div>
-
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-[11px] text-zinc-500 hover:text-white hover:bg-zinc-800 gap-1 px-2 cursor-pointer"
-                    >
-                        Inspect Node <ChevronRight className="w-3 h-3" />
-                    </Button>
                 </div>
             </div>
 
             <Dialog open={isOverlayOpen} onOpenChange={setIsOverlayOpen}>
-                <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-2xl">
+                <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 max-w-2xl p-6">
                     <DialogHeader>
-                        <DialogTitle className="text-zinc-400 text-xs font-mono uppercase tracking-[0.3em] mb-2 text-left">
-                            Standard Answer Protocol
-                        </DialogTitle>
+                        <DialogTitle className="hidden" />
                         <DialogDescription className="text-zinc-200 text-base leading-relaxed text-left font-medium border-b border-zinc-800 pb-4">
                             {question.content}
                         </DialogDescription>
@@ -351,7 +422,6 @@ function QuestionCard({ bundle, mode, subjectName, chapterName, topicName, onDel
     );
 }
 
-// ---- Edit Question Dialog Component ----
 function EditQuestionDialog({ bundle, isOpen, onOpenChange, onUpdate }: { 
     bundle: QuestionBundle, 
     isOpen: boolean, 
@@ -449,8 +519,7 @@ function EditQuestionDialog({ bundle, isOpen, onOpenChange, onUpdate }: {
                     </div>
                 </DialogHeader>
 
-                <div className="px-6 pb-6 space-y-5 relative z-10 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                    {/* Question Content */}
+                <div className="px-6 pb-6 space-y-5 relative z-10 max-h-[60vh] overflow-y-auto">
                     <div className="space-y-2">
                         <Label className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Content</Label>
                         <Textarea
@@ -461,7 +530,6 @@ function EditQuestionDialog({ bundle, isOpen, onOpenChange, onUpdate }: {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        {/* Importance */}
                         <div className="space-y-2">
                             <Label className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Importance (1-10)</Label>
                             <Input
@@ -472,7 +540,6 @@ function EditQuestionDialog({ bundle, isOpen, onOpenChange, onUpdate }: {
                             />
                         </div>
 
-                        {/* Difficulty */}
                         <div className="space-y-2">
                             <Label className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Difficulty (0-5)</Label>
                             <Input
@@ -484,7 +551,6 @@ function EditQuestionDialog({ bundle, isOpen, onOpenChange, onUpdate }: {
                         </div>
                     </div>
 
-                    {/* Conditional Answer Section */}
                     {isMCQ ? (
                         <div className="space-y-3">
                             <Label className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Options & Correct Key</Label>
@@ -518,7 +584,6 @@ function EditQuestionDialog({ bundle, isOpen, onOpenChange, onUpdate }: {
                             <Label className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Standard Answer</Label>
                             <Textarea
                                 className="bg-zinc-900/30 border border-zinc-800 min-h-[120px] focus:ring-2 focus:ring-purple-600/40 rounded-xl transition-all resize-none text-sm italic"
-                                placeholder="Enter the model answer for this written question..."
                                 value={formData.model_answer}
                                 onChange={(e) => setFormData(prev => ({ ...prev, model_answer: e.target.value }))}
                             />
