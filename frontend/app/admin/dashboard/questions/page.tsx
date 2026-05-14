@@ -110,7 +110,7 @@ export default function QuestionsPage() {
     }, [bundles, searchQuery, activeTab, difficultyRange]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#09090b] text-zinc-100 p-6 lg:p-10">
+        <div className="flex flex-col min-h-screen bg-[#09090b] text-zinc-100 p-6 lg:p-12">
             
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
                 <div>

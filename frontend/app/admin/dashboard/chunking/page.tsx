@@ -139,7 +139,7 @@ export default function UnifiedStoragePage() {
               <Cpu className="w-4 h-4 text-blue-500" />
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Chunking</span>
             </div>
-            <h1 className="text-4xl font-extrabold tracking-tight text-white lg:text-5xl">
+            <h1 className="text-3xl font-bold tracking-tight">
               Segments
             </h1>
           </div>

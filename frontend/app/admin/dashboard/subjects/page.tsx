@@ -129,7 +129,7 @@ export default function SubjectsPage() {
                             System Admin
                         </span>
                     </div>
-                    <h1 className="text-4xl font-black tracking-tighter text-white uppercase">
+                    <h1 className="text-3xl font-bold tracking-tight">
                         Subjects
                     </h1>
                 </div>
