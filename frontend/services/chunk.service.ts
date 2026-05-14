@@ -42,6 +42,16 @@ export interface DeleteChunkResponse {
   success: boolean;
 }
 
+// -------------------- Pipeline Progress Type (NEW) -------------------- //
+export interface PipelineProgressResponse {
+  job_id: string;
+  subject_id: string;
+  book_id: string;
+  current_chunk: number;
+  total_chunks: number;
+  status: string;
+}
+
 // -------------------- Error Helper -------------------- //
 
 const extractErrorMessage = (data: any, fallback: string): string => {
@@ -196,6 +206,28 @@ export const questionService = {
         extractErrorMessage(
           error.response?.data,
           "Failed to delete chunks"
+        )
+      );
+    }
+  },
+
+  // -------------------- Get Pipeline Progress (NEW) -------------------- //
+  getPipelineProgress: async (
+    subjectId: string,
+    bookId: string
+  ): Promise<PipelineProgressResponse> => {
+    try {
+      const res = await api.get(
+        `/question/chunks/subject/${subjectId}/book/${bookId}/progress`
+      );
+
+      return res.data;
+
+    } catch (error: any) {
+      throw new Error(
+        extractErrorMessage(
+          error.response?.data,
+          "Failed to fetch pipeline progress"
         )
       );
     }

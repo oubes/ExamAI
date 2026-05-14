@@ -23,12 +23,13 @@ import {
   BookOpen,
   GraduationCap,
   LayoutDashboard,
-  LogOut
+  LogOut,
+  Sparkles
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { authService } from "@/services/auth.service";
 import { MeResponse } from "@/services/dashboard.service";
-import { HardDrive, Cpu } from "lucide-react";
+import { HardDrive, Cpu,  } from "lucide-react";
 
 // ---- Navigation Config ----
 const studentNav = [
@@ -37,6 +38,7 @@ const studentNav = [
   { title: "Storage", icon: HardDrive, href: "/admin/dashboard/storage" },
   { title: "Chunking", icon: Cpu, href: "/admin/dashboard/chunking" },
   { title: "Knowledge", icon: HardDrive, href: "/admin/dashboard/knowledge" },
+  { title: "Questions", icon: Sparkles, href: "/admin/dashboard/questions" },
   { title: "Exams", icon: ClipboardCheck, href: "/admin/dashboard/exams" },
   { title: "Feedback", icon: MessageSquareText, href: "/admin/dashboard/feedback" },
 ];
