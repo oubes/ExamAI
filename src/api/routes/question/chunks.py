@@ -126,3 +126,28 @@ async def delete_chunk(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+# ---- Delete All Chunks By Subject + Book ---- #
+@router.delete(
+    "/subject/{subject_id}/book/{book_id}",
+    response_model=DeleteChunkResponse,
+)
+async def delete_all_chunks_by_subject_and_book(
+    subject_id: UUID,
+    book_id: UUID,
+    session: AsyncSession = Depends(get_session),
+    _=Depends(admin_required),
+):
+    try:
+        deleted_count = await chunk_service.delete_all_by_subject_and_book(
+            session=session,
+            subject_id=subject_id,
+            book_id=book_id,
+        )
+
+        return DeleteChunkResponse(
+            success=deleted_count > 0
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

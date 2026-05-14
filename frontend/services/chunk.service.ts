@@ -60,7 +60,7 @@ const extractErrorMessage = (data: any, fallback: string): string => {
 // -------------------- Question Service -------------------- //
 
 export const questionService = {
-  
+
   // -------------------- Run Segmentation Pipeline -------------------- //
   runSegmentationPipeline: async (
     subjectId: string,
@@ -145,7 +145,9 @@ export const questionService = {
         `/question/chunks/${chunkId}`,
         payload
       );
+
       return res.data;
+
     } catch (error: any) {
       throw new Error(
         extractErrorMessage(
@@ -161,13 +163,39 @@ export const questionService = {
     chunkId: string
   ): Promise<DeleteChunkResponse> => {
     try {
-      const res = await api.delete(`/question/chunks/${chunkId}`);
+      const res = await api.delete(
+        `/question/chunks/${chunkId}`
+      );
+
       return res.data;
+
     } catch (error: any) {
       throw new Error(
         extractErrorMessage(
           error.response?.data,
           "Failed to delete chunk"
+        )
+      );
+    }
+  },
+
+  // -------------------- Delete All Chunks By Subject + Book -------------------- //
+  deleteAllChunksBySubjectAndBook: async (
+    subjectId: string,
+    bookId: string
+  ): Promise<DeleteChunkResponse> => {
+    try {
+      const res = await api.delete(
+        `/question/chunks/subject/${subjectId}/book/${bookId}`
+      );
+
+      return res.data;
+
+    } catch (error: any) {
+      throw new Error(
+        extractErrorMessage(
+          error.response?.data,
+          "Failed to delete chunks"
         )
       );
     }

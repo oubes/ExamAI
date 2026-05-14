@@ -77,12 +77,10 @@ export default function StoragePage() {
     };
 
     const handleDiscard = useCallback(() => {
-        // ---- Reset State ----
         setIsOverlayOpen(false);
         setSelectedFiles(null);
         setUploadCategory("");
 
-        // ---- Clear Input DOM ----
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -244,10 +242,16 @@ export default function StoragePage() {
                 )}
             </main>
 
-                        {/* ---- Upload Overlay ---- */}
+            {/* ---- Upload Overlay (FIXED CLICK BEHAVIOR) ---- */}
             {isOverlayOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray/10 backdrop-blur-sm p-4">
-                    <div className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-gray/10 backdrop-blur-sm p-4"
+                    onClick={handleDiscard}
+                >
+                    <div
+                        className="bg-zinc-950 border border-zinc-800 w-full max-w-md rounded-2xl p-6 shadow-2xl relative"
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <button 
                             onClick={handleDiscard}
                             className="absolute top-4 right-4 text-zinc-500 hover:text-white cursor-pointer transition-colors"
@@ -265,7 +269,7 @@ export default function StoragePage() {
                                 <label className="text-xs font-mono text-zinc-500 uppercase mb-2 block">Category</label>
                                 <Input 
                                     placeholder="e.g. Invoices, Models, Documentation"
-                                    className="bg-zinc-900 border-zinc-800 text-zinc-200"
+                                    className="bg-zinc-900 border-zinc-800 text-zinc-200 h-12 px-4"
                                     value={uploadCategory}
                                     onChange={(e) => setUploadCategory(e.target.value)}
                                 />
@@ -322,19 +326,11 @@ function FileCard({ file, mode, onDelete }: { file: StorageFile, mode: "grid" | 
     if (mode === "list") {
         return (
             <div className="flex items-center justify-between p-3 bg-zinc-900/60 border border-zinc-900/50 rounded-xl hover:bg-zinc-900 transition-all group relative overflow-hidden">
-
-                {/* hover overlay (20% dim effect) */}
                 <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-20 transition-opacity pointer-events-none" />
 
                 <div className="relative flex items-center justify-between w-full">
                     <div className="flex items-center gap-4">
-                        <div className="relative">
-                            <FileIcon className="w-5 h-5 text-blue-400" />
-                            {!file.is_processed && (
-                                <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-                            )}
-                        </div>
-
+                        <FileIcon className="w-5 h-5 text-blue-400" />
                         <span className="text-sm font-medium truncate max-w-[200px] md:max-w-md text-zinc-300">
                             {file.original_name}
                         </span>
@@ -347,11 +343,7 @@ function FileCard({ file, mode, onDelete }: { file: StorageFile, mode: "grid" | 
                         <span className="text-xs text-zinc-500 hidden md:block">
                             {uploadDate}
                         </span>
-                        <FileActions
-                            onDelete={onDelete}
-                            fileUrl={file.path}
-                            status={file.processing_status}
-                        />
+                        <FileActions onDelete={onDelete} fileUrl={file.path} status={file.processing_status} />
                     </div>
                 </div>
             </div>
@@ -360,8 +352,6 @@ function FileCard({ file, mode, onDelete }: { file: StorageFile, mode: "grid" | 
 
     return (
         <div className="flex flex-col bg-zinc-900/60 border border-zinc-800/50 rounded-2xl p-4 hover:border-zinc-700 transition-all group relative overflow-hidden">
-
-            {/* hover overlay (20% dim effect) */}
             <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
             <div className="relative flex justify-between items-start mb-6">
@@ -369,15 +359,11 @@ function FileCard({ file, mode, onDelete }: { file: StorageFile, mode: "grid" | 
                     <FileIcon className={`w-6 h-6 ${file.is_processed ? 'text-zinc-400 group-hover:text-blue-500' : 'text-amber-500'}`} />
                 </div>
 
-                <FileActions
-                    onDelete={onDelete}
-                    fileUrl={file.path}
-                    status={file.processing_status}
-                />
+                <FileActions onDelete={onDelete} fileUrl={file.path} status={file.processing_status} />
             </div>
 
             <div className="relative mt-auto">
-                <h3 className="text-sm font-semibold text-zinc-200 truncate pr-2" title={file.original_name}>
+                <h3 className="text-sm font-semibold text-zinc-200 truncate pr-2">
                     {file.original_name}
                 </h3>
 
@@ -410,16 +396,10 @@ function FileActions({ onDelete, fileUrl, status }: { onDelete: () => void, file
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300">
-                <DropdownMenuItem 
-                    onClick={handleDownload}
-                    className="gap-2 cursor-pointer focus:bg-zinc-900 focus:text-white"
-                >
+                <DropdownMenuItem onClick={handleDownload} className="gap-2 cursor-pointer focus:bg-zinc-900 focus:text-white">
                     <Download className="w-4 h-4" /> Download
                 </DropdownMenuItem>
-                <DropdownMenuItem 
-                    onClick={onDelete}
-                    className="gap-2 cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-500"
-                >
+                <DropdownMenuItem onClick={onDelete} className="gap-2 cursor-pointer text-red-500 focus:bg-red-500/10 focus:text-red-500">
                     <Trash2 className="w-4 h-4" /> Delete
                 </DropdownMenuItem>
                 {status === "failed" && (

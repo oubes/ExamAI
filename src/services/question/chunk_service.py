@@ -6,7 +6,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.questions.models.chunk import DocumentChunk
+from src.domain.questions.services.pipeline_job import PipelineJobService
 
+
+# ---- Dependencies ---- #
+pipeline_job_service = PipelineJobService()
 
 # ---- Logging ---- #
 logger = logging.getLogger(__name__)
@@ -128,4 +132,66 @@ class ChunkService:
         except Exception as e:
             await session.rollback()
             logger.error(f"[ChunkService] delete error: {e}", exc_info=True)
+            raise
+        
+    # ---- Delete All By Subject + Book ---- #
+    async def delete_all_by_subject_and_book(
+        self,
+        session: AsyncSession,
+        subject_id: UUID,
+        book_id: UUID,
+    ) -> int:
+
+        try:
+            records = await self.list(
+                session=session,
+                limit=100000,
+                offset=0,
+            )
+
+            filtered_records = [
+                record
+                for record in records
+                if (
+                    record.subject_id == subject_id
+                    and record.book_id == book_id
+                )
+            ]
+
+            if not filtered_records:
+                return 0
+
+            deleted_count = 0
+
+            for record in filtered_records:
+                deleted = await self.delete(
+                    session=session,
+                    record_id=record.id,
+                )
+
+                if deleted:
+                    deleted_count += 1
+
+            # ---- RESET PIPELINE JOB PROGRESS ---- #
+
+            job = await pipeline_job_service.get_by_subject_and_book(
+                session=session,
+                subject_id=subject_id,
+                book_id=book_id,
+            )
+
+            if job:
+                await pipeline_job_service.update_progress(
+                    session=session,
+                    record_id=job.id,
+                    current_chunk=0,
+                )
+
+            return deleted_count
+
+        except Exception as e:
+            logger.error(
+                f"[ChunkService] delete_all_by_subject_and_book error: {e}",
+                exc_info=True,
+            )
             raise

@@ -36,7 +36,6 @@ export default function UnifiedStoragePage() {
   const [selectedChunk, setSelectedChunk] = useState<ChunkResponse | null>(null);
   const [editContent, setEditContent] = useState("");
 
-  // ---- Delete Confirmation State ----
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
@@ -103,12 +102,17 @@ export default function UnifiedStoragePage() {
     }
   };
 
-  // ---- Delete Group Logic ----
   const handleDeleteFileGroup = async () => {
     if (!fileToDelete) return;
+    
+    const relevantChunks = getChunksForFile(fileToDelete);
+    if (relevantChunks.length === 0) return;
+    
+    const subjectId = relevantChunks[0].subject_id;
+
     try {
         setIsProcessing(true);
-        // await questionService.deleteChunksByFile(fileToDelete); // افترض وجود الـ endpoint
+        await questionService.deleteAllChunksBySubjectAndBook(subjectId, fileToDelete);
         toast.warning("All segments for this asset have been removed.");
         setAllChunks(prev => prev.filter(c => c.book_id !== fileToDelete));
         setIsDeleteDialogOpen(false);
@@ -177,7 +181,7 @@ export default function UnifiedStoragePage() {
 
               return (
                 <Collapsible key={file.id} open={expandedFiles[file.id]} onOpenChange={() => setExpandedFiles(prev => ({ ...prev, [file.id]: !prev[file.id] }))}>
-                  <div className={`rounded-2xl border transition-all duration-200 ${expandedFiles[file.id] ? 'bg-zinc-900/90 border-zinc-700 shadow-xl' : 'bg-zinc-900/60 border-zinc-800/50 hover:bg-zinc-900/90 hover:border-zinc-700'}`}>
+                  <div className={`group rounded-2xl border transition-all duration-200 ${expandedFiles[file.id] ? 'bg-zinc-900/90 border-zinc-700 shadow-xl' : 'bg-zinc-900/60 border-zinc-800/50 hover:bg-zinc-900/90 hover:border-zinc-700'}`}>
                     
                     <div className="flex items-center p-4 gap-4">
                       <CollapsibleTrigger asChild>
@@ -186,13 +190,13 @@ export default function UnifiedStoragePage() {
                         </button>
                       </CollapsibleTrigger>
                       
-                      <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl">
-                        <BookMarked className={`w-5 h-5 ${expandedFiles[file.id] ? 'text-blue-500' : 'text-zinc-600'}`} />
+                      <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl transition-all duration-300">
+                        <BookMarked className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${expandedFiles[file.id] ? 'text-blue-500' : 'text-zinc-600'}`} />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                            <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded uppercase">{subjectName}</span>
+                          <span className="text-[9px] font-bold text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded uppercase">{subjectName}</span>
                         </div>
                         <h3 className="text-sm font-bold text-zinc-200 truncate mt-1">{file.original_name}</h3>
                       </div>
@@ -202,14 +206,13 @@ export default function UnifiedStoragePage() {
                           <p className="text-[10px] font-bold text-zinc-500 uppercase">Chunks</p>
                           <p className="text-xs font-mono text-zinc-300">{fileChunks.length}</p>
                         </div>
-                        
-                        <Button 
-                          variant="ghost" 
-                          onClick={(e) => openDeleteDialog(e, file.id)}
-                          className="h-10 w-10 p-0 bg-red-950/80 hover:bg-red-900 border border-red-900/50 rounded-xl cursor-pointer transition-all flex items-center justify-center shadow-lg"
-                        >
-                          <Trash2 className="w-4 h-4 text-zinc-200" />
-                        </Button>
+                          <Button 
+                            variant="ghost" 
+                            onClick={(e) => openDeleteDialog(e, file.id)}
+                            className="h-10 w-10 p-0 text-red-600 hover:text-red-500 hover:bg-red-500/10 cursor-pointer transition-all flex items-center justify-center border-none shadow-none"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                       </div>
                     </div>
 
@@ -245,9 +248,19 @@ export default function UnifiedStoragePage() {
         </div>
       </div>
 
-      {/* New Pipeline Modal */}
       <Dialog open={isPipelineModalOpen} onOpenChange={setIsPipelineModalOpen}>
-        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-200 min-w-[800px] p-10 rounded-2xl border shadow-2xl">
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[92vw] max-w-[1100px] p-10 rounded-2xl border shadow-2xl overflow-hidden focus-visible:outline-none [&>button]:hidden">
+
+          {/* ---- Single Custom Close Button ---- */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsPipelineModalOpen(false)}
+            className="absolute right-6 top-6 rounded-xl hover:bg-red-500/10 text-zinc-500 hover:text-red-500 cursor-pointer transition-all duration-200 z-50 border border-transparent hover:border-red-500/20"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+
           <DialogHeader className="mb-6">
             <DialogTitle className="text-2xl font-bold flex items-center gap-3 text-white">
               <CloudUpload className="w-6 h-6 text-blue-500" />
@@ -255,66 +268,126 @@ export default function UnifiedStoragePage() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-10">
-            <div className="space-y-2 pb-3">
-              <label className="text-[11px] font-mono text-zinc-500 uppercase block tracking-widest">1. Subject</label>
-              <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId}>
-                <SelectTrigger className="w-full grid grid-cols-[1fr_20px] items-center bg-zinc-900 border-zinc-800 text-white h-14 rounded-xl cursor-pointer focus:ring-2 focus:ring-blue-500/40 transition-all px-4 text-base shadow-inner [&>svg]:hidden">
-                  <span className="truncate text-left block">
-                    <SelectValue placeholder="Select context subject..." />
-                  </span>
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl">
-                  {subjects.map((sub) => (
-                    <SelectItem key={sub.id} value={sub.id} className="text-white focus:bg-blue-600 focus:text-white cursor-pointer py-4 text-base border-b border-zinc-800/50 last:border-0">
+          <div className="space-y-10 min-w-0">
+
+          {/* ---- Subject ---- */}
+          <div className="space-y-2 pb-3 min-w-0 text-left">
+            <label className="text-[16px] font-mono text-zinc-500 uppercase block tracking-widest text-left">
+              1.Subject
+            </label>
+
+            <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId}>
+              <SelectTrigger className="w-full max-w-full flex items-center justify-start bg-zinc-900 border border-zinc-800 text-white h-14 rounded-xl px-4 text-base shadow-inner overflow-hidden min-w-0 cursor-pointer text-left">
+                <span className="flex-1 min-w-0 truncate text-left">
+                  <SelectValue placeholder="Select context subject..." />
+                </span>
+              </SelectTrigger>
+
+              <SelectContent
+                position="popper"
+                sideOffset={4}
+                className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl"
+              >
+                {subjects.map((sub) => (
+                  <SelectItem
+                    key={sub.id}
+                    value={sub.id}
+                    className="
+                      text-white cursor-pointer
+                      py-4 pl-5 pr-10
+                      text-base
+                      border-b border-zinc-800/50 last:border-0
+                      focus:bg-zinc-800 hover:bg-zinc-800
+                      min-w-0
+                    "
+                  >
+                    <span className="block truncate min-w-0">
                       {sub.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="space-y-2 pb-3">
-              <label className="text-[11px] font-mono text-zinc-500 uppercase block tracking-widest">2. Target File</label>
-              <Select onValueChange={setSelectedFileId} value={selectedFileId}>
-                <SelectTrigger className="w-full grid grid-cols-[1fr_20px] items-center bg-zinc-900 border-zinc-800 text-white h-14 rounded-xl cursor-pointer focus:ring-2 focus:ring-blue-500/40 transition-all px-4 text-base shadow-inner overflow-hidden [&>svg]:hidden">
-                  <span className="truncate text-left block">
-                    <SelectValue placeholder="Select source book..." />
-                  </span>
-                </SelectTrigger>
-                <SelectContent position="popper" sideOffset={4} className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl">
-                  {files.map((file) => (
-                    <SelectItem key={file.id} value={file.id} className="text-white focus:bg-blue-600 focus:text-white cursor-pointer py-4 text-base border-b border-zinc-800/50 last:border-0">
+          {/* ---- File ---- */}
+          <div className="space-y-2 pb-3 min-w-0 text-left">
+            <label className="text-[16px] font-mono text-zinc-500 uppercase block tracking-widest text-left">
+              2.Target File
+            </label>
+
+            <Select onValueChange={setSelectedFileId} value={selectedFileId}>
+              <SelectTrigger className="w-full max-w-full flex items-center justify-start bg-zinc-900 border border-zinc-800 text-white h-14 rounded-xl px-4 text-base shadow-inner overflow-hidden min-w-0 cursor-pointer text-left">
+                <span className="flex-1 min-w-0 truncate text-left">
+                  <SelectValue placeholder="Select source book..." />
+                </span>
+              </SelectTrigger>
+
+              <SelectContent
+                position="popper"
+                sideOffset={4}
+                className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl"
+              >
+                {files.map((file) => (
+                  <SelectItem
+                    key={file.id}
+                    value={file.id}
+                    className="
+                      text-white cursor-pointer
+                      py-4 pl-5 pr-10
+                      text-base
+                      border-b border-zinc-800/50 last:border-0
+                      focus:bg-zinc-800 hover:bg-zinc-800
+                      min-w-0
+                    "
+                  >
+                    <span className="block truncate min-w-0">
                       {file.original_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-            <div className="p-5 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex gap-4">
+            {/* ---- Info ---- */}
+            <div className="p-5 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex gap-4 min-w-0">
               <Database className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-              <p className="text-[13px] text-zinc-400 leading-relaxed">Starting the pipeline will initiate semantic segmentation and vector indexing.</p>
+              <p className="text-[13px] text-zinc-400 leading-relaxed min-w-0">
+                Starting the pipeline will initiate semantic segmentation.
+              </p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 pt-6">
-              <Button 
-                variant="ghost" 
-                onClick={() => setIsPipelineModalOpen(false)} 
+            {/* ---- Actions ---- */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-6 min-w-0">
+              <Button
+                variant="ghost"
+                onClick={() => setIsPipelineModalOpen(false)}
                 className="flex-1 h-12 bg-zinc-900/50 hover:bg-red-600/20 hover:text-red-500 rounded-xl transition-all font-bold border border-zinc-800 cursor-pointer"
               >
                 CANCEL
               </Button>
 
-              <Button onClick={executePipeline} disabled={isProcessing || !selectedSubjectId || !selectedFileId} className="flex-2 h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all cursor-pointer">
-                {isProcessing ? <><Loader2 className="w-6 h-6 animate-spin mr-3" /> PROCESSING...</> : "EXECUTE PIPELINE"}
+              <Button
+                onClick={executePipeline}
+                disabled={isProcessing || !selectedSubjectId || !selectedFileId}
+                className="flex-2 h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-6 h-6 animate-spin mr-3" />
+                    PROCESSING...
+                  </>
+                ) : (
+                  "EXECUTE PIPELINE"
+                )}
               </Button>
             </div>
+
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Content Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-5xl h-[80vh] bg-zinc-950 border border-zinc-800 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] p-0 flex flex-col rounded-2xl overflow-hidden focus-visible:outline-none">
           
@@ -376,7 +449,6 @@ export default function UnifiedStoragePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Overlay */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-200 max-w-md p-8 rounded-2xl border shadow-2xl">
           <div className="flex flex-col items-center text-center">
