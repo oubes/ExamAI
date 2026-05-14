@@ -121,10 +121,10 @@ export function AppSidebar({ user }: { user: MeResponse | null }) {
 
       <SidebarFooter className="p-3 space-y-2 transition-all duration-300">
         <Link 
-          href="/student/profile" 
+          href="/admin/dashboard/profile" 
           className={`flex items-center gap-3 rounded-xl p-3 ring-1 shadow-lg transition-all duration-200 group/user active:scale-[0.98] 
             group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center cursor-pointer
-            ${pathname === "/student/profile" 
+            ${pathname === "/admin/dashboard/profile" 
               ? "bg-blue-500/10 ring-blue-500/40 text-blue-400" 
               : "bg-zinc-900/80 ring-white/10 hover:bg-zinc-800 hover:ring-blue-500/40"
             }`}
@@ -135,7 +135,7 @@ export function AppSidebar({ user }: { user: MeResponse | null }) {
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col truncate group-data-[collapsible=icon]:hidden">
-            <span className={`text-xs font-semibold transition-colors ${pathname === "/student/profile" ? "text-blue-400" : "text-zinc-100 group-hover/user:text-blue-400"}`}>
+            <span className={`text-xs font-semibold transition-colors ${pathname === "/admin/dashboard/profile" ? "text-blue-400" : "text-zinc-100 group-hover/user:text-blue-400"}`}>
               {user?.full_name}
             </span>
             <span className="text-[9px] text-zinc-500 truncate">{user?.email}</span>
