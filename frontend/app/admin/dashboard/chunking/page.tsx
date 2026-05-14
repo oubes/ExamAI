@@ -171,8 +171,7 @@ export default function UnifiedStoragePage() {
             </div>
           ) : processedFiles.length === 0 ? (
             <div className="text-center py-20 border-2 border-dashed border-zinc-900 rounded-3xl">
-                <AlertCircle className="w-10 h-10 text-zinc-700 mx-auto mb-4" />
-                <p className="text-zinc-500 text-sm">No processed chunks found.</p>
+                <p className="text-zinc-500 text-xl font-bold">No processed chunks found.</p>
             </div>
           ) : (
             processedFiles.map((file) => {
