@@ -5,7 +5,6 @@ from src.api.routes.identity_routes.router_registry import router as identity_ro
 from src.api.routes.education.router_registry import router as education_router
 from src.api.routes.question.router_registry import router as question_router
 from src.api.routes.profile import router as profile_router
-from src.api.routes.pipeline_job import router as pipeline_job_router
 from src.api.routes.knowledge import router as knowledge_router
 
 # ---- Router registry ---- #
@@ -16,5 +15,4 @@ def register_routers(app):
     app.include_router(education_router, prefix="/api/v1/education", tags=["Education"])
     app.include_router(question_router, prefix="/api/v1/question", tags=["Question"])
     app.include_router(profile_router, prefix="/api/v1/profile", tags=["Profile"])
-    app.include_router(pipeline_job_router, prefix="/api/v1/pipeline_job", tags=["Pipeline Job"])
     app.include_router(knowledge_router, prefix="/api/v1/knowledge", tags=["Knowledge"])

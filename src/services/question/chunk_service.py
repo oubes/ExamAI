@@ -6,11 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.questions.models.chunk import DocumentChunk
-from src.domain.questions.services.pipeline_job import PipelineJobService
 
-
-# ---- Dependencies ---- #
-pipeline_job_service = PipelineJobService()
 
 # ---- Logging ---- #
 logger = logging.getLogger(__name__)
@@ -131,20 +127,6 @@ class ChunkService:
             await session.delete(record)
             await session.commit()
 
-            # ---- DECREMENT PIPELINE PROGRESS ---- #
-            job = await pipeline_job_service.get_by_subject_and_book(
-                session=session,
-                subject_id=subject_id,
-                book_id=book_id,
-            )
-
-            if job and job.current_chunk > 0:
-                await pipeline_job_service.update_progress(
-                    session=session,
-                    record_id=job.id,
-                    current_chunk=job.current_chunk - 1,
-                )
-
             return True
 
         except Exception as e:
@@ -190,20 +172,6 @@ class ChunkService:
                 if deleted:
                     deleted_count += 1
 
-            # ---- RESET PIPELINE JOB PROGRESS ---- #
-
-            job = await pipeline_job_service.get_by_subject_and_book(
-                session=session,
-                subject_id=subject_id,
-                book_id=book_id,
-            )
-
-            if job:
-                await pipeline_job_service.update_progress(
-                    session=session,
-                    record_id=job.id,
-                    current_chunk=0,
-                )
 
             return deleted_count
 

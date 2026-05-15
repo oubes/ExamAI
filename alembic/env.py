@@ -29,7 +29,6 @@ from src.domain.questions.models.question_skill import QuestionSkill
 from src.domain.questions.models.model_answer import ModelAnswer
 from src.domain.questions.models.option import QuestionOption
 from src.domain.questions.models.chunk import DocumentChunk
-from src.domain.questions.models.pipeline_job import PipelineJob
 
 from src.domain.education.models.subject import Subject
 from src.domain.education.models.chapter import Chapter
