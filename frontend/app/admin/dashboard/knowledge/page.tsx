@@ -520,7 +520,7 @@ export default function KnowledgeArchitecture() {
                             </div>
                           </div>
 
-                          <div className="flex flex-col items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all translate-x-2 group-hover/item:translate-x-0">
+                          <div className="flex flex-row items-center gap-2 opacity-0 group-hover/item:opacity-100 transition-all translate-x-2 group-hover/item:translate-x-0">
                              <Button 
                                 size="icon" 
                                 variant="ghost" 
