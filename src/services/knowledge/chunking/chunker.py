@@ -11,6 +11,7 @@ from src.services.knowledge.chunking.validator import TextValidator
 from src.services.knowledge.chunking.toc_classifier import TOCClassifier
 from src.services.knowledge.chunking.splitter import Splitter
 from src.core.di.embedder import get_embedding_service
+from src.core.di.settings import get_settings
 
 # ---- Logging ---- #
 logger = logging.getLogger(__name__)
@@ -26,14 +27,12 @@ class Chunker:
     def __init__(
         self,
         config: Any,
-        pre_cleaner: TextCleaner,
-        post_cleaner: TextCleaner,
+        cleaner: TextCleaner,
         validator: TextValidator,
         toc_classifier: TOCClassifier,
         splitter: Splitter,
     ):
-        self.pre_cleaner = pre_cleaner
-        self.post_cleaner = post_cleaner
+        self.cleaner = cleaner
         self.validator = validator
         self.toc_classifier = toc_classifier
         self.splitter = splitter
@@ -77,7 +76,7 @@ class Chunker:
                 raw_text = doc.page_content
 
                 # ---- Pre-Cleaning ---- #
-                cleaned_text = self.pre_cleaner.clean(raw_text)
+                cleaned_text = self.cleaner.clean(raw_text)
 
                 # ---- Pre-Validation ---- #
                 if not self.validator.is_valid_text(
@@ -130,3 +129,12 @@ class Chunker:
         )
 
         return chunks
+    
+# ---- DI ---- #
+chunker = Chunker(
+    config=get_settings(),
+    cleaner=TextCleaner(),
+    validator=TextValidator(),
+    toc_classifier=TOCClassifier(),
+    splitter=Splitter(get_settings()),
+)

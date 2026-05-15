@@ -1,10 +1,9 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from src.services.knowledge.config import Settings
 
 
 class Splitter:
     # ---- Constructor ----
-    def __init__(self, settings: Settings):
+    def __init__(self, settings):
         self.chunk_size = settings.ingestion_chunk_size
         self.chunk_overlap = settings.ingestion_chunk_overlap
 

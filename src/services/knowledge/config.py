@@ -4,5 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     ingestion_chunk_size: int = 500
     ingestion_chunk_overlap: int = 50
+    
+    min_length: int = 30
 
 settings = Settings()
