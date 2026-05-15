@@ -46,7 +46,7 @@ export default function QuestionsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("list");
     const [activeTab, setActiveTab] = useState<string>("mcq");
-    const [difficultyRange, setDifficultyRange] = useState<[number, number]>([0, 5]);
+    const [difficultyRange, setDifficultyRange] = useState<[number, number]>([1, 10]);
 
     // ---- Orchestrated Data Fetching ----
     const fetchData = useCallback(async () => {
