@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Loader2, Search, ChevronDown, ChevronRight, 
-  Edit3, BookMarked, Cpu, X, AlertCircle, Plus, CloudUpload, Database, Maximize2,
-  Trash2, HelpCircle, Play, Undo2
+  Edit3, BookMarked, Cpu, X, HelpCircle, Plus, CloudUpload, Database, Maximize2,
+  Trash2, Play
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,10 +19,17 @@ import { storageService, StorageFile } from "@/services/storage.service";
 import { questionService, ChunkResponse } from "@/services/chunk.service";
 import { educationService, SubjectResponse } from "@/services/subjects.service";
 
+// ---- Types ----
+interface ProgressData {
+  current_chunk: number;
+  total_chunks: number;
+}
+
 export default function UnifiedStoragePage() {
   const [files, setFiles] = useState<StorageFile[]>([]);
   const [subjects, setSubjects] = useState<SubjectResponse[]>([]);
   const [allChunks, setAllChunks] = useState<ChunkResponse[]>([]);
+  const [progressMap, setProgressMap] = useState<Record<string, ProgressData>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
@@ -39,7 +46,7 @@ export default function UnifiedStoragePage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
-  // ---- Fetch Initial Data ----
+  // ---- Data Hydration ----
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
@@ -50,12 +57,28 @@ export default function UnifiedStoragePage() {
       ]);
       setFiles(Array.isArray(filesData) ? filesData : []);
       setSubjects(subjectsData.items || []);
-      setAllChunks(chunksData.items || []);
+      const chunks = chunksData.items || [];
+      setAllChunks(chunks);
+      calculateProgress(chunks);
     } catch (error) {
       toast.error("Environment sync failed");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // ---- Logic Helpers ----
+  const calculateProgress = (chunks: ChunkResponse[]) => {
+    const mapping: Record<string, ProgressData> = {};
+    chunks.forEach(chunk => {
+      if (!mapping[chunk.book_id]) {
+        mapping[chunk.book_id] = {
+          current_chunk: chunks.filter(c => c.book_id === chunk.book_id).length,
+          total_chunks: (chunk as any).total_chunks || chunks.filter(c => c.book_id === chunk.book_id).length
+        };
+      }
+    });
+    setProgressMap(mapping);
   };
 
   useEffect(() => { fetchInitialData(); }, []);
@@ -76,7 +99,7 @@ export default function UnifiedStoragePage() {
     return subjects.find(s => s.id === subjectId)?.title || "Unknown Subject";
   };
 
-  // ---- Pipeline Execution ----
+  // ---- Pipeline Actions ----
   const handleRunPipeline = async (subjectId: string, fileId: string) => {
     try {
       setIsProcessing(true);
@@ -84,7 +107,9 @@ export default function UnifiedStoragePage() {
       toast.success("Pipeline executed successfully");
       setIsPipelineModalOpen(false);
       const chunksData = await questionService.listChunks();
-      setAllChunks(chunksData.items || []);
+      const updatedChunks = chunksData.items || [];
+      setAllChunks(updatedChunks);
+      calculateProgress(updatedChunks);
     } catch (error) {
       toast.error("Pipeline failure");
     } finally {
@@ -97,7 +122,7 @@ export default function UnifiedStoragePage() {
     await handleRunPipeline(selectedSubjectId, selectedFileId);
   };
 
-  // ---- Update Chunk ----
+  // ---- Chunk Actions ----
   const handleUpdateChunk = async () => {
     if (!selectedChunk) return;
     try {
@@ -113,27 +138,22 @@ export default function UnifiedStoragePage() {
     }
   };
 
-  // ---- Delete Last Chunk ----
-  const handleDeleteLastChunk = async (e: React.MouseEvent, fileId: string) => {
-    e.stopPropagation();
-    const fileChunks = getChunksForFile(fileId);
-    if (fileChunks.length === 0) return;
-
-    const lastChunk = fileChunks[fileChunks.length - 1];
-
+  const handleDeleteSingleChunk = async (chunkId: string) => {
     try {
       setIsProcessing(true);
-      await questionService.deleteChunk(lastChunk.id);
-      toast.success(`Chunk #${lastChunk.chunk_index} removed`);
-      setAllChunks(prev => prev.filter(c => c.id !== lastChunk.id));
+      await questionService.deleteChunk(chunkId);
+      toast.success("Chunk removed");
+      const newChunks = allChunks.filter(c => c.id !== chunkId);
+      setAllChunks(newChunks);
+      calculateProgress(newChunks);
     } catch (error) {
-      toast.error("Failed to remove last chunk");
+      toast.error("Failed to remove chunk");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // ---- Delete Full Group ----
+  // ---- Batch Actions ----
   const handleDeleteFileGroup = async () => {
     if (!fileToDelete) return;
     const relevantChunks = getChunksForFile(fileToDelete);
@@ -143,12 +163,14 @@ export default function UnifiedStoragePage() {
     try {
         setIsProcessing(true);
         await questionService.deleteAllChunksBySubjectAndBook(subjectId, fileToDelete);
-        toast.warning("All segments for this asset have been removed.");
-        setAllChunks(prev => prev.filter(c => c.book_id !== fileToDelete));
+        toast.warning("Resource group purged.");
+        const updatedChunks = allChunks.filter(c => c.book_id !== fileToDelete);
+        setAllChunks(updatedChunks);
+        calculateProgress(updatedChunks);
         setIsDeleteDialogOpen(false);
         setFileToDelete(null);
     } catch (error) {
-        toast.error("Deletion failed");
+        toast.error("Purge failed");
     } finally {
         setIsProcessing(false);
     }
@@ -161,13 +183,13 @@ export default function UnifiedStoragePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#020203] text-zinc-100 p-6 lg:p-12 selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#020203] text-zinc-100 p-6 lg:p-12">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <Cpu className="w-4 h-4 text-blue-500" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Chunking</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Orchestrator</span>
             </div>
             <h1 className="text-3xl font-bold tracking-tight">Segments</h1>
           </div>
@@ -176,15 +198,15 @@ export default function UnifiedStoragePage() {
             <div className="relative flex-1 md:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
               <Input 
-                placeholder="Search processed assets..." 
-                className="bg-zinc-900/60 border-zinc-800 h-11 pl-10 rounded-xl focus:ring-1 focus:ring-blue-500/50"
+                placeholder="Filter nodes..." 
+                className="bg-zinc-900/60 border-zinc-800 h-11 pl-10 rounded-xl"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <Button 
               onClick={() => setIsPipelineModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white h-11 px-5 rounded-xl font-bold text-xs transition-all shadow-lg shadow-blue-900/20 cursor-pointer"
+              className="bg-blue-600 hover:bg-blue-500 text-white h-11 px-5 rounded-xl font-bold text-xs cursor-pointer"
             >
               <Plus className="w-4 h-4 mr-2" /> NEW PIPELINE
             </Button>
@@ -195,18 +217,17 @@ export default function UnifiedStoragePage() {
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-              <p className="text-zinc-600 text-[10px] font-mono uppercase tracking-widest">Loading Chunks...</p>
-            </div>
-          ) : processedFiles.length === 0 ? (
-            <div className="text-center py-20 border-2 border-dashed border-zinc-900 rounded-3xl">
-                <p className="text-zinc-500 text-xl font-bold">No processed chunks found.</p>
+              <p className="text-zinc-600 text-[10px] font-mono uppercase tracking-widest">Hydrating data...</p>
             </div>
           ) : (
             processedFiles.map((file) => {
               const fileChunks = getChunksForFile(file.id);
               const subjectId = fileChunks[0]?.subject_id || "";
               const subjectName = getSubjectName(subjectId);
-              const totalChunksInDB = fileChunks[0]?.total_chunks || fileChunks.length;
+              
+              const progress = progressMap[file.id];
+              const currentCount = progress?.current_chunk || 0;
+              const totalCount = progress?.total_chunks || 0;
 
               return (
                 <Collapsible key={file.id} open={expandedFiles[file.id]} onOpenChange={() => setExpandedFiles(prev => ({ ...prev, [file.id]: !prev[file.id] }))}>
@@ -219,8 +240,8 @@ export default function UnifiedStoragePage() {
                         </button>
                       </CollapsibleTrigger>
                       
-                      <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl transition-all duration-300">
-                        <BookMarked className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${expandedFiles[file.id] ? 'text-blue-500' : 'text-zinc-600'}`} />
+                      <div className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-xl">
+                        <BookMarked className={`w-5 h-5 ${expandedFiles[file.id] ? 'text-blue-500' : 'text-zinc-600'}`} />
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -231,23 +252,13 @@ export default function UnifiedStoragePage() {
                       </div>
 
                       <div className="text-right hidden sm:flex items-center gap-3 px-4">
-                        <div className="flex flex-col mr-2">
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase">Segments</p>
-                          <p className="text-xs font-mono text-zinc-300">
-                            {fileChunks.length}
+                        <div className="flex flex-col mr-2 text-left">
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">Chunks</p>
+                          <p className="text-xs font-mono text-zinc-300 ml-4 mt-1">
+                            {currentCount}
                           </p>
                         </div>
                           
-                          <Button 
-                            variant="ghost" 
-                            disabled={isProcessing || fileChunks.length === 0}
-                            onClick={(e) => handleDeleteLastChunk(e, file.id)}
-                            className="h-10 px-3 gap-2 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-black border border-amber-500/20 cursor-pointer transition-all rounded-xl text-[10px] font-bold uppercase"
-                          >
-                            <Undo2 className="w-3 h-3" />
-                            Pop Last
-                          </Button>
-
                           <Button 
                             variant="ghost" 
                             disabled={isProcessing}
@@ -258,13 +269,13 @@ export default function UnifiedStoragePage() {
                             className="h-10 px-3 gap-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 cursor-pointer transition-all rounded-xl text-[10px] font-bold uppercase"
                           >
                             {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
-                            Run Pipeline
+                            Run
                           </Button>
 
                           <Button 
                             variant="ghost" 
                             onClick={(e) => openDeleteDialog(e, file.id)}
-                            className="h-10 w-10 p-0 text-red-600 hover:text-red-500 hover:bg-red-500/10 cursor-pointer transition-all flex items-center justify-center border-none shadow-none"
+                            className="h-10 w-10 p-0 text-red-600 hover:text-red-500 hover:bg-red-500/10 cursor-pointer transition-all flex items-center justify-center"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -274,21 +285,26 @@ export default function UnifiedStoragePage() {
                     <CollapsibleContent>
                       <div className="px-8 pb-6 pt-1 ml-10 border-l border-zinc-800/50 space-y-2">
                         {fileChunks.map((chunk) => (
-                          <div 
-                            key={chunk.id} 
-                            className="flex items-center justify-between gap-4 p-3 bg-zinc-900/40 border border-zinc-800/50 rounded-xl hover:bg-zinc-800/80 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 group/chunk cursor-pointer"
-                          >
+                          <div key={chunk.id} className="flex items-center justify-between gap-4 p-3 bg-zinc-900/40 border border-zinc-800/50 rounded-xl hover:border-blue-500/50 transition-all duration-300 group/chunk cursor-pointer">
                             <div className="flex items-center gap-4 flex-1 min-w-0">
                               <span className="text-[10px] font-bold text-zinc-500">#{chunk.chunk_index}</span>
                               <p className="text-xs text-zinc-400 truncate group-hover/chunk:text-zinc-100">{chunk.content}</p>
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center gap-2">
                               <Button 
                                 variant="ghost" 
-                                className="h-9 w-9 p-0 bg-zinc-800/50 border border-zinc-700 hover:bg-blue-600 hover:border-blue-500 rounded-lg cursor-pointer transition-all shadow-sm" 
+                                className="h-9 w-9 p-0 bg-zinc-800/50 border border-zinc-700 hover:bg-blue-600 rounded-lg cursor-pointer" 
                                 onClick={(e) => { e.stopPropagation(); setSelectedChunk(chunk); setEditContent(chunk.content); setIsEditModalOpen(true); }}
                               >
                                 <Edit3 className="w-4 h-4 text-zinc-100" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                disabled={isProcessing}
+                                className="h-9 w-9 p-0 bg-zinc-800/50 border border-zinc-700 hover:bg-red-600 rounded-lg cursor-pointer text-zinc-400 hover:text-white" 
+                                onClick={(e) => { e.stopPropagation(); handleDeleteSingleChunk(chunk.id); }}
+                              >
+                                {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                               </Button>
                             </div>
                           </div>
@@ -427,23 +443,24 @@ export default function UnifiedStoragePage() {
               </div>
           </div>
 
-          <div className="p-6 border-t border-zinc-800/50 bg-zinc-900/30 flex items-center justify-between shrink-0">
-             <div className="flex gap-3 w-full sm:w-auto flex-1 sm:flex-none">
-              <Button 
-                variant="ghost" 
-                onClick={() => setIsEditModalOpen(false)} 
-                className="flex-1 bg-zinc-900 border border-white/5 text-zinc-400 hover:bg-red-900/40 hover:text-red-500 h-10 text-xs font-bold uppercase rounded-lg cursor-pointer transition-all duration-300"
-              >
-                Discard
-              </Button>
-              <Button 
-                onClick={handleUpdateChunk} 
-                disabled={isProcessing} 
-                className="flex-[2] bg-blue-600 hover:bg-blue-500 text-white h-10 rounded-lg text-xs font-bold shadow-lg shadow-blue-900/20 cursor-pointer transition-all px-8"
-              >
-                {isProcessing ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : "COMMIT CHANGES"}
-              </Button>
-             </div>
+          {/* ---- Action Footer ---- */}
+          <div className="p-6 border-t border-zinc-800/50 bg-zinc-900/30 flex items-center shrink-0">
+              <div className="flex gap-3 w-full">
+                  <Button 
+                      variant="ghost" 
+                      onClick={() => setIsEditModalOpen(false)} 
+                      className="flex-1 bg-zinc-900 border border-white/5 text-zinc-400 hover:bg-red-900/40 hover:text-red-500 h-10 text-xs font-bold uppercase rounded-lg cursor-pointer transition-all duration-300"
+                  >
+                      Discard
+                  </Button>
+                  <Button 
+                      onClick={handleUpdateChunk} 
+                      disabled={isProcessing} 
+                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white h-10 rounded-lg text-xs font-bold shadow-lg shadow-blue-900/20 cursor-pointer transition-all px-8"
+                  >
+                      {isProcessing ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : "COMMIT CHANGES"}
+                  </Button>
+              </div>
           </div>
         </DialogContent>
       </Dialog>
