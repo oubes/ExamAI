@@ -10,7 +10,11 @@ from src.services.knowledge.chunking.cleaner import TextCleaner
 from src.services.knowledge.chunking.validator import TextValidator
 from src.services.knowledge.chunking.toc_classifier import TOCClassifier
 from src.services.knowledge.chunking.splitter import Splitter
+
+from src.services.knowledge.models.summarizer import generate_summary
+
 from src.core.di.embedder import get_embedding_service
+from src.core.di.llm import get_llm_service
 from src.core.di.settings import get_settings
 
 # ---- Logging ---- #
@@ -18,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 # ---- Embedding Service ---- #
 embedding_service = get_embedding_service()
+llm_service = get_llm_service()
 
 
 # ---- Chunker ---- #
@@ -105,6 +110,9 @@ class Chunker:
 
                     # ---- Embedding ---- #
                     embedding = await embedding_service.embed(part) # type: ignore
+                    
+                    # ---- Summary Generation ---- #
+                    summary = await generate_summary(llm_service, part)
 
                     # ---- Chunk Build ---- #
                     chunks.append(
@@ -115,6 +123,7 @@ class Chunker:
                             "chunk_index": chunk_counter,
                             "raw_content": part,
                             "embedding": embedding,
+                            "summary": summary,
                         }
                     )
 

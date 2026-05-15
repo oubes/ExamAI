@@ -2,10 +2,19 @@
 from pathlib import Path
 from src.services.knowledge.reading.reader import PyMuPDFDocumentLoader
 from src.services.knowledge.chunking.chunker import chunker
+from src.domain.storage.services.upload_file import UploadService
+from src.infra.db.session import session_local
+from uuid import UUID
 
 
 # ---- Pdf Reader ---- #
 pdf_reader = PyMuPDFDocumentLoader()
+
+# ---- Upload Service ---- #
+upload_service = UploadService()
+
+# ---- Session ---- #
+session = session_local()
 
 # ---- Knowledge Pipeline ---- #
 class KnowledgePipeline:
@@ -13,11 +22,12 @@ class KnowledgePipeline:
     # ---- Run ---- #
     async def run(
         self,
-        file_path: str,
+        file_id: str,
     ) -> list[dict]:
 
         # ---- Resolve Path ---- #
-        path = Path(file_path)
+        file_info = upload_service.get_by_id(session, UUID(file_id))
+        path = Path(file_info.path) # type: ignore
 
         # ---- Load Documents ---- #
         docs_loader = pdf_reader.load(file_path=path)
