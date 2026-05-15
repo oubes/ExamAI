@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Loader2, Search, Trash2, 
-  ChevronRight, Database, BarChart3, X, Cog, Edit3, Save, Play, AlertTriangle
+  ChevronRight, Database, BarChart3, X, Cog, Edit3, Save, Play, AlertTriangle,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -254,50 +255,122 @@ export default function KnowledgeArchitecture() {
             </h1>
           </div>
 
-          <Dialog open={isPipelineOpen} onOpenChange={setIsPipelineOpen}>
+            <Dialog open={isPipelineOpen} onOpenChange={setIsPipelineOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 px-8 rounded-xl transition-all shadow-xl shadow-blue-600/10 active:scale-95 cursor-pointer">
-                    <Cog className="w-8 h-8 mr-2" />
-                    Chunking Knowledge
+                <Button className="bg-blue-600 hover:bg-blue-500 text-white font-black h-12 px-8 rounded-xl transition-all duration-300 shadow-2xl shadow-blue-600/10 hover:shadow-blue-500/20 hover:scale-[1.02] active:scale-95 cursor-pointer border border-blue-500/20">
+                <Cog className="w-5 h-5 mr-2 animate-spin-slow" />
+                Chunking Knowledge
                 </Button>
             </DialogTrigger>
-            <DialogContent className="bg-zinc-950 border-zinc-900 text-white p-6 rounded-[2rem] max-w-md border-zinc-800/50">
-              <DialogHeader className="mb-4 text-left">
-                <DialogTitle className="text-xl font-black uppercase tracking-tighter italic">Source Mapping</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                    <label className="text-[8px] font-bold text-zinc-600 uppercase ml-1 tracking-widest">Target Context</label>
+
+            <DialogContent className="bg-[#050506] border border-zinc-800/80 text-white p-0 rounded-[2.2rem] max-w-lg overflow-hidden shadow-2xl shadow-black/60 [&>button]:hidden">
+
+                {/* ---- Custom Close ---- */}
+                <button
+                onClick={() => setIsPipelineOpen(false)}
+                className="absolute right-5 top-5 z-50 w-10 h-10 rounded-full bg-red-500/10 hover:bg-red-500 border border-red-500/20 hover:border-red-500 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 shadow-lg shadow-red-500/10 hover:shadow-red-500/30 cursor-pointer group"
+                >
+                <X className="w-4 h-4 text-red-400 group-hover:text-white transition-colors duration-200" />
+                </button>
+
+                {/* ---- Header ---- */}
+                <div className="relative px-7 pt-7 pb-5 border-b border-zinc-900 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 via-transparent to-transparent pointer-events-none" />
+
+                <DialogHeader className="relative space-y-2 text-left">
+                    <DialogTitle className="text-2xl font-black tracking-tight">
+                    Knowledge Chunking Pipeline
+                    </DialogTitle>
+
+                    <p className="text-sm text-zinc-500 font-medium leading-relaxed">
+                    Configure target subject and target source book before initiating the chunking pipeline.
+                    </p>
+                </DialogHeader>
+                </div>
+
+                {/* ---- Body ---- */}
+                <div className="p-7 space-y-6">
+
+                {/* ---- Subject ---- */}
+                <div className="w-full">
+                    <label className="block mb-1 text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500 ml-1">
+                        Subject
+                    </label>
+
                     <Select onValueChange={setPipeSubjectId} value={pipeSubjectId}>
-                        <SelectTrigger className="bg-zinc-900/50 border-zinc-800 h-20 rounded-md text-md cursor-pointer">
-                            <SelectValue placeholder="Select context..." />
+                        <SelectTrigger className="w-full bg-zinc-900/70 border border-zinc-800 hover:border-blue-500/40 hover:bg-zinc-900 h-16 rounded-md text-sm transition-all duration-300 cursor-pointer px-5 py-5 shadow-lg shadow-black/20">
+                            <SelectValue placeholder="Select target subject..." />
                         </SelectTrigger>
-                        <SelectContent position="popper" sideOffset={4} className="bg-zinc-950 border-zinc-800 text-white rounded-xl w-[var(--radix-select-trigger-width)]">
-                            {subjects.map(s => <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>)}
+
+                        <SelectContent
+                            position="popper"
+                            sideOffset={8}
+                            className="bg-[#09090B] border border-zinc-800 text-white rounded-md w-[var(--radix-select-trigger-width)] overflow-hidden shadow-2xl"
+                        >
+                            {subjects.map((s) => (
+                                <SelectItem
+                                    key={s.id}
+                                    value={s.id}
+                                    className="cursor-pointer focus:bg-zinc-600/50 focus:text-white rounded-lg p-3 transition-all duration-200"
+                                >
+                                    {s.title}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="space-y-1.5">
-                    <label className="text-[8px] font-bold text-zinc-600 uppercase ml-1 tracking-widest">Buffer Asset</label>
+
+                {/* ---- File ---- */}
+                <div className="w-full">
+                    <label className="block mb-1 text-[10px] font-black uppercase tracking-[0.25em] text-zinc-500 ml-1">
+                        Document
+                    </label>
+
                     <Select onValueChange={setPipeFileId} value={pipeFileId}>
-                        <SelectTrigger className="bg-zinc-900/50 border-zinc-800 h-11 rounded-xl text-xs cursor-pointer">
-                            <SelectValue placeholder="Select file..." />
+                        <SelectTrigger className="w-full bg-zinc-900/70 border border-zinc-800 hover:border-blue-500/40 hover:bg-zinc-900 h-16 rounded-md text-sm transition-all duration-300 cursor-pointer px-5 py-5 shadow-lg shadow-black/20">
+                            <SelectValue placeholder="Select source file..." />
                         </SelectTrigger>
-                        <SelectContent position="popper" sideOffset={4} className="bg-zinc-950 border-zinc-800 text-white rounded-xl w-[var(--radix-select-trigger-width)]">
-                            {files.map(f => <SelectItem key={f.id} value={f.id}>{f.original_name}</SelectItem>)}
+
+                        <SelectContent
+                            position="popper"
+                            sideOffset={8}
+                            className="bg-[#09090B] border border-zinc-800 text-white rounded-md w-[var(--radix-select-trigger-width)] overflow-hidden shadow-2xl"
+                        >
+                            {files.map((f) => (
+                                <SelectItem
+                                    key={f.id}
+                                    value={f.id}
+                                    className="cursor-pointer focus:bg-zinc-600/50 focus:text-white rounded-lg p-3 transition-all duration-200"
+                                >
+                                    {f.original_name}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
-                <Button 
+
+                {/* ---- Run Button ---- */}
+                <Button
                     disabled={isProcessing || !pipeFileId || !pipeSubjectId}
                     onClick={runPipeline}
-                    className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 font-black cursor-pointer"
+                    className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 font-black tracking-wide transition-all duration-300 hover:scale-[1.01] active:scale-[0.985] shadow-xl shadow-blue-600/10 hover:shadow-blue-500/20 cursor-pointer"
                 >
-                    {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "RUN_NEURAL_PIPELINE"}
+                    {isProcessing ? (
+                    <div className="flex items-center gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>PROCESSING PIPELINE...</span>
+                    </div>
+                    ) : (
+                    <div className="flex items-center gap-3">
+                        <Sparkles className="w-5 h-5" />
+                        <span>RUN PIPELINE</span>
+                    </div>
+                    )}
                 </Button>
-              </div>
+                </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+
         </header>
 
         {/* ---- Section Name ---- */}
@@ -375,10 +448,6 @@ export default function KnowledgeArchitecture() {
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className="bg-zinc-900 text-zinc-500 border-zinc-500/40 text-[10px] font-black tracking-widest rounded px-1.5 py-0 uppercase">Subject</Badge>
-                          <div className="text-[12px] font-mono text-zinc-300">{subjects.find(s => s.id === filterSubjectId)?.title || "Unknown"}</div>
-                        </div>
                         <div className="flex items-center gap-2 mb-1">
                           <Badge className="bg-zinc-900 text-zinc-500 border-zinc-500/40 text-[10px] font-black tracking-widest rounded px-1.5 py-0">Doc Name</Badge>
                           <div className="text-[12px] font-mono text-zinc-300">{getFileName(docId)}</div>
