@@ -2,7 +2,7 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -142,6 +142,53 @@ class KnowledgeBaseService:
             )
             raise
 
+    # ---- Update Chunk By ID ---- #
+    async def update_chunk(
+        self,
+        session: AsyncSession,
+        record_id: UUID,
+        payload: dict,
+    ) -> int:
+
+        try:
+            # ---- Safety: allowed fields only ---- #
+            allowed_fields = {
+                "content",
+                "summary",
+                "keywords",
+                "source_type",
+                "quality_score",
+                "importance_score",
+            }
+
+            clean_payload = {
+                k: v for k, v in payload.items()
+                if k in allowed_fields
+            }
+
+            if not clean_payload:
+                return 0
+
+            stmt = (
+                update(KnowledgeBase)
+                .where(KnowledgeBase.id == record_id)
+                .values(**clean_payload)
+                .execution_options(synchronize_session=False)
+            )
+
+            result = await session.execute(stmt)
+            await session.commit()
+
+            return result.rowcount or 0 # type: ignore
+
+        except Exception as e:
+            await session.rollback()
+
+            logger.error(
+                f"[KnowledgeBaseService] update_chunk error: {e}",
+                exc_info=True,
+            )
+            raise
 
     # ---- Exists ---- #
     async def exists(
@@ -285,6 +332,7 @@ class KnowledgeBaseService:
         session: AsyncSession,
         subject_id: UUID,
         document_id: UUID,
+        limit: int = 100,
     ) -> list[KnowledgeBase]:
 
         try:
@@ -295,6 +343,7 @@ class KnowledgeBaseService:
                     KnowledgeBase.document_id == document_id,
                 )
                 .order_by(KnowledgeBase.chunk_index.asc())
+                .limit(limit)
             )
 
             result = await session.execute(stmt)
@@ -307,3 +356,28 @@ class KnowledgeBaseService:
                 exc_info=True,
             )
             raise
+        
+    async def update_by_subject_document_and_chunk(
+        self,
+        session: AsyncSession,
+        subject_id: UUID,
+        document_id: UUID,
+        chunk_id: UUID,
+        payload: dict,
+    ) -> int:
+
+        stmt = (
+            update(KnowledgeBase)
+            .where(
+                KnowledgeBase.subject_id == subject_id,
+                KnowledgeBase.document_id == document_id,
+                KnowledgeBase.document_id == chunk_id,
+            )
+            .values(**payload)
+            .execution_options(synchronize_session=False)
+        )
+
+        result = await session.execute(stmt)
+        await session.commit()
+
+        return result.rowcount or 0 # type: ignore
