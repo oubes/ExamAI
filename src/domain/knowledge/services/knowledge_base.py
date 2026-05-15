@@ -2,14 +2,12 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy import select, func, delete
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from src.domain.knowledge.models.knowledge_base import KnowledgeBase
 from src.domain.education.models.subject import Subject
-from src.domain.education.models.chapter import Chapter
 
 
 # ---- Logging ---- #
@@ -28,7 +26,6 @@ class KnowledgeBaseService:
 
         try:
             subject_id = payload["subject_id"]
-            chapter_id = payload.get("chapter_id")
 
             subject_stmt = select(Subject.id).where(
                 Subject.id == subject_id
@@ -39,20 +36,9 @@ class KnowledgeBaseService:
             if not subject_result.scalar_one_or_none():
                 raise ValueError("subject not found")
 
-            if chapter_id:
-                chapter_stmt = select(Chapter.id).where(
-                    Chapter.id == chapter_id
-                )
-
-                chapter_result = await session.execute(chapter_stmt)
-
-                if not chapter_result.scalar_one_or_none():
-                    raise ValueError("chapter not found")
-
             record = KnowledgeBase(
                 subject_id=subject_id,
-                chapter_id=chapter_id,
-                document_id=int(payload["document_id"]),
+                document_id=payload["document_id"],
                 chunk_index=int(payload.get("chunk_index", 0)),
                 content=str(payload["content"]),
                 summary=payload.get("summary"),
@@ -105,9 +91,6 @@ class KnowledgeBaseService:
                 return []
 
             subject_ids = {p["subject_id"] for p in payloads}
-            chapter_ids = {
-                p["chapter_id"] for p in payloads if p.get("chapter_id")
-            }
 
             subject_stmt = select(Subject.id).where(
                 Subject.id.in_(subject_ids)
@@ -120,27 +103,11 @@ class KnowledgeBaseService:
             if subject_ids - existing_subjects:
                 raise ValueError("invalid subject_ids")
 
-            existing_chapters = set()
-
-            if chapter_ids:
-                chapter_stmt = select(Chapter.id).where(
-                    Chapter.id.in_(chapter_ids)
-                )
-
-                chapter_result = await session.execute(chapter_stmt)
-
-                existing_chapters = set(
-                    chapter_result.scalars().all()
-                )
-
-                if chapter_ids - existing_chapters:
-                    raise ValueError("invalid chapter_ids")
 
             records: list[KnowledgeBase] = [
                 KnowledgeBase(
                     subject_id=p["subject_id"],
-                    chapter_id=p.get("chapter_id"),
-                    document_id=int(p["document_id"]),
+                    document_id=p["document_id"],
                     chunk_index=int(p.get("chunk_index", 0)),
                     content=str(p["content"]),
                     summary=p.get("summary"),
@@ -308,6 +275,35 @@ class KnowledgeBaseService:
 
             logger.error(
                 f"[KnowledgeBaseService] delete error: {e}",
+                exc_info=True,
+            )
+            raise
+        
+    # ---- List By Subject And Document ---- #
+    async def list_by_subject_and_document(
+        self,
+        session: AsyncSession,
+        subject_id: UUID,
+        document_id: UUID,
+    ) -> list[KnowledgeBase]:
+
+        try:
+            stmt = (
+                select(KnowledgeBase)
+                .where(
+                    KnowledgeBase.subject_id == subject_id,
+                    KnowledgeBase.document_id == document_id,
+                )
+                .order_by(KnowledgeBase.chunk_index.asc())
+            )
+
+            result = await session.execute(stmt)
+
+            return list(result.scalars().all())
+
+        except Exception as e:
+            logger.error(
+                f"[KnowledgeBaseService] list_by_subject_and_document error: {e}",
                 exc_info=True,
             )
             raise

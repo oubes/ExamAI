@@ -20,10 +20,6 @@ from src.core.di.settings import get_settings
 # ---- Logging ---- #
 logger = logging.getLogger(__name__)
 
-# ---- Embedding Service ---- #
-embedding_service = get_embedding_service()
-llm_service = get_llm_service()
-
 
 # ---- Chunker ---- #
 class Chunker:
@@ -98,7 +94,7 @@ class Chunker:
 
                 if not parts:
                     continue
-
+                                
                 for part in parts:
 
                     # ---- Post-Validation ---- #
@@ -109,10 +105,11 @@ class Chunker:
                         continue
 
                     # ---- Embedding ---- #
+                    embedding_service = await get_embedding_service()
                     embedding = await embedding_service.embed(part) # type: ignore
                     
                     # ---- Summary Generation ---- #
-                    summary = await generate_summary(llm_service, part)
+                    summary = generate_summary(get_llm_service(), part)
 
                     # ---- Chunk Build ---- #
                     chunks.append(
@@ -145,5 +142,5 @@ chunker = Chunker(
     cleaner=TextCleaner(),
     validator=TextValidator(),
     toc_classifier=TOCClassifier(),
-    splitter=Splitter(get_settings()),
+    splitter=Splitter(),
 )
