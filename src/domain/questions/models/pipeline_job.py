@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Integer, String, DateTime, ForeignKey, func, Index
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -17,31 +17,24 @@ class PipelineJob(Base):
 
     # ---- Columns ---- #
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
     book_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("uploads.id", ondelete="CASCADE"),
         nullable=False
     )
-
     subject_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("subjects.id"),
         nullable=False
     )
-
     current_chunk: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-
     total_chunks: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-
     status: Mapped[str] = mapped_column(String, default="running", nullable=False)
-
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False
     )
-
     updated_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

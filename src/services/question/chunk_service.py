@@ -124,8 +124,26 @@ class ChunkService:
             if not record:
                 return False
 
+            # ---- STORE CONTEXT BEFORE DELETE ---- #
+            subject_id = record.subject_id
+            book_id = record.book_id
+
             await session.delete(record)
             await session.commit()
+
+            # ---- DECREMENT PIPELINE PROGRESS ---- #
+            job = await pipeline_job_service.get_by_subject_and_book(
+                session=session,
+                subject_id=subject_id,
+                book_id=book_id,
+            )
+
+            if job and job.current_chunk > 0:
+                await pipeline_job_service.update_progress(
+                    session=session,
+                    record_id=job.id,
+                    current_chunk=job.current_chunk - 1,
+                )
 
             return True
 

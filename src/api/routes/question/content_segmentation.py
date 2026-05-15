@@ -24,11 +24,17 @@ async def run_pipeline(
     # _=Depends(admin_required),
 ):
     try:
-        
-        result = run_question_pipeline.delay(
-            subject_id=str(subject_id),
-            book_id=str(book_id),
+
+        result = await run_segmentation_pipeline(
+            session=session,
+            subject_id=subject_id,
+            book_id=book_id,
         )
+        
+        # result = run_question_pipeline.delay(
+        #     subject_id=str(subject_id),
+        #     book_id=str(book_id),
+        # )
 
 
         return {

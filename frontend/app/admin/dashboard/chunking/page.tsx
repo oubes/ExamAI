@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { 
   Loader2, Search, ChevronDown, ChevronRight, 
   Edit3, BookMarked, Cpu, X, AlertCircle, Plus, CloudUpload, Database, Maximize2,
-  Trash2, HelpCircle
+  Trash2, HelpCircle, Play, Undo2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +39,7 @@ export default function UnifiedStoragePage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<string | null>(null);
 
+  // ---- Fetch Initial Data ----
   const fetchInitialData = async () => {
     try {
       setIsLoading(true);
@@ -65,17 +66,21 @@ export default function UnifiedStoragePage() {
                 .filter(f => f.original_name?.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [files, allChunks, searchQuery]);
 
-  const getChunksForFile = (fileId: string) => allChunks.filter(c => c.book_id === fileId);
+  const getChunksForFile = (fileId: string) => {
+    return allChunks
+      .filter(c => c.book_id === fileId)
+      .sort((a, b) => a.chunk_index - b.chunk_index);
+  };
   
   const getSubjectName = (subjectId: string) => {
     return subjects.find(s => s.id === subjectId)?.title || "Unknown Subject";
   };
 
-  const executePipeline = async () => {
-    if (!selectedFileId || !selectedSubjectId) return;
+  // ---- Pipeline Execution ----
+  const handleRunPipeline = async (subjectId: string, fileId: string) => {
     try {
       setIsProcessing(true);
-      await questionService.runSegmentationPipeline(selectedSubjectId, selectedFileId);
+      await questionService.runSegmentationPipeline(subjectId, fileId);
       toast.success("Pipeline executed successfully");
       setIsPipelineModalOpen(false);
       const chunksData = await questionService.listChunks();
@@ -87,6 +92,12 @@ export default function UnifiedStoragePage() {
     }
   };
 
+  const executePipeline = async () => {
+    if (!selectedFileId || !selectedSubjectId) return;
+    await handleRunPipeline(selectedSubjectId, selectedFileId);
+  };
+
+  // ---- Update Chunk ----
   const handleUpdateChunk = async () => {
     if (!selectedChunk) return;
     try {
@@ -102,12 +113,31 @@ export default function UnifiedStoragePage() {
     }
   };
 
+  // ---- Delete Last Chunk ----
+  const handleDeleteLastChunk = async (e: React.MouseEvent, fileId: string) => {
+    e.stopPropagation();
+    const fileChunks = getChunksForFile(fileId);
+    if (fileChunks.length === 0) return;
+
+    const lastChunk = fileChunks[fileChunks.length - 1];
+
+    try {
+      setIsProcessing(true);
+      await questionService.deleteChunk(lastChunk.id);
+      toast.success(`Chunk #${lastChunk.chunk_index} removed`);
+      setAllChunks(prev => prev.filter(c => c.id !== lastChunk.id));
+    } catch (error) {
+      toast.error("Failed to remove last chunk");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // ---- Delete Full Group ----
   const handleDeleteFileGroup = async () => {
     if (!fileToDelete) return;
-    
     const relevantChunks = getChunksForFile(fileToDelete);
     if (relevantChunks.length === 0) return;
-    
     const subjectId = relevantChunks[0].subject_id;
 
     try {
@@ -139,9 +169,7 @@ export default function UnifiedStoragePage() {
               <Cpu className="w-4 h-4 text-blue-500" />
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">Chunking</span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Segments
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight">Segments</h1>
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -176,7 +204,9 @@ export default function UnifiedStoragePage() {
           ) : (
             processedFiles.map((file) => {
               const fileChunks = getChunksForFile(file.id);
-              const subjectName = getSubjectName(fileChunks[0]?.subject_id || "");
+              const subjectId = fileChunks[0]?.subject_id || "";
+              const subjectName = getSubjectName(subjectId);
+              const totalChunksInDB = fileChunks[0]?.total_chunks || fileChunks.length;
 
               return (
                 <Collapsible key={file.id} open={expandedFiles[file.id]} onOpenChange={() => setExpandedFiles(prev => ({ ...prev, [file.id]: !prev[file.id] }))}>
@@ -200,11 +230,37 @@ export default function UnifiedStoragePage() {
                         <h3 className="text-sm font-bold text-zinc-200 truncate mt-1">{file.original_name}</h3>
                       </div>
 
-                      <div className="text-right hidden sm:flex items-center gap-6 px-4">
-                        <div className="flex flex-col">
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase">Chunks</p>
-                          <p className="text-xs font-mono text-zinc-300">{fileChunks.length}</p>
+                      <div className="text-right hidden sm:flex items-center gap-3 px-4">
+                        <div className="flex flex-col mr-2">
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase">Segments</p>
+                          <p className="text-xs font-mono text-zinc-300">
+                            {fileChunks.length}
+                          </p>
                         </div>
+                          
+                          <Button 
+                            variant="ghost" 
+                            disabled={isProcessing || fileChunks.length === 0}
+                            onClick={(e) => handleDeleteLastChunk(e, file.id)}
+                            className="h-10 px-3 gap-2 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-black border border-amber-500/20 cursor-pointer transition-all rounded-xl text-[10px] font-bold uppercase"
+                          >
+                            <Undo2 className="w-3 h-3" />
+                            Pop Last
+                          </Button>
+
+                          <Button 
+                            variant="ghost" 
+                            disabled={isProcessing}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRunPipeline(subjectId, file.id);
+                            }}
+                            className="h-10 px-3 gap-2 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white border border-emerald-500/20 cursor-pointer transition-all rounded-xl text-[10px] font-bold uppercase"
+                          >
+                            {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-current" />}
+                            Run Pipeline
+                          </Button>
+
                           <Button 
                             variant="ghost" 
                             onClick={(e) => openDeleteDialog(e, file.id)}
@@ -249,8 +305,6 @@ export default function UnifiedStoragePage() {
 
       <Dialog open={isPipelineModalOpen} onOpenChange={setIsPipelineModalOpen}>
         <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-200 w-[92vw] max-w-[1100px] p-10 rounded-2xl border shadow-2xl overflow-hidden focus-visible:outline-none [&>button]:hidden">
-
-          {/* ---- Single Custom Close Button ---- */}
           <Button
             variant="ghost"
             size="icon"
@@ -268,96 +322,47 @@ export default function UnifiedStoragePage() {
           </DialogHeader>
 
           <div className="space-y-10 min-w-0">
-
-          {/* ---- Subject ---- */}
           <div className="space-y-2 pb-3 min-w-0 text-left">
-            <label className="text-[16px] font-mono text-zinc-500 uppercase block tracking-widest text-left">
-              1.Subject
-            </label>
-
+            <label className="text-[16px] font-mono text-zinc-500 uppercase block tracking-widest text-left">1.Subject</label>
             <Select onValueChange={setSelectedSubjectId} value={selectedSubjectId}>
               <SelectTrigger className="w-full max-w-full flex items-center justify-start bg-zinc-900 border border-zinc-800 text-white h-14 rounded-xl px-4 text-base shadow-inner overflow-hidden min-w-0 cursor-pointer text-left">
                 <span className="flex-1 min-w-0 truncate text-left">
                   <SelectValue placeholder="Select context subject..." />
                 </span>
               </SelectTrigger>
-
-              <SelectContent
-                position="popper"
-                sideOffset={4}
-                className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl"
-              >
+              <SelectContent position="popper" sideOffset={4} className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl">
                 {subjects.map((sub) => (
-                  <SelectItem
-                    key={sub.id}
-                    value={sub.id}
-                    className="
-                      text-white cursor-pointer
-                      py-4 pl-5 pr-10
-                      text-base
-                      border-b border-zinc-800/50 last:border-0
-                      focus:bg-zinc-800 hover:bg-zinc-800
-                      min-w-0
-                    "
-                  >
-                    <span className="block truncate min-w-0">
-                      {sub.title}
-                    </span>
+                  <SelectItem key={sub.id} value={sub.id} className="text-white cursor-pointer py-4 pl-5 pr-10 text-base border-b border-zinc-800/50 last:border-0 focus:bg-zinc-800 hover:bg-zinc-800 min-w-0">
+                    <span className="block truncate min-w-0">{sub.title}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* ---- File ---- */}
           <div className="space-y-2 pb-3 min-w-0 text-left">
-            <label className="text-[16px] font-mono text-zinc-500 uppercase block tracking-widest text-left">
-              2.Target File
-            </label>
-
+            <label className="text-[16px] font-mono text-zinc-500 uppercase block tracking-widest text-left">2.Target File</label>
             <Select onValueChange={setSelectedFileId} value={selectedFileId}>
               <SelectTrigger className="w-full max-w-full flex items-center justify-start bg-zinc-900 border border-zinc-800 text-white h-14 rounded-xl px-4 text-base shadow-inner overflow-hidden min-w-0 cursor-pointer text-left">
                 <span className="flex-1 min-w-0 truncate text-left">
                   <SelectValue placeholder="Select source book..." />
                 </span>
               </SelectTrigger>
-
-              <SelectContent
-                position="popper"
-                sideOffset={4}
-                className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl"
-              >
+              <SelectContent position="popper" sideOffset={4} className="bg-zinc-900 border-zinc-800 rounded-xl max-h-[250px] w-[var(--radix-select-trigger-width)] shadow-2xl">
                 {files.map((file) => (
-                  <SelectItem
-                    key={file.id}
-                    value={file.id}
-                    className="
-                      text-white cursor-pointer
-                      py-4 pl-5 pr-10
-                      text-base
-                      border-b border-zinc-800/50 last:border-0
-                      focus:bg-zinc-800 hover:bg-zinc-800
-                      min-w-0
-                    "
-                  >
-                    <span className="block truncate min-w-0">
-                      {file.original_name}
-                    </span>
+                  <SelectItem key={file.id} value={file.id} className="text-white cursor-pointer py-4 pl-5 pr-10 text-base border-b border-zinc-800/50 last:border-0 focus:bg-zinc-800 hover:bg-zinc-800 min-w-0">
+                    <span className="block truncate min-w-0">{file.original_name}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-            {/* ---- Info ---- */}
             <div className="p-5 bg-blue-500/5 border border-blue-500/10 rounded-2xl flex gap-4 min-w-0">
               <Database className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
-              <p className="text-[13px] text-zinc-400 leading-relaxed min-w-0">
-                Starting the pipeline will initiate semantic segmentation.
-              </p>
+              <p className="text-[13px] text-zinc-400 leading-relaxed min-w-0">Starting the pipeline will initiate semantic segmentation.</p>
             </div>
 
-            {/* ---- Actions ---- */}
             <div className="flex flex-col sm:flex-row gap-4 pt-6 min-w-0">
               <Button
                 variant="ghost"
@@ -366,7 +371,6 @@ export default function UnifiedStoragePage() {
               >
                 CANCEL
               </Button>
-
               <Button
                 onClick={executePipeline}
                 disabled={isProcessing || !selectedSubjectId || !selectedFileId}
@@ -382,14 +386,12 @@ export default function UnifiedStoragePage() {
                 )}
               </Button>
             </div>
-
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[95vw] max-w-5xl h-[80vh] bg-zinc-950 border border-zinc-800 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] p-0 flex flex-col rounded-2xl overflow-hidden focus-visible:outline-none">
-          
           <DialogHeader className="p-6 border-b border-zinc-800/50 bg-zinc-900/30 shrink-0 flex flex-row items-center justify-between space-y-0">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -434,7 +436,6 @@ export default function UnifiedStoragePage() {
               >
                 Discard
               </Button>
-
               <Button 
                 onClick={handleUpdateChunk} 
                 disabled={isProcessing} 
@@ -444,7 +445,6 @@ export default function UnifiedStoragePage() {
               </Button>
              </div>
           </div>
-          
         </DialogContent>
       </Dialog>
 
@@ -458,7 +458,6 @@ export default function UnifiedStoragePage() {
             <p className="text-zinc-400 text-sm leading-relaxed mb-8">
                 This action will permanently remove all processed segments associated with this asset. This cannot be undone.
             </p>
-            
             <div className="flex w-full gap-3">
               <Button 
                 variant="ghost" 
