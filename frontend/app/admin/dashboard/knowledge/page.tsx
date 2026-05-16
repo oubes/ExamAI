@@ -183,7 +183,7 @@ export default function KnowledgeArchitecture() {
         throw new Error("Missing structural references: subject_id or document_id is unassigned");
       }
       
-      await knowledgeService.updateChunk(currentChunkId, targetContent, targetSubjectId, targetDocId);
+      await knowledgeService.updateChunk(currentChunkId, targetContent);
       
       setChunks(prev => prev.map(c => c.id === currentChunkId ? { ...c, content: targetContent } : c));
       setSelectedChunk((prev: any) => prev && prev.id === currentChunkId ? { ...prev, content: targetContent } : prev);
@@ -263,7 +263,7 @@ export default function KnowledgeArchitecture() {
                 </Button>
             </DialogTrigger>
 
-            <DialogContent className="bg-[#050506] border border-zinc-800/80 text-white p-0 rounded-[2.2rem] max-w-lg overflow-hidden shadow-2xl shadow-black/60 [&>button]:hidden">
+            <DialogContent className="bg-[#050506] border border-zinc-800/80 text-white p-0 rounded-[2.2rem] min-w-md max-w-lg overflow-hidden shadow-2xl shadow-black/60 [&>button]:hidden">
 
                 {/* ---- Custom Close ---- */}
                 <button
