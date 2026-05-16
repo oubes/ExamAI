@@ -41,5 +41,6 @@ class SMTPClient:
             port=settings.smtp_port,
             username=settings.smtp_user,
             password=settings.smtp_password,
-            start_tls=True,
+            use_tls=True,
+            start_tls=False,
         )
