@@ -3,10 +3,13 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.core.di.embedder import get_embedding_service
+from src.core.di.llm import get_llm_service
 from src.domain.knowledge.models.knowledge_base import KnowledgeBase
 from src.domain.knowledge.services.knowledge_base import (
     KnowledgeBaseService,
 )
+from src.services.knowledge.models.summarizer import generate_summary
 
 
 # ---- Service ---- #
@@ -183,10 +186,39 @@ class KnowledgeBaseManager:
         payload: dict,
     ) -> int:
 
+        # ---- Get existing chunk ---- #
+        existing = await knowledge_base_service.get_by_id(
+            session=session,
+            record_id=chunk_id,
+        )
+
+        if not existing:
+            raise ValueError("Chunk not found")
+
+        # ---- Resolve content ---- #
+        new_content = payload.get("content", existing.content)
+
+        # ---- DI services (same as pipeline) ---- #
+        embedding_service = await get_embedding_service()
+        llm_service = await get_llm_service()
+
+        # ---- Recompute ---- #
+        embedding = await embedding_service.embed(new_content)
+        summary = await generate_summary(llm_service, new_content)
+
+        # ---- Build payload ---- #
+        update_payload = {
+            **payload,
+            "content": new_content,
+            "embedding": embedding,
+            "summary": summary.get("summary", ""),
+        }
+
+        # ---- Persist ---- #
         return await knowledge_base_service.update_chunk(
             session=session,
             record_id=chunk_id,
-            payload=payload,
+            payload=update_payload,
         )
 
 # ---- DI ---- #

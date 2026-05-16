@@ -1,6 +1,6 @@
 # ---- Imports ---- #
 from uuid import UUID
-from typing import Dict, Any
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -201,7 +201,7 @@ async def delete_chunk(
 @router.patch("/chunks/{chunk_id}")
 async def update_chunk(
     chunk_id: UUID,
-    payload: Dict[str, Any] = Body(...),
+    payload: dict[str, Any] = Body(...),
     session: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
 ):
