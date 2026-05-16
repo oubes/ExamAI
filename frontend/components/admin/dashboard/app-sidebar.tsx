@@ -18,18 +18,26 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   ClipboardCheck,
   MessageSquareText,
   BookOpen,
   GraduationCap,
   LayoutDashboard,
   LogOut,
-  Sparkles
+  Sparkles,
+  HardDrive,
+  Cpu,
+  Database,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { authService } from "@/services/auth.service";
 import { MeResponse } from "@/services/dashboard.service";
-import { HardDrive, Cpu,  } from "lucide-react";
 
 // ---- Navigation Config ----
 const studentNav = [
@@ -37,7 +45,7 @@ const studentNav = [
   { title: "Subjects", icon: BookOpen, href: "/admin/dashboard/subjects" },
   { title: "Storage", icon: HardDrive, href: "/admin/dashboard/storage" },
   { title: "Chunking", icon: Cpu, href: "/admin/dashboard/chunking" },
-  { title: "Knowledge", icon: HardDrive, href: "/admin/dashboard/knowledge" },
+  { title: "Knowledge", icon: Database, href: "/admin/dashboard/knowledge" },
   { title: "Questions", icon: Sparkles, href: "/admin/dashboard/questions" },
   { title: "Exams", icon: ClipboardCheck, href: "/admin/dashboard/exams" },
   { title: "Feedback", icon: MessageSquareText, href: "/admin/dashboard/feedback" },
@@ -45,16 +53,29 @@ const studentNav = [
 
 // ---- Sidebar Header Component ----
 function SidebarHeaderTrigger() {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
   return (
     <SidebarHeader className="px-4 py-8">
       <div className="flex items-center gap-3">
-        <button 
-          onClick={toggleSidebar}
-          className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-zinc-800 ring-1 ring-white/10 shadow-2xl transition-all hover:bg-zinc-700 active:scale-95"
-        >
-          <GraduationCap className="h-5 w-5 text-blue-400" />
-        </button>
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button 
+                onClick={toggleSidebar}
+                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-zinc-800 ring-1 ring-white/10 shadow-2xl transition-all hover:bg-zinc-700 active:scale-95"
+              >
+                <GraduationCap className="h-5 w-5 text-blue-400" />
+              </button>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right" className="bg-zinc-900 border-zinc-800 text-zinc-200 font-bold">
+                Expand Sidebar
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
         <div className="flex flex-col truncate group-data-[collapsible=icon]:hidden">
           <span className="text-sm font-bold tracking-tight text-white uppercase">ExamAI</span>
           <span className="text-[10px] text-zinc-500 font-mono italic">System_Active</span>
@@ -68,6 +89,8 @@ function SidebarHeaderTrigger() {
 export function AppSidebar({ user }: { user: MeResponse | null }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   const handleLogout = async () => {
     try {
@@ -89,63 +112,94 @@ export function AppSidebar({ user }: { user: MeResponse | null }) {
           </SidebarGroupLabel>
           <SidebarGroupContent className="mt-4">
             <SidebarMenu>
-              {studentNav.map((item) => {
-                // ---- Logic to check if item is active (Standard or Admin path) ----
-                const isActive = pathname === item.href || (item.adminHref && pathname === item.adminHref);
+              <TooltipProvider delayDuration={0}>
+                {studentNav.map((item) => {
+                  const isActive = pathname === item.href || (item.adminHref && pathname === item.adminHref);
 
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton 
-                      asChild 
-                      isActive={isActive}
-                      className={`mx-2 h-11 rounded-lg transition-all group/item cursor-pointer 
-                        ${isActive 
-                          ? "bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20" 
-                          : "text-zinc-400 hover:bg-white/5 hover:text-blue-400"
-                        }`}
-                    >
-                      <Link href={user?.role === "admin" && item.adminHref ? item.adminHref : item.href}>
-                        <item.icon className={`h-4 w-4 transition-transform duration-200 
-                          ${isActive ? "scale-110 text-blue-400" : "group-hover/item:scale-125"}`} 
-                        />
-                        <span className="font-medium">{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SidebarMenuButton 
+                            asChild 
+                            isActive={isActive}
+                            className={`mx-2 h-11 rounded-lg transition-all group/item cursor-pointer 
+                              ${isActive 
+                                ? "bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20" 
+                                : "text-zinc-400 hover:bg-white/5 hover:text-blue-400"
+                              }`}
+                          >
+                            <Link href={user?.role === "admin" && item.adminHref ? item.adminHref : item.href}>
+                              <item.icon className={`h-4 w-4 transition-transform duration-200 
+                                ${isActive ? "scale-110 text-blue-400" : "group-hover/item:scale-125"}`} 
+                              />
+                              <span className="font-medium group-data-[collapsible=icon]:hidden">{item.title}</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </TooltipTrigger>
+                        {isCollapsed && (
+                          <TooltipContent side="right" className="bg-zinc-900 border-zinc-800 text-zinc-200">
+                            {item.title}
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </TooltipProvider>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
       <SidebarFooter className="p-3 space-y-2 transition-all duration-300">
-        <Link 
-          href="/admin/dashboard/profile" 
-          className={`flex items-center gap-3 rounded-xl p-3 ring-1 shadow-lg transition-all duration-200 group/user active:scale-[0.98] 
-            group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center cursor-pointer
-            ${pathname === "/admin/dashboard/profile" 
-              ? "bg-blue-500/10 ring-blue-500/40 text-blue-400" 
-              : "bg-zinc-900/80 ring-white/10 hover:bg-zinc-800 hover:ring-blue-500/40"
-            }`}
-        >
-          <Avatar className="h-7 w-7 border border-blue-500/20 shrink-0 transition-transform group-hover/user:scale-110">
-            <AvatarFallback className="bg-zinc-800 text-[10px] font-bold text-blue-400">
-              {user?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'ST'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col truncate group-data-[collapsible=icon]:hidden">
-            <span className={`text-xs font-semibold transition-colors ${pathname === "/admin/dashboard/profile" ? "text-blue-400" : "text-zinc-100 group-hover/user:text-blue-400"}`}>
-              {user?.full_name}
-            </span>
-            <span className="text-[9px] text-zinc-500 truncate">{user?.email}</span>
-          </div>
-        </Link>
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link 
+                href="/admin/dashboard/profile" 
+                className={`flex items-center gap-3 rounded-xl p-3 ring-1 shadow-lg transition-all duration-200 group/user active:scale-[0.98] 
+                  group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center cursor-pointer
+                  ${pathname === "/admin/dashboard/profile" 
+                    ? "bg-blue-500/10 ring-blue-500/40 text-blue-400" 
+                    : "bg-zinc-900/80 ring-white/10 hover:bg-zinc-800 hover:ring-blue-500/40"
+                  }`}
+              >
+                <Avatar className="h-7 w-7 border border-blue-500/20 shrink-0 transition-transform group-hover/user:scale-110">
+                  <AvatarFallback className="bg-zinc-800 text-[10px] font-bold text-blue-400">
+                    {user?.full_name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'ST'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col truncate group-data-[collapsible=icon]:hidden">
+                  <span className={`text-xs font-semibold transition-colors ${pathname === "/admin/dashboard/profile" ? "text-blue-400" : "text-zinc-100 group-hover/user:text-blue-400"}`}>
+                    {user?.full_name}
+                  </span>
+                  <span className="text-[9px] text-zinc-500 truncate">{user?.email}</span>
+                </div>
+              </Link>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right" className="bg-zinc-900 border-zinc-800 text-zinc-200">
+                <p className="text-xs font-semibold text-zinc-100">{user?.full_name}</p>
+                <p className="text-[10px] text-zinc-400">{user?.email}</p>
+              </TooltipContent>
+            )}
+          </Tooltip>
 
-        <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group/logout active:scale-95 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 cursor-pointer">
-          <LogOut className="h-4 w-4 transition-all duration-200 group-hover/logout:-translate-x-1 group-data-[collapsible=icon]:group-hover/logout:translate-x-0 group-data-[collapsible=icon]:group-hover/logout:scale-125" />
-          <span className="text-xs font-bold uppercase tracking-wider group-data-[collapsible=icon]:hidden">Logout</span>
-        </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-zinc-500 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group/logout active:scale-95 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 cursor-pointer">
+                <LogOut className="h-4 w-4 transition-all duration-200 group-hover/logout:-translate-x-1 group-data-[collapsible=icon]:group-hover/logout:translate-x-0 group-data-[collapsible=icon]:group-hover/logout:scale-125" />
+                <span className="text-xs font-bold uppercase tracking-wider group-data-[collapsible=icon]:hidden">Logout</span>
+              </button>
+            </TooltipTrigger>
+            {isCollapsed && (
+              <TooltipContent side="right" className="bg-red-950 border-red-900/50 text-red-400 font-bold">
+                Logout
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
