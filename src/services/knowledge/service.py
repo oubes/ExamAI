@@ -186,7 +186,7 @@ class KnowledgeBaseManager:
         payload: dict,
     ) -> int:
 
-        # ---- Get existing chunk ---- #
+        # ---- Load existing chunk ---- #
         existing = await knowledge_base_service.get_by_id(
             session=session,
             record_id=chunk_id,
@@ -196,17 +196,22 @@ class KnowledgeBaseManager:
             raise ValueError("Chunk not found")
 
         # ---- Resolve content ---- #
+        content_changed = "content" in payload
         new_content = payload.get("content", existing.content)
 
-        # ---- DI services (same as pipeline) ---- #
-        embedding_service = await get_embedding_service()
-        llm_service = await get_llm_service()
+        # ---- Default reuse (no recompute) ---- #
+        embedding = existing.embedding
+        summary = {"summary": existing.summary}
 
-        # ---- Recompute ---- #
-        embedding = await embedding_service.embed(new_content)
-        summary = await generate_summary(llm_service, new_content)
+        # ---- Recompute ONLY if content changed ---- #
+        if content_changed:
+            embedding_service = await get_embedding_service()
+            llm_service = await get_llm_service()
 
-        # ---- Build payload ---- #
+            embedding = await embedding_service.embed(new_content)
+            summary = await generate_summary(llm_service, new_content)
+
+        # ---- Build update payload ---- #
         update_payload = {
             **payload,
             "content": new_content,

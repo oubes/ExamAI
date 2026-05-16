@@ -592,7 +592,7 @@ export default function KnowledgeArchitecture() {
 
               <div className="flex items-center gap-3 mb-4 shrink-0">
                  <div className="px-2 py-1 bg-blue-600/10 border border-blue-600/20 rounded-md">
-                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-tighter">Fragment #{selectedChunk?.chunk_index}</span>
+                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-tighter">Chunk #{selectedChunk?.chunk_index}</span>
                  </div>
                  <div className="h-px w-8 bg-zinc-800" />
                  <span className="text-[9px] font-mono text-zinc-700 uppercase tracking-[0.3em]">
