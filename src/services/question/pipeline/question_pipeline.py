@@ -1,11 +1,17 @@
 # ----- IMPORTS ----- #
+import logging
+
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.di.llm import get_llm_service
+
 from src.services.question.core.settings import Settings
 
 from src.services.question.models.mcq_model import generate_mcq
 from src.services.question.models.written_model import generate_written
+
 from src.services.question.utils.utils import normalize_mcq
 
 from src.domain.questions.services.question import QuestionService
@@ -14,260 +20,505 @@ from src.domain.questions.services.model_answer import ModelAnswerService
 from src.domain.questions.services.question_skill import QuestionSkillService
 from src.domain.questions.services.chunk import ChunkService
 
-from uuid import UUID
+
+# ----- LOGGER ----- #
+logger = logging.getLogger(__name__)
 
 
 # ----- SETTINGS ----- #
 settings = Settings()
-DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
+
+DIFFICULTY_MAP = {
+    "easy": 1,
+    "medium": 2,
+    "hard": 3,
+}
 
 
-# ----- MAIN PIPELINE ----- #
-async def run_question_pipeline(
-    session: AsyncSession,
-    book_id: str,
-    subject_id: str,
-):
+# ----- QUESTION PIPELINE ----- #
+class QuestionPipeline:
 
-    print("\n================ PIPELINE START ================\n")
+    # ----- INIT ----- #
+    def __init__(self):
 
-    llm = await get_llm_service()
+        self.llm = None
 
-    question_service = QuestionService()
-    option_service = QuestionOptionService()
-    model_answer_service = ModelAnswerService()
-    question_skill_service = QuestionSkillService()
-    chunk_service = ChunkService()
+        self.question_service = QuestionService()
+        self.option_service = QuestionOptionService()
+        self.model_answer_service = ModelAnswerService()
+        self.question_skill_service = QuestionSkillService()
+        self.chunk_service = ChunkService()
 
-    # ---------- FETCH CHUNKS ---------- #
-    print("[STEP] fetching chunks...")
+    # ----- RUN ----- #
+    async def run(
+        self,
+        session: AsyncSession,
+        book_id: str,
+        subject_id: str,
+    ):
 
-    chunks = await chunk_service.list_by_filters(
-        session=session,
-        subject_id=UUID(subject_id),
-        book_id=UUID(book_id),
-    )
+        logger.info("[PIPELINE] started")
 
-    print(f"[STEP] chunks loaded = {len(chunks)}")
+        self.llm = await get_llm_service()
 
-    if not chunks:
-        print("[PIPELINE] EMPTY CHUNKS")
-        return {"status": "empty"}
+        chunks = await self.fetch_chunks(
+            session=session,
+            subject_id=subject_id,
+            book_id=book_id,
+        )
 
-    # ---------- MAIN LOOP ---------- #
-    for i, chunk in enumerate(chunks):
+        logger.info(
+            "[PIPELINE] chunks loaded | count=%s",
+            len(chunks),
+        )
 
-        print("\n--------------------------------------------------")
-        print(f"[CHUNK {i}] START")
-        print(f"chapter_id = {chunk.chapter_id}")
-        print(f"topic_id   = {chunk.topic_id}")
+        if not chunks:
+
+            logger.warning("[PIPELINE] empty chunks")
+
+            return {
+                "status": "empty",
+            }
+
+        for index, chunk in enumerate(chunks):
+
+            await self.process_chunk(
+                session=session,
+                chunk=chunk,
+                chunk_index=index,
+                subject_id=subject_id,
+            )
+
+        logger.info("[PIPELINE] committing session")
+
+        await session.commit()
+
+        logger.info("[PIPELINE] completed")
+
+        return {
+            "status": "completed",
+            "chunks": len(chunks),
+        }
+
+    # ----- FETCH CHUNKS ----- #
+    async def fetch_chunks(
+        self,
+        session: AsyncSession,
+        subject_id: str,
+        book_id: str,
+    ):
+
+        logger.info("[PIPELINE] fetching chunks")
+
+        return await self.chunk_service.list_by_filters(
+            session=session,
+            subject_id=UUID(subject_id),
+            book_id=UUID(book_id),
+        )
+
+    # ----- PROCESS CHUNK ----- #
+    async def process_chunk(
+        self,
+        session: AsyncSession,
+        chunk,
+        chunk_index: int,
+        subject_id: str,
+    ):
+
+        logger.info(
+            "[CHUNK] started | index=%s | chapter_id=%s | topic_id=%s",
+            chunk_index,
+            chunk.chapter_id,
+            chunk.topic_id,
+        )
 
         topic_text = chunk.content
         topic_summary = topic_text[:1000]
 
         skills = getattr(chunk, "skills", []) or []
 
-        print(f"[CHUNK {i}] skills = {skills}")
+        logger.info(
+            "[CHUNK] skills loaded | index=%s | count=%s",
+            chunk_index,
+            len(skills),
+        )
 
-        # ================= MCQ ================= #
+        await self.process_mcq(
+            session=session,
+            chunk=chunk,
+            subject_id=subject_id,
+            topic_text=topic_text,
+            topic_summary=topic_summary,
+            skills=skills,
+        )
+
+        await self.process_written(
+            session=session,
+            chunk=chunk,
+            subject_id=subject_id,
+            topic_text=topic_text,
+            topic_summary=topic_summary,
+            skills=skills,
+        )
+
+        logger.info(
+            "[CHUNK] completed | index=%s",
+            chunk_index,
+        )
+
+    # ----- PROCESS MCQ ----- #
+    async def process_mcq(
+        self,
+        session: AsyncSession,
+        chunk,
+        subject_id: str,
+        topic_text: str,
+        topic_summary: str,
+        skills: list,
+    ):
+
         for difficulty in settings.DIFFICULTY_LEVELS:
 
-            print(f"\n[MCQ] difficulty = {difficulty}")
+            logger.info(
+                "[MCQ] generating | difficulty=%s",
+                difficulty,
+            )
 
             mcq_resp = await generate_mcq(
-                llm,
+                self.llm,
                 topic_text,
                 topic_summary,
                 difficulty,
             )
 
-            print(f"[MCQ] keys = {mcq_resp.keys()}")
+            logger.info(
+                "[MCQ] response keys=%s",
+                list(mcq_resp.keys()),
+            )
 
             questions = mcq_resp.get("questions", [])
-            print(f"[MCQ] questions count = {len(questions)}")
 
-            for q_idx, q in enumerate(questions):
+            logger.info(
+                "[MCQ] questions count=%s",
+                len(questions),
+            )
+
+            for q_index, q in enumerate(questions):
 
                 q = normalize_mcq(q)
 
-                print(f"\n[MCQ] Q{q_idx}")
-                print(q)
-
-                question = await question_service.create(
-                    session=session,
-                    payload={
-                        "subject_id": subject_id,
-                        "chapter_id": chunk.chapter_id,
-                        "topic_id": chunk.topic_id,
-                        "content": q.get("question") or q.get("content"),
-                        "explanation": q.get("explanation"),
-                        "type": "mcq",
-                        "difficulty": DIFFICULTY_MAP[difficulty],
-                        "importance": q.get("importance", 1),
-                        "tags": ",".join(q.get("tags", []))
-                        if isinstance(q.get("tags"), list)
-                        else q.get("tags"),
-                        "embedding": q.get("embedding", []),
-                    },
+                logger.info(
+                    "[MCQ] processing question | index=%s",
+                    q_index,
                 )
 
-                print(f"[MCQ] STORED QUESTION -> id={question.id}")
+                question = await self.create_question(
+                    session=session,
+                    chunk=chunk,
+                    subject_id=subject_id,
+                    q=q,
+                    difficulty=difficulty,
+                    question_type="mcq",
+                )
 
-                # ---------- OPTIONS ---------- #
-                options = q.get("options")
+                await self.create_options(
+                    session=session,
+                    question_id=question.id,
+                    q=q,
+                )
 
-                if options is None:
-                    choices = q.get("choices", [])
+                await self.link_skills(
+                    session=session,
+                    question_id=question.id,
+                    skills=skills,
+                    question_type="mcq",
+                )
 
-                    if isinstance(choices, dict):
-                        options = [{"text": v, "is_correct": False} for v in choices.values()]
-                    else:
-                        options = [{"text": c, "is_correct": False} for c in choices]
+    # ----- PROCESS WRITTEN ----- #
+    async def process_written(
+        self,
+        session: AsyncSession,
+        chunk,
+        subject_id: str,
+        topic_text: str,
+        topic_summary: str,
+        skills: list,
+    ):
 
-                normalized_options = []
-
-                for opt in options:
-
-                    if isinstance(opt, str):
-                        normalized_options.append({
-                            "text": opt,
-                            "is_correct": False
-                        })
-
-                    elif isinstance(opt, dict):
-                        normalized_options.append({
-                            "text": opt.get("text") or opt.get("option") or opt.get("value"),
-                            "is_correct": opt.get("is_correct", False)
-                        })
-
-                if not any(o["is_correct"] for o in normalized_options) and normalized_options:
-                    normalized_options[0]["is_correct"] = True
-
-                print(f"[MCQ] options count = {len(normalized_options)}")
-
-                for idx, opt in enumerate(normalized_options):
-
-                    option_text = opt.get("text")
-
-                    if option_text:
-                        option = await option_service.create(
-                            session=session,
-                            payload={
-                                "question_id": question.id,
-                                "option_text": option_text,
-                                "is_correct": opt.get("is_correct", False),
-                                "order": idx,
-                            },
-                        )
-
-                        print(
-                            f"[MCQ] STORED OPTION -> id={option.id} | question_id={question.id}"
-                        )
-
-                # ---------- SKILLS ---------- #
-                print(f"[MCQ] linking skills...")
-
-                for skill_id in skills:
-
-                    link = await question_skill_service.create(
-                        session=session,
-                        payload={
-                            "question_id": question.id,
-                            "skill_id": skill_id,
-                            "weight": 1.0,
-                        },
-                    )
-
-                    print(
-                        f"[MCQ] STORED SKILL LINK -> id={link.id} | question_id={question.id} | skill_id={skill_id}"
-                    )
-
-        # ================= WRITTEN ================= #
         for difficulty in settings.DIFFICULTY_LEVELS:
 
-            print(f"\n[WRITTEN] difficulty = {difficulty}")
+            logger.info(
+                "[WRITTEN] generating | difficulty=%s",
+                difficulty,
+            )
 
             written_resp = await generate_written(
-                llm,
+                self.llm,
                 topic_text,
                 topic_summary,
                 difficulty,
             )
 
-            print(f"[WRITTEN] keys = {written_resp.keys()}")
+            logger.info(
+                "[WRITTEN] response keys=%s",
+                list(written_resp.keys()),
+            )
 
             questions = written_resp.get("questions", [])
-            print(f"[WRITTEN] count = {len(questions)}")
 
-            for q_idx, q in enumerate(questions):
+            logger.info(
+                "[WRITTEN] questions count=%s",
+                len(questions),
+            )
 
-                print(f"\n[WRITTEN] Q{q_idx}")
-                print(q)
+            for q_index, q in enumerate(questions):
 
-                question = await question_service.create(
-                    session=session,
-                    payload={
-                        "subject_id": subject_id,
-                        "chapter_id": chunk.chapter_id,
-                        "topic_id": chunk.topic_id,
-                        "content": q.get("question") or q.get("content"),
-                        "explanation": q.get("explanation"),
-                        "type": "written",
-                        "difficulty": DIFFICULTY_MAP[difficulty],
-                        "importance": q.get("importance", 1),
-                        "tags": ",".join(q.get("tags", []))
-                        if isinstance(q.get("tags"), list)
-                        else q.get("tags"),
-                        "embedding": q.get("embedding", []),
-                    },
+                logger.info(
+                    "[WRITTEN] processing question | index=%s",
+                    q_index,
                 )
 
-                print(f"[WRITTEN] STORED QUESTION -> id={question.id}")
+                question = await self.create_question(
+                    session=session,
+                    chunk=chunk,
+                    subject_id=subject_id,
+                    q=q,
+                    difficulty=difficulty,
+                    question_type="written",
+                )
 
-                # ---------- MODEL ANSWER ---------- #
-                answer = q.get("answer")
+                await self.create_model_answer(
+                    session=session,
+                    question_id=question.id,
+                    q=q,
+                )
 
-                if answer:
-                    ans = await model_answer_service.create(
-                        session=session,
-                        payload={
-                            "question_id": question.id,
-                            "answer_text": answer,
-                        },
-                    )
+                await self.link_skills(
+                    session=session,
+                    question_id=question.id,
+                    skills=skills,
+                    question_type="written",
+                )
 
-                    print(
-                        f"[WRITTEN] STORED MODEL ANSWER -> id={ans.id} | question_id={question.id}"
-                    )
+    # ----- CREATE QUESTION ----- #
+    async def create_question(
+        self,
+        session: AsyncSession,
+        chunk,
+        subject_id: str,
+        q: dict,
+        difficulty: str,
+        question_type: str,
+    ):
 
-                # ---------- SKILLS ---------- #
-                print(f"[WRITTEN] linking skills...")
+        question = await self.question_service.create(
+            session=session,
+            payload={
+                "subject_id": subject_id,
+                "chapter_id": chunk.chapter_id,
+                "topic_id": chunk.topic_id,
+                "content": q.get("question") or q.get("content"),
+                "explanation": q.get("explanation"),
+                "type": question_type,
+                "difficulty": DIFFICULTY_MAP[difficulty],
+                "importance": q.get("importance", 1),
+                "tags": ",".join(q.get("tags", []))
+                if isinstance(q.get("tags"), list)
+                else q.get("tags"),
+                "embedding": q.get("embedding", []),
+            },
+        )
 
-                for skill_id in skills:
+        logger.info(
+            "[%s] stored question | question_id=%s",
+            question_type.upper(),
+            question.id,
+        )
 
-                    link = await question_skill_service.create(
-                        session=session,
-                        payload={
-                            "question_id": question.id,
-                            "skill_id": skill_id,
-                            "weight": 1.0,
-                        },
-                    )
+        return question
 
-                    print(
-                        f"[WRITTEN] STORED SKILL LINK -> id={link.id} | question_id={question.id} | skill_id={skill_id}"
-                    )
+    # ----- CREATE OPTIONS ----- #
+    async def create_options(
+        self,
+        session: AsyncSession,
+        question_id,
+        q: dict,
+    ):
 
-        print(f"\n[CHUNK {i}] END")
+        options = self.normalize_options(q)
 
-    # ---------- COMMIT ---------- #
-    print("\n[STEP] committing session...")
+        logger.info(
+            "[MCQ] normalized options count=%s | question_id=%s",
+            len(options),
+            question_id,
+        )
 
-    await session.commit()
+        for index, option_data in enumerate(options):
 
-    print("\n================ PIPELINE DONE ================\n")
+            option_text = option_data.get("text")
 
-    return {
-        "status": "completed",
-        "chunks": len(chunks),
-    }
+            if not option_text:
+                continue
+
+            option = await self.option_service.create(
+                session=session,
+                payload={
+                    "question_id": question_id,
+                    "option_text": option_text,
+                    "is_correct": option_data.get("is_correct", False),
+                    "order": index,
+                },
+            )
+
+            logger.info(
+                "[MCQ] stored option | option_id=%s | question_id=%s",
+                option.id,
+                question_id,
+            )
+
+    # ----- CREATE MODEL ANSWER ----- #
+    async def create_model_answer(
+        self,
+        session: AsyncSession,
+        question_id,
+        q: dict,
+    ):
+
+        answer = q.get("answer")
+
+        if not answer:
+            return
+
+        model_answer = await self.model_answer_service.create(
+            session=session,
+            payload={
+                "question_id": question_id,
+                "answer_text": answer,
+            },
+        )
+
+        logger.info(
+            "[WRITTEN] stored model answer | answer_id=%s | question_id=%s",
+            model_answer.id,
+            question_id,
+        )
+
+    # ----- LINK SKILLS ----- #
+    async def link_skills(
+        self,
+        session: AsyncSession,
+        question_id,
+        skills: list,
+        question_type: str,
+    ):
+
+        logger.info(
+            "[%s] linking skills | question_id=%s | count=%s",
+            question_type.upper(),
+            question_id,
+            len(skills),
+        )
+
+        for skill_id in skills:
+
+            link = await self.question_skill_service.create(
+                session=session,
+                payload={
+                    "question_id": question_id,
+                    "skill_id": skill_id,
+                    "weight": 1.0,
+                },
+            )
+
+            logger.info(
+                "[%s] stored skill link | link_id=%s | question_id=%s | skill_id=%s",
+                question_type.upper(),
+                link.id,
+                question_id,
+                skill_id,
+            )
+
+    # ----- NORMALIZE OPTIONS ----- #
+    def normalize_options(
+        self,
+        q: dict,
+    ) -> list[dict]:
+
+        options = q.get("options")
+
+        if options is None:
+
+            choices = q.get("choices", [])
+
+            if isinstance(choices, dict):
+
+                options = [
+                    {
+                        "text": value,
+                        "is_correct": False,
+                    }
+                    for value in choices.values()
+                ]
+
+            else:
+
+                options = [
+                    {
+                        "text": choice,
+                        "is_correct": False,
+                    }
+                    for choice in choices
+                ]
+
+        normalized_options = []
+
+        for option in options:
+
+            if isinstance(option, str):
+
+                normalized_options.append(
+                    {
+                        "text": option,
+                        "is_correct": False,
+                    }
+                )
+
+            elif isinstance(option, dict):
+
+                normalized_options.append(
+                    {
+                        "text": (
+                            option.get("text")
+                            or option.get("option")
+                            or option.get("value")
+                        ),
+                        "is_correct": option.get("is_correct", False),
+                    }
+                )
+
+        if (
+            normalized_options
+            and not any(
+                option["is_correct"]
+                for option in normalized_options
+            )
+        ):
+            normalized_options[0]["is_correct"] = True
+
+        return normalized_options
+
+
+# ----- ENTRYPOINT ----- #
+async def run_question_pipeline(
+    session: AsyncSession,
+    book_id: str,
+    subject_id: str,
+):
+
+    pipeline = QuestionPipeline()
+
+    return await pipeline.run(
+        session=session,
+        book_id=book_id,
+        subject_id=subject_id,
+    )
